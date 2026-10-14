@@ -51,6 +51,7 @@
   .text { word-break: break-word; }
   .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 5px; font-size: 12.5px; color: var(--sub); }
   .due { font-weight: 700; }
+  .star { color: var(--orange); }
   .due.late { color: var(--red); } .due.soon { color: var(--orange); } .due.far { color: var(--sub); font-weight: 400; }
   .more { margin-top: 8px; padding: 10px; border-radius: 10px; background: var(--tint); font-size: 13.5px; color: var(--sub); }
   .steps { margin: 0; padding: 0; list-style: none; }
@@ -194,8 +195,8 @@ function sample() {
     { id: "s2", section: "매일 하는 일", text: "문의 메일 답장", steps: ["문의 메일 답장"], step: 0, due: t, stepDues: [], notes: "", repeat: true },
     { id: "s3", section: "가을 행사", text: "장소 확정 → 안내문 작성 → 참석자에게 발송", steps: ["장소 확정", "안내문 작성", "참석자에게 발송"], step: 1, due: plus(2), stepDues: [plus(-1), plus(2), plus(7)], notes: "작년 안내문 참고\n참석 예정 40명", repeat: false },
     { id: "s4", section: "가을 행사", text: "인쇄물 견적 받기", steps: ["인쇄물 견적 받기"], step: 0, due: "", stepDues: [], notes: "", repeat: false },
-    { id: "s5", section: "거래처", text: "계약서 수정 사항 확인", steps: ["계약서 수정 사항 확인"], step: 0, due: plus(-1), stepDues: [], notes: "", repeat: false },
-    { id: "s6", section: "거래처", text: "대표님 검토 → 전자 계약 발송", steps: ["대표님 검토", "전자 계약 발송"], step: 0, due: plus(9), stepDues: [], notes: "", repeat: false } ] };
+    { id: "s5", section: "거래처", text: "계약서 수정 사항 확인", steps: ["계약서 수정 사항 확인"], step: 0, due: plus(-1), stepDues: [], notes: "", repeat: false, files: 2 },
+    { id: "s6", section: "거래처", text: "대표님 검토 → 전자 계약 발송", steps: ["대표님 검토", "전자 계약 발송"], step: 0, due: plus(9), stepDues: [], notes: "", repeat: false, star: true, remind: t + " 15:00" } ] };
 }
 
 // PC 에서 받은 목록에 아직 안 넘어간 내 변경을 겹쳐서 보여 준다(PC 와 같은 규칙으로).
@@ -222,6 +223,7 @@ function view() {
     if (op.op === "edit" && item.steps.length < 2) { item.text = op.text; item.steps = [op.text]; }
     if (op.op === "editStep" && op.step < item.steps.length) item.steps[op.step] = op.text;
     if (op.op === "delete") item.gone = true;
+    if (op.op === "star") item.star = !!op.on;
     if (op.op === "addStep") { item.steps.push(op.text); if (item.stepDues.some(Boolean)) item.stepDues.push(""); }
     if (op.op === "moveStep" && op.from < item.steps.length && op.to < item.steps.length) {
       const [s] = item.steps.splice(op.from, 1); item.steps.splice(op.to, 0, s);
@@ -250,6 +252,12 @@ function sectionOrder() {
     }
   }
   return secs;
+}
+
+// PC 에서 정한 알림 시각: 오늘 · 내일이면 그렇게, 아니면 날짜
+function remindLabel(s) {
+  const d = s.slice(0, 10), hm = s.slice(11, 16), t = today(), tm = day(new Date(Date.parse(t) + 86400000));
+  return (d === t ? "오늘 " : d === tm ? "내일 " : md(d) + " ") + hm;
 }
 
 function dueLabel(item) {
@@ -305,23 +313,25 @@ function render() {
   const colors = (state && state.colors) || {}, pinned = (state && state.pinned) || [];
   let html = "";
   for (const name of order) {
-    const items = todos.filter(x => (x.section || "") === name);
+    // 프로젝트 안에서는 PC 처럼 중요 표시한 일이 먼저
+    const items = todos.filter(x => (x.section || "") === name).sort((a, b) => (b.star ? 1 : 0) - (a.star ? 1 : 0));
     if (!items.length) continue;
     html += `<section><div class="proj" data-sec="${esc(name)}"><i style="${colors[name] ? "background:" + esc(colors[name]) : ""}"></i><b data-project="${esc(name)}">${esc(name || "기타")}</b>`
       + (pinned.includes(name) ? `<small>고정</small>` : "") + `<small>${items.length}</small></div>`;
     for (const item of items) {
       const due = dueLabel(item), many = item.steps.length > 1;
       html += `<div class="item" data-id="${esc(item.id)}" data-sec="${esc(item.section || "")}"><button class="box${item.step > 0 ? " part" : ""}" data-check="${esc(item.id)}" aria-label="완료"></button><div class="body">`
-        + `<div class="text" data-open="${esc(item.id)}">${mark(many ? item.steps[item.step] : item.text)}</div><div class="meta" data-open="${esc(item.id)}">`
+        + `<div class="text" data-open="${esc(item.id)}">${item.star ? `<span class="star">★</span> ` : ""}${mark(many ? item.steps[item.step] : item.text)}</div><div class="meta" data-open="${esc(item.id)}">`
         + (many ? `<span>${item.step + 1}/${item.steps.length}</span>` + (item.step < item.steps.length - 1 ? `<span>다음: ${esc(item.steps[item.step + 1])}</span>` : "") : "")
-        + (due ? `<span class="due ${due.cls}">${due.text}</span>` : "") + (item.notes && opened !== item.id ? `<span>메모</span>` : "") + `</div>`;
+        + (due ? `<span class="due ${due.cls}">${due.text}</span>` : "") + (item.remind ? `<span>알림 ${remindLabel(item.remind)}</span>` : "")
+        + (item.files ? `<span>첨부 ${item.files}</span>` : "") + (item.notes && opened !== item.id ? `<span>메모</span>` : "") + `</div>`;
       if (opened === item.id) {
         html += `<div class="more">`;
         if (many) html += `<ul class="steps" data-steps="${esc(item.id)}">` + item.steps.map((s, i) => `<li class="${i < item.step ? "done" : i === item.step ? "now" : ""}"${i >= item.step ? ` data-stepi="${i}"` : ""}><span data-stepname="${i}">${i + 1}. ${esc(s)}</span>`
           + (i >= item.step ? `<button data-stepdue="${i}">${item.stepDues[i] ? "~" + md(item.stepDues[i]) : "마감일"}</button>` : "") + `</li>`).join("") + `</ul>`;
         if (item.notes) html += `<div class="note">${esc(item.notes)}</div>`;
         html += `<div class="acts">` + (item.step > 0 ? `<button data-act="back">이전 단계</button>` : "")
-          + `<button data-act="step">단계 추가</button><button data-act="note">메모 추가</button>`
+          + `<button data-act="star">${item.star ? "중요 해제" : "★ 중요"}</button><button data-act="step">단계 추가</button><button data-act="note">메모 추가</button>`
           + (many ? "" : `<button data-act="edit">수정</button>`) + `<button data-act="delete">삭제</button>`
           + (many ? "" : `<button data-act="due">${item.due ? "마감 " + md(item.due) : "마감일"}</button>`) + `</div></div>`;
       }
@@ -706,6 +716,7 @@ $("list").addEventListener("click", e => {
     if (a === "back") push({ op: "back", id }, "'" + item.steps[item.step - 1] + "' 단계로 되돌렸습니다");
     if (a === "note") ask("메모 추가", "메모", v => push({ op: "note", id, text: v }, "메모를 넣었습니다"));
     if (a === "step") addSteps(id);
+    if (a === "star") push({ op: "star", id, on: !item.star }, item.star ? "중요 표시를 뺐습니다" : "중요 표시했습니다");
     if (a === "edit") ask("할 일 수정", "할 일", v => push({ op: "edit", id, text: v.replace(/→|->/g, " ") }, "고쳤습니다"), item.text);
     if (a === "delete" && confirm("'" + (item.steps.length > 1 ? item.text : item.text) + "' 을(를) 삭제할까요?")) { opened = null; push({ op: "delete", id }, "삭제했습니다"); }
     if (a === "due") pickDate(item.due, v => push({ op: "due", id, due: v }, v ? "마감 " + md(v) : "마감일을 지웠습니다"));
