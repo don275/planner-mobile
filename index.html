@@ -578,7 +578,8 @@ function beginDrag(t, y) {
   drag.ghost = document.createElement("div"); drag.ghost.className = "ghost"; drag.ghost.textContent = label; document.body.appendChild(drag.ghost);
   drag.line = document.createElement("div"); drag.line.className = "dropline"; document.body.appendChild(drag.line);
   t.el.classList.add("dragsrc");
-  try { navigator.vibrate && navigator.vibrate(12); } catch {}
+  // 집을 때 진동: 앱이면 앱의 진동(아이폰 포함), 아니면 브라우저 진동(안드로이드)
+  try { if (native() && native().haptic) native().haptic(); else if (navigator.vibrate) navigator.vibrate(12); } catch {}
   moveDrag(y);
   // 화면 위 · 아래 끝에 가까우면 천천히 민다
   scrollTick = setInterval(() => {
