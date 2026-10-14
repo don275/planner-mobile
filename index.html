@@ -98,8 +98,16 @@
   .seg button { border-radius: 999px; padding: 6px 14px; }
   .seg button.on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
   .sheet a { color: var(--sub); }
-  .find { display: flex; gap: 8px; margin-top: 8px; }
-  .find input { flex: 1; }
+  header { background: color-mix(in srgb, var(--back) 70%, transparent); -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%); }
+  .top { gap: 6px; }
+  .top .icon { flex: none; width: 42px; height: 42px; padding: 0; border-radius: 21px; display: grid; place-items: center; }
+  .top .icon svg { width: 20px; height: 20px; }
+  .find { position: relative; display: flex; margin: 10px 0 2px; }
+  .find input { width: 100%; height: 42px; border-radius: 21px; padding: 0 14px 0 40px; font-size: 16px; background: var(--card); border: 1px solid var(--line); }
+  .find .lens { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; color: var(--faint); pointer-events: none; }
+  .find .lens svg { width: 100%; height: 100%; }
+  /* ② 입력 줄 접기: 평소엔 할 일 한 줄, 입력칸을 누르면 프로젝트 · 마감일 줄이 펼쳐진다 */
+  footer:not(.open) .row + .row { display: none; }
   mark { background: #ffe082; color: #202124; border-radius: 3px; padding: 0 1px; }
   .item, .proj, .steps li { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
   .ghost { position: fixed; z-index: 40; margin: 0; pointer-events: none; background: var(--card); color: var(--text); border: 1.5px solid var(--accent); border-radius: 12px;
@@ -115,11 +123,10 @@
   <div class="top">
     <h1>Mebys Planner</h1>
     <span class="state" id="state"></span>
-    <button id="search" aria-label="검색">검색</button>
-    <button id="phrases">문구</button>
-    <button id="settings" aria-label="설정">설정</button>
+    <button id="phrases" class="icon" aria-label="문구"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 9h8M8 13h5"/></svg></button>
+    <button id="settings" class="icon" aria-label="설정"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg></button>
   </div>
-  <div class="find" id="findBar" hidden><input id="findText" type="search" placeholder="찾을 말" enterkeyhint="search" autocomplete="off"><button id="findClose">닫기</button></div>
+  <div class="find" id="findBar"><span class="lens"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></span><input id="findText" type="search" placeholder="검색" enterkeyhint="search" autocomplete="off"></div>
   <div class="chips">
     <button class="chip on" data-filter="all">전체</button>
     <button class="chip" data-filter="today">오늘</button>
@@ -165,7 +172,7 @@ const newKey = () => Date.now().toString(36) + Math.random().toString(36).slice(
 
 let state = load("state", null);          // PC 에서 받은 목록
 let inbox = load("inbox", []);            // 아직 PC 가 가져가지 않은 내 변경
-let filter = "all", opened = null, token = null, picked = false, problem = "", query = "";
+let filter = "all", opened = null, token = null, picked = false, problem = "", query = "", booting = true;
 // 찾기: 띄어 쓴 말이 모두 들어 있는 것만 남긴다
 const words = () => query.toLowerCase().split(/\s+/).filter(Boolean);
 const hits = (...texts) => { const all = texts.join("\n").toLowerCase(); return words().every(w => all.includes(w)); };
@@ -288,7 +295,7 @@ function render() {
   if (filter === "events" || filter === "logs") {
     $("list").innerHTML = filter === "events" ? eventsHtml() : logsHtml();
     $("state").textContent = problem;
-    $("banner").hidden = !demo && !!token;
+    $("banner").hidden = !demo && (!!token || (booting && !!state));
     $("bannerText").textContent = demo ? "견본 자료입니다" : "구글에 연결하면 내 할 일이 보입니다";
     $("connect").hidden = demo;
     return;
@@ -327,7 +334,7 @@ function render() {
   sel.innerHTML = names.map(n => `<option>${esc(n)}</option>`).join("") + `<option value="">기타</option>`;
   if (picked && (names.includes(keep) || keep === "")) sel.value = keep;
   $("state").textContent = problem;
-  $("banner").hidden = !demo && !!token;
+  $("banner").hidden = !demo && (!!token || (booting && !!state));
   $("bannerText").textContent = demo ? "견본 자료입니다" : "구글에 연결하면 내 할 일이 보입니다";
   $("connect").hidden = demo;
   // 앱으로 감쌌을 때: 앱이 마감일 알림을 걸 수 있게 지금 목록을 넘겨준다.
@@ -719,15 +726,19 @@ document.querySelectorAll("[data-filter]").forEach(b => b.addEventListener("clic
   render();
 }));
 $("phrases").addEventListener("click", showPhrases);
-$("search").addEventListener("click", () => { $("findBar").hidden = false; $("findText").focus(); });
 $("findText").addEventListener("input", () => { query = $("findText").value.trim(); render(); });
 $("findText").addEventListener("keydown", e => { if (e.key === "Enter") $("findText").blur(); });
-$("findClose").addEventListener("click", () => { $("findText").value = ""; query = ""; $("findBar").hidden = true; render(); });
 $("settings").addEventListener("click", showSettings);
 applyLook();
 $("add").addEventListener("click", add);
 $("newText").addEventListener("keydown", e => { if (e.key === "Enter") add(); });
 $("newSection").addEventListener("change", () => picked = true);
+// 입력 줄 접기: 칸을 누르면 펼치고, 밖으로 나가고 글자가 비었으면 접는다(날짜 · 프로젝트를 고르는 동안엔 그대로)
+{
+  const foot = document.querySelector("footer");
+  foot.addEventListener("focusin", () => foot.classList.add("open"));
+  foot.addEventListener("focusout", () => setTimeout(() => { if (!foot.contains(document.activeElement) && !$("newText").value.trim()) foot.classList.remove("open"); }, 200));
+}
 $("connect").addEventListener("click", connect);
 $("undo").addEventListener("click", () => {
   if (!lastOp) return;
@@ -739,7 +750,8 @@ document.addEventListener("visibilitychange", () => { if (!document.hidden) refr
 setInterval(() => { if (!demo && token && !document.hidden) refresh(); }, 20000);
 if (!demo && !native()) { const s = document.createElement("script"); s.src = "https://accounts.google.com/gsi/client"; s.async = true; document.head.appendChild(s); }
 if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
-refresh();
+if (state) render();
+refresh().finally(() => { booting = false; render(); });
 </script>
 </body>
 </html>
