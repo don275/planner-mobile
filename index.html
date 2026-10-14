@@ -67,8 +67,12 @@
   #newText { flex: 1; } #newSection { flex: 1; } #newDue { flex: none; width: 138px; }
   .toast { position: fixed; z-index: 30; left: 50%; bottom: calc(150px + env(safe-area-inset-bottom)); transform: translateX(-50%); background: var(--accent); color: var(--on-accent); padding: 9px 14px; border-radius: 999px; font-size: 13.5px; display: flex; gap: 12px; align-items: center; white-space: nowrap; }
   .toast button { background: transparent; border: 0; color: inherit; font-weight: 700; padding: 0; text-decoration: underline; }
-  .shade { position: fixed; inset: 0; z-index: 20; background: var(--shade); display: flex; align-items: flex-end; }
-  .sheet { width: 100%; max-height: 82vh; overflow: auto; background: var(--back); border-radius: 16px 16px 0 0; padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); }
+  .shade { position: fixed; left: 0; right: 0; top: 0; height: 100%; z-index: 20; background: var(--shade); display: flex; align-items: flex-end; overscroll-behavior: contain; }
+  .sheet { width: 100%; max-height: 88%; overflow: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; background: var(--back); border-radius: 16px 16px 0 0; padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); }
+  .sheet .row input { flex: 1; width: auto; }
+  .have { margin: 0 0 10px; padding: 0; list-style: none; font-size: 14px; color: var(--sub); }
+  .have li { padding: 3px 0; }
+  .have li.new { color: var(--text); font-weight: 700; }
   .sheet h2 { font-size: 16px; margin: 0 0 12px; }
   .sheet textarea, .sheet input { width: 100%; }
   .sheet label { display: block; font-size: 13px; color: var(--sub); margin: 10px 0 4px; }
@@ -317,11 +321,52 @@ function add() {
 }
 
 // ───── 아래에서 올라오는 작은 창(글 쓰기 · 문구 고르기 · 빈칸 채우기) ─────
+// 창이 떠 있는 동안 뒤 목록은 움직이지 않게 묶고, 창은 키보드 위 보이는 자리에 맞춘다.
+let lockY = 0;
+function lockScroll(on) {
+  const b = document.body.style;
+  if (on && b.position !== "fixed") { lockY = scrollY; b.position = "fixed"; b.top = -lockY + "px"; b.left = "0"; b.right = "0"; }
+  if (!on && b.position === "fixed") { b.position = ""; b.top = ""; b.left = ""; b.right = ""; scrollTo(0, lockY); }
+}
+function fitShade() {
+  const vv = window.visualViewport, s = $("shade");
+  if (!vv || s.hidden) return;
+  s.style.top = vv.offsetTop + "px"; s.style.height = vv.height + "px";
+}
+if (window.visualViewport) { visualViewport.addEventListener("resize", fitShade); visualViewport.addEventListener("scroll", fitShade); }
 function sheet(html, ready) {
   $("sheet").innerHTML = html; $("shade").hidden = false;
+  lockScroll(true); fitShade();
   if (ready) ready($("sheet"));
 }
-function closeSheet() { $("shade").hidden = true; $("sheet").innerHTML = ""; }
+function closeSheet() { $("shade").hidden = true; $("sheet").innerHTML = ""; $("shade").style.top = ""; $("shade").style.height = ""; lockScroll(false); }
+
+// 단계 추가: 창을 닫지 않고 여러 개를 이어서 넣는다.
+function addSteps(id) {
+  let added = 0;
+  const draw = s => {
+    const item = view().find(x => x.id === id);
+    if (!item) return;
+    const old = item.steps.length - added;
+    s.querySelector("#have").innerHTML = item.steps.map((n, i) => `<li class="${i >= old ? "new" : ""}">${i + 1}. ${esc(n)}</li>`).join("");
+  };
+  sheet(`<h2>단계 추가</h2><ul class="have" id="have"></ul>
+    <div class="row"><input id="stepText" placeholder="맨 끝에 붙일 단계" enterkeyhint="enter" autocomplete="off"><button class="primary" id="stepAdd">추가</button></div>
+    <div class="end"><button id="stepDone">완료</button></div>`, s => {
+    const box = s.querySelector("#stepText");
+    draw(s); setTimeout(() => box.focus(), 50);
+    const go = () => {
+      const v = box.value.replace(/　/g, " ").replace(/→|->/g, " ").trim();
+      if (!v) { box.focus(); return; }
+      push({ op: "addStep", id, text: v }); added++;
+      box.value = ""; draw(s); box.focus();
+      const have = s.querySelector("#have"); have.lastElementChild && have.lastElementChild.scrollIntoView({ block: "nearest" });
+    };
+    s.querySelector("#stepAdd").onclick = go;
+    box.addEventListener("keydown", e => { if (e.key === "Enter" && !e.isComposing) { e.preventDefault(); go(); } });
+    s.querySelector("#stepDone").onclick = () => { closeSheet(); if (added) toast(added + "개 단계를 넣었습니다"); };
+  });
+}
 function ask(title, placeholder, done, value) {
   sheet(`<h2>${esc(title)}</h2><textarea id="askText" rows="3" placeholder="${esc(placeholder)}">${esc(value || "")}</textarea>
     <div class="end"><button data-close>취소</button><button class="primary" id="askOk">저장</button></div>`, s => {
@@ -492,7 +537,7 @@ $("list").addEventListener("click", e => {
     const a = act.dataset.act;
     if (a === "back") push({ op: "back", id }, "'" + item.steps[item.step - 1] + "' 단계로 되돌렸습니다");
     if (a === "note") ask("메모 추가", "메모", v => push({ op: "note", id, text: v }, "메모를 넣었습니다"));
-    if (a === "step") ask("단계 추가", "맨 끝에 붙일 단계", v => push({ op: "addStep", id, text: v.replace(/→|->/g, " ") }, "단계를 넣었습니다"));
+    if (a === "step") addSteps(id);
     if (a === "edit") ask("할 일 수정", "할 일", v => push({ op: "edit", id, text: v.replace(/→|->/g, " ") }, "고쳤습니다"), item.text);
     if (a === "delete" && confirm("'" + (item.steps.length > 1 ? item.text : item.text) + "' 을(를) 삭제할까요?")) { opened = null; push({ op: "delete", id }, "삭제했습니다"); }
     if (a === "due") pickDate(item.due, v => push({ op: "due", id, due: v }, v ? "마감 " + md(v) : "마감일을 지웠습니다"));
