@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mebys Planner</title>
+<meta name="description" content="일을 단계로 나눠 하나씩 끝내는 업무 플래너. 단계별 마감일, 업무 절차 불러오기, 자주 쓰는 문구, 업무 기록, PC와 폰 연동.">
+<style>
+  :root { --back: #f6f7f9; --card: #fff; --text: #202124; --sub: #5f6368; --line: #dee1e6; --accent: #212121; --on-accent: #fff; }
+  @media (prefers-color-scheme: dark) { :root { --back: #202124; --card: #292a2d; --text: #e8eaed; --sub: #aaafb5; --line: #46494d; --accent: #e8eaed; --on-accent: #202124; } }
+  body { margin: 0; background: var(--back); color: var(--text); font: 15px/1.65 -apple-system, "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 40px 16px 56px; }
+  h1 { font-size: 30px; margin: 0; letter-spacing: -0.5px; }
+  .lead { font-size: 17px; color: var(--sub); margin: 8px 0 24px; }
+  .go { display: inline-block; background: var(--accent); color: var(--on-accent); text-decoration: none; padding: 11px 20px; border-radius: 10px; font-weight: 700; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 32px 0; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
+  .card b { display: block; margin-bottom: 4px; }
+  .card span { color: var(--sub); font-size: 14px; }
+  h2 { font-size: 18px; margin: 32px 0 8px; }
+  li { margin: 4px 0; }
+  .sub { color: var(--sub); font-size: 14px; } a { color: inherit; }
+</style>
+</head>
+<body>
+<main>
+<h1>Mebys Planner</h1>
+<p class="lead">일을 단계로 나눠 하나씩 끝내는 업무 플래너</p>
+<a class="go" href="./">폰에서 열기</a>
+
+<div class="grid">
+  <div class="card"><b>단계와 단계별 마감일</b><span>할 일 하나를 여러 단계로 나누고, 단계마다 마감일을 둡니다. 단계를 끝내면 다음 단계의 마감일로 자동으로 넘어갑니다.</span></div>
+  <div class="card"><b>업무 절차 불러오기</b><span>자주 하는 업무 순서를 절차로 만들어 두고, 필요한 단계만 골라 프로젝트에 넣습니다.</span></div>
+  <div class="card"><b>자주 쓰는 문구</b><span>안내 메일, 주소 안내 같은 문구를 저장해 두고 한 번에 복사합니다. 바뀌는 부분은 빈칸으로 채웁니다.</span></div>
+  <div class="card"><b>업무 기록 자동 정리</b><span>체크한 일은 날짜별 업무 기록으로 남고, 주간 요약으로 바로 정리됩니다.</span></div>
+  <div class="card"><b>구글 캘린더</b><span>여러 캘린더를 한 달력에 모아 보고, 여러 날 일정은 한 줄로 이어 보여 줍니다.</span></div>
+  <div class="card"><b>PC와 폰</b><span>PC에서 정리하고, 폰에서 체크·추가·메모합니다. 자료는 본인 구글 드라이브의 앱 전용 공간에만 저장됩니다.</span></div>
+</div>
+
+<h2>지원 환경</h2>
+<ul>
+  <li>Windows PC 프로그램</li>
+  <li>폰 웹 화면 (홈 화면에 추가해서 앱처럼 사용)</li>
+  <li>iOS · Android 앱 (준비 중)</li>
+</ul>
+
+<h2>문의</h2>
+<p>MEBYS · <a href="mailto:d.on@mebys.com">d.on@mebys.com</a></p>
+
+<p class="sub"><a href="privacy.html">개인정보처리방침</a> · © 2026 MEBYS</p>
+</main>
+</body>
+</html>

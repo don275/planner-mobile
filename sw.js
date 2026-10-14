@@ -1,5 +1,5 @@
-// 홈 화면에 추가했을 때 앱처럼 열리게 하는 최소한의 서비스 워커. 화면 파일만 보관하고, 자료는 보관하지 않는다.
-const CACHE = "planner-v6";
+﻿// ???붾㈃??異붽??덉쓣 ???깆쿂???대━寃??섎뒗 理쒖냼?쒖쓽 ?쒕퉬???뚯빱. ?붾㈃ ?뚯씪留?蹂닿??섍퀬, ?먮즺??蹂닿??섏? ?딅뒗??
+const CACHE = "planner-v7";
 self.addEventListener("install", e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(["./", "index.html", "manifest.webmanifest", "icon-192.png"])).then(() => self.skipWaiting())));
 self.addEventListener("activate", e => e.waitUntil(self.clients.claim()));
 self.addEventListener("fetch", e => {

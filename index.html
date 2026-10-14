@@ -15,9 +15,11 @@
     --line: #dee1e6; --red: #d93025; --orange: #e37400; --green: #188048; --tint: #ececec; --shade: rgba(0,0,0,.32);
   }
   @media (prefers-color-scheme: dark) {
-    :root { --accent: #e8eaed; --on-accent: #202124; --back: #202124; --card: #292a2d; --text: #e8eaed; --sub: #aaafb5; --faint: #8a9096;
+    :root:not([data-theme="light"]) { --accent: #e8eaed; --on-accent: #202124; --back: #202124; --card: #292a2d; --text: #e8eaed; --sub: #aaafb5; --faint: #8a9096;
       --line: #46494d; --red: #f28b82; --orange: #faad5a; --green: #5ec489; --tint: #3c4043; --shade: rgba(0,0,0,.55); }
   }
+  :root[data-theme="dark"] { --accent: #e8eaed; --on-accent: #202124; --back: #202124; --card: #292a2d; --text: #e8eaed; --sub: #aaafb5; --faint: #8a9096;
+      --line: #46494d; --red: #f28b82; --orange: #faad5a; --green: #5ec489; --tint: #3c4043; --shade: rgba(0,0,0,.55); }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; background: var(--back); color: var(--text); font: 15px/1.45 -apple-system, "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; }
   body { padding-bottom: calc(132px + env(safe-area-inset-bottom)); }
@@ -74,6 +76,21 @@
   .phrase { display: block; width: 100%; text-align: left; margin-bottom: 8px; padding: 10px 12px; }
   .phrase small { display: block; color: var(--sub); font-size: 12.5px; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   #picker { position: fixed; left: -100px; top: 0; width: 1px; height: 1px; opacity: 0; }
+  .day { margin: 16px 0 6px; font-size: 13px; font-weight: 700; color: var(--sub); }
+  .ev { display: flex; gap: 10px; align-items: flex-start; padding: 9px 0; border-bottom: 1px solid var(--line); }
+  .ev .when { flex: none; width: 46px; font-size: 13px; color: var(--sub); padding-top: 1px; }
+  .ev .bar { flex: none; width: 4px; align-self: stretch; border-radius: 2px; background: var(--accent); }
+  .ev .what { flex: 1; min-width: 0; word-break: break-word; }
+  .ev small { display: block; color: var(--faint); font-size: 12px; margin-top: 2px; }
+  body.plain { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
+  body.plain footer { display: none; }
+  .swatches { display: flex; flex-wrap: wrap; gap: 10px; }
+  .swatches button { width: 34px; height: 34px; border-radius: 50%; padding: 0; border: 2px solid transparent; }
+  .swatches button.on { border-color: var(--text); box-shadow: inset 0 0 0 2px var(--back); }
+  .seg { display: flex; gap: 6px; flex-wrap: wrap; }
+  .seg button { border-radius: 999px; padding: 6px 14px; }
+  .seg button.on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+  .sheet a { color: var(--sub); }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -83,10 +100,13 @@
     <h1>Mebys Planner</h1>
     <span class="state" id="state"></span>
     <button id="phrases">문구</button>
+    <button id="settings" aria-label="설정">설정</button>
   </div>
   <div class="chips">
     <button class="chip on" data-filter="all">전체</button>
     <button class="chip" data-filter="today">오늘</button>
+    <button class="chip" data-filter="events">일정</button>
+    <button class="chip" data-filter="logs">기록</button>
   </div>
 </header>
 <div class="banner" id="banner" hidden><span id="bannerText"></span><button class="primary" id="connect">구글 연결</button></div>
@@ -132,6 +152,10 @@ function sample() {
   const t = today(), plus = n => day(new Date(Date.parse(t) + n * 86400000));
   return { updated: new Date().toISOString(), sections: ["매일 하는 일", "가을 행사", "거래처"], pinned: ["매일 하는 일"],
     colors: { "가을 행사": "#8E24AA", "거래처": "#00897B" },
+    events: [{ title: "주간 회의", allDay: false, start: t + "T10:30", end: t + "T11:30", last: t, calendar: "업무", color: "#1A73E8" },
+             { title: "가을 행사 준비 기간", allDay: true, start: plus(1) + "T00:00", end: plus(4) + "T00:00", last: plus(3), calendar: "행사", color: "#8E24AA" },
+             { title: "거래처 미팅", allDay: false, start: plus(2) + "T15:00", end: plus(2) + "T16:00", last: plus(2), calendar: "", color: "" }],
+    logs: [{ date: t, section: "매일 하는 일", title: "주문 확인" }, { date: plus(-1), section: "가을 행사", title: "장소 확정" }, { date: plus(-1), section: "거래처", title: "견적서 발송" }],
     phrases: [{ name: "입고지 안내", text: "입고지 정보 전달드립니다!\n\n입고지: (주소)\n담당자: (이름)\n연락처: (번호)" },
               { name: "출고일 안내", text: "{업체명} 담당자님, 안녕하세요.\n{상품명} 출고일은 {출고일}입니다." }],
     todos: [
@@ -172,7 +196,46 @@ function dueLabel(item) {
   return { text: item.repeat ? "반복 · " + when : md(item.due) + " (" + when + ")", cls: left <= 0 ? "late" : left <= 3 ? "soon" : "far" };
 }
 
+const WEEK = ["일", "월", "화", "수", "목", "금", "토"];
+const dayTitle = s => { const d = new Date(s + "T00:00"); return (d.getMonth() + 1) + "/" + d.getDate() + " (" + WEEK[d.getDay()] + ")" + (s === today() ? " · 오늘" : ""); };
+
+// 오늘부터 2주 일정(PC 의 구글 캘린더에서 온 것)
+function eventsHtml() {
+  const list = (state && state.events) || [];
+  if (!list.length) return `<div class="empty">앞으로 2주 동안 일정이 없습니다</div>`;
+  const days = {};
+  for (const ev of list) {
+    const first = ev.start.slice(0, 10) < today() ? today() : ev.start.slice(0, 10);
+    (days[first] = days[first] || []).push(ev);
+  }
+  return Object.keys(days).sort().map(d => `<div class="day">${dayTitle(d)}</div>` + days[d].map(ev => {
+    const when = ev.allDay || ev.start.slice(0, 10) < d ? "종일" : ev.start.slice(11, 16);
+    const until = ev.last > d ? " · ~" + md(ev.last) : "";
+    return `<div class="ev"><span class="when">${when}</span><span class="bar" style="${ev.color ? "background:" + esc(ev.color) : ""}"></span>`
+      + `<span class="what">${esc(ev.title || "(제목 없음)")}<small>${esc(ev.calendar || "")}${until}</small></span></div>`;
+  }).join("")).join("");
+}
+
+// 최근 2주 동안 끝낸 일
+function logsHtml() {
+  const list = (state && state.logs) || [];
+  if (!list.length) return `<div class="empty">최근 2주 동안 끝낸 일이 없습니다</div>`;
+  const days = {};
+  for (const log of list) (days[log.date] = days[log.date] || []).push(log);
+  return Object.keys(days).sort().reverse().map(d => `<div class="day">${dayTitle(d)} · ${days[d].length}건</div>` + days[d].map(log =>
+    `<div class="ev"><span class="what">${esc(log.title)}<small>${esc(log.section || "")}</small></span></div>`).join("")).join("");
+}
+
 function render() {
+  document.body.classList.toggle("plain", filter === "events" || filter === "logs");
+  if (filter === "events" || filter === "logs") {
+    $("list").innerHTML = filter === "events" ? eventsHtml() : logsHtml();
+    $("state").textContent = problem;
+    $("banner").hidden = !demo && !!token;
+    $("bannerText").textContent = demo ? "견본 자료입니다" : "구글에 연결하면 내 할 일이 보입니다";
+    $("connect").hidden = demo;
+    return;
+  }
   const todos = view().filter(x => filter === "all" || (x.due && x.due <= today()));
   const order = [...new Set([...(state ? state.sections || [] : []), ...todos.map(x => x.section || "")])];
   const colors = (state && state.colors) || {}, pinned = (state && state.pinned) || [];
@@ -259,6 +322,40 @@ function pickDate(current, done) {
   try { p.showPicker(); } catch { const v = prompt("마감일 (예: " + today() + ", 비우면 지움)", current || ""); if (v !== null && (v === "" || /^\d{4}-\d{2}-\d{2}$/.test(v))) done(v); }
 }
 
+// ───── 설정(이 폰에만 저장) ─────
+const COLORS = ["#212121", "#1A73E8", "#00897B", "#188038", "#E37400", "#D93025", "#8E24AA", "#5F6368"];
+function onAccent(hex) { const n = parseInt(hex.slice(1), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255; return (r * 299 + g * 587 + b * 114) / 1000 > 150 ? "#202124" : "#ffffff"; }
+function applyLook() {
+  const look = load("look", {}), root = document.documentElement;
+  if (look.theme === "light" || look.theme === "dark") root.dataset.theme = look.theme; else delete root.dataset.theme;
+  const dark = root.dataset.theme === "dark" || (!root.dataset.theme && matchMedia("(prefers-color-scheme: dark)").matches);
+  if (look.accent) { root.style.setProperty("--accent", look.accent); root.style.setProperty("--on-accent", onAccent(look.accent)); }
+  else { root.style.removeProperty("--accent"); root.style.removeProperty("--on-accent"); }
+  // 아주 어두운 대표색은 어두운 화면에서 안 보이므로 밝게 바꾼다
+  if (dark && look.accent && onAccent(look.accent) === "#ffffff" && look.accent === "#212121") { root.style.removeProperty("--accent"); root.style.removeProperty("--on-accent"); }
+  document.body.style.fontSize = ({ small: "14px", large: "17px" })[look.size] || "";
+}
+function showSettings() {
+  const look = load("look", {});
+  const seg = (key, items) => `<div class="seg">` + items.map(([v, t]) => `<button data-look="${key}" data-value="${v}" class="${(look[key] || "") === v ? "on" : ""}">${t}</button>`).join("") + `</div>`;
+  sheet(`<h2>설정</h2>
+    <label>대표색</label><div class="swatches">` + COLORS.map(c => `<button data-look="accent" data-value="${c}" class="${(look.accent || "#212121") === c ? "on" : ""}" style="background:${c}" aria-label="${c}"></button>`).join("") + `</div>
+    <label>화면</label>` + seg("theme", [["", "기기 설정"], ["light", "밝게"], ["dark", "어둡게"]]) + `
+    <label>글자 크기</label>` + seg("size", [["small", "작게"], ["", "보통"], ["large", "크게"]]) + `
+    <label>구글</label><div class="seg">` + (token ? `<button id="signOut">연결 해제</button>` : `<button id="signIn">구글 연결</button>`) + `</div>
+    <label><a href="about.html">앱 소개</a> · <a href="privacy.html">개인정보처리방침</a></label>
+    <div class="end"><button class="primary" data-close>닫기</button></div>`, s => {
+    s.querySelectorAll("[data-look]").forEach(b => b.onclick = () => {
+      const now = load("look", {}); now[b.dataset.look] = b.dataset.value; if (!b.dataset.value) delete now[b.dataset.look];
+      save("look", now); applyLook(); showSettings();
+    });
+    const out = s.querySelector("#signOut");
+    if (out) out.onclick = () => { try { if (window.google && token) google.accounts.oauth2.revoke(token, () => {}); } catch {} token = null; save("connected", false); closeSheet(); render(); };
+    const inn = s.querySelector("#signIn");
+    if (inn) inn.onclick = () => { closeSheet(); connect(); };
+  });
+}
+
 // ───── 문구 ─────
 async function copy(text) {
   try { if (native() && native().copy) { await native().copy(text); return true; } } catch {}
@@ -336,11 +433,24 @@ async function refresh() {
     await send();
   } catch (e) { problem = "연결 안 됨"; render(); }
 }
+let tokenClient = null;
+function getToken(quiet) {
+  if (!window.google) return false;
+  if (!tokenClient) tokenClient = google.accounts.oauth2.initTokenClient({ client_id: CLIENT_ID, scope: SCOPE, callback: r => {
+    if (r.access_token) { token = r.access_token; save("connected", true); refresh(); }
+  } });
+  tokenClient.requestAccessToken(quiet ? { prompt: "" } : {});
+  return true;
+}
 async function connect() {
   if (native()) { try { token = await native().signIn(); refresh(); } catch { toast("구글 연결을 하지 못했습니다"); } return; }
-  if (!window.google) { toast("구글 연결 준비 중입니다. 잠시 뒤 다시 눌러 주세요"); return; }
-  google.accounts.oauth2.initTokenClient({ client_id: CLIENT_ID, scope: SCOPE, callback: r => { if (r.access_token) { token = r.access_token; refresh(); } } }).requestAccessToken();
+  if (!getToken(false)) toast("구글 연결 준비 중입니다. 잠시 뒤 다시 눌러 주세요");
 }
+// 구글 로그인은 1시간쯤 지나면 풀린다. 한 번 연결한 적이 있으면 화면을 누를 때 조용히 다시 받는다(창이 잠깐 떴다 닫힐 수 있다).
+document.addEventListener("pointerdown", () => {
+  if (demo || native() || token || !load("connected", false)) return;
+  getToken(true);
+}, true);
 
 // ───── 누르기 ─────
 $("list").addEventListener("click", e => {
@@ -373,6 +483,8 @@ document.querySelectorAll("[data-filter]").forEach(b => b.addEventListener("clic
   render();
 }));
 $("phrases").addEventListener("click", showPhrases);
+$("settings").addEventListener("click", showSettings);
+applyLook();
 $("add").addEventListener("click", add);
 $("newText").addEventListener("keydown", e => { if (e.key === "Enter") add(); });
 $("newSection").addEventListener("change", () => picked = true);
