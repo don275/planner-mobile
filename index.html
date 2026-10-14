@@ -209,6 +209,8 @@ function render() {
   $("banner").hidden = !demo && !!token;
   $("bannerText").textContent = demo ? "견본 자료입니다" : "구글에 연결하면 내 할 일이 보입니다";
   $("connect").hidden = demo;
+  // 앱으로 감쌌을 때: 앱이 마감일 알림을 걸 수 있게 지금 목록을 넘겨준다.
+  try { window.PlannerNative?.onItems?.(view()); } catch {}
 }
 
 let toastTimer = null, lastOp = null;
