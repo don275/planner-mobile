@@ -22,7 +22,7 @@
       --line: #46494d; --red: #f28b82; --orange: #faad5a; --green: #5ec489; --tint: #3c4043; --shade: rgba(0,0,0,.55); }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; background: var(--back); color: var(--text); font: 15px/1.45 -apple-system, "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; }
-  body { padding-bottom: calc(132px + env(safe-area-inset-bottom)); }
+  body { padding-bottom: calc(132px + var(--ad, 0px) + env(safe-area-inset-bottom)); }
   header { position: sticky; top: 0; z-index: 5; background: var(--back); padding: calc(10px + env(safe-area-inset-top)) 16px 8px; border-bottom: 1px solid var(--line); }
   .top { display: flex; align-items: center; gap: 8px; }
   h1 { font-size: 18px; margin: 0; flex: none; white-space: nowrap; }
@@ -59,7 +59,7 @@
   .note { white-space: pre-wrap; margin-top: 8px; color: var(--text); }
   .acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
   .empty { text-align: center; color: var(--faint); padding: 48px 0; }
-  footer { position: fixed; left: 0; right: 0; bottom: 0; background: var(--back); border-top: 1px solid var(--line); padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); }
+  footer { position: fixed; left: 0; right: 0; bottom: var(--ad, 0px); background: var(--back); border-top: 1px solid var(--line); padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); }
   .row { display: flex; gap: 8px; }
   .row + .row { margin-top: 8px; }
   input, select, textarea { font: inherit; color: var(--text); background: var(--card); border: 1px solid var(--line); border-radius: 9px; padding: 9px 11px; min-width: 0; }
@@ -82,7 +82,7 @@
   .ev .bar { flex: none; width: 4px; align-self: stretch; border-radius: 2px; background: var(--accent); }
   .ev .what { flex: 1; min-width: 0; word-break: break-word; }
   .ev small { display: block; color: var(--faint); font-size: 12px; margin-top: 2px; }
-  body.plain { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
+  body.plain { padding-bottom: calc(24px + var(--ad, 0px) + env(safe-area-inset-bottom)); }
   body.plain footer { display: none; }
   .swatches { display: flex; flex-wrap: wrap; gap: 10px; }
   .swatches button { width: 34px; height: 34px; border-radius: 50%; padding: 0; border: 2px solid transparent; }
@@ -138,6 +138,8 @@ const STATE_FILE = "planner-state.json";     // PC 가 올리는 현재 목록
 const INBOX_FILE = "planner-inbox.json";     // 폰에서 한 일. PC 가 가져가서 반영한다
 // 앱(아이폰 · 안드로이드)으로 감쌌을 때: 앱이 window.PlannerNative = { signIn(), copy(text) } 를 넣어 주면 그걸 쓴다.
 const native = () => window.PlannerNative || null;
+// 앱이 광고 띠를 띄우거나 없앨 때 부른다(광고 제거를 사면 0). 웹 화면에는 광고가 없다.
+window.plannerSetAdHeight = px => document.documentElement.style.setProperty("--ad", (Number(px) || 0) + "px");
 
 const $ = id => document.getElementById(id);
 const day = d => d.toISOString().slice(0, 10);
