@@ -22,8 +22,9 @@
       --line: #46494d; --red: #f28b82; --orange: #faad5a; --green: #5ec489; --tint: #3c4043; --shade: rgba(0,0,0,.55); }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; background: var(--back); color: var(--text); font: 15px/1.45 -apple-system, "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; }
-  body { padding-bottom: calc(132px + var(--ad, 0px) + env(safe-area-inset-bottom)); }
-  header { position: sticky; top: 0; z-index: 5; background: var(--back); padding: calc(10px + env(safe-area-inset-top)) 16px 8px; border-bottom: 1px solid var(--line); }
+  html, body { height: 100%; overflow: hidden; overscroll-behavior: none; }
+  body { display: flex; flex-direction: column; height: var(--vh, 100dvh); padding-bottom: var(--ad, 0px); }
+  header { flex: none; z-index: 5; background: var(--back); padding: calc(10px + env(safe-area-inset-top)) 16px 8px; border-bottom: 1px solid var(--line); }
   .top { display: flex; align-items: center; gap: 8px; }
   h1 { font-size: 18px; margin: 0; flex: none; white-space: nowrap; }
   .state { flex: 1; min-width: 0; text-align: right; font-size: 12px; color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -34,7 +35,8 @@
   .chip.on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
   .banner { margin: 10px 16px 0; padding: 9px 12px; border-radius: 10px; background: var(--tint); color: var(--sub); font-size: 13px; display: flex; align-items: center; gap: 8px; }
   .banner span { flex: 1; }
-  main { padding: 4px 16px 0; }
+  main { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; padding: 4px 16px 20px; }
+  .banner { flex: none; }
   section { margin-top: 14px; }
   .proj { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 10px; background: var(--tint); font-weight: 700; }
   .proj i { width: 4px; height: 18px; border-radius: 2px; background: var(--accent); flex: none; }
@@ -59,7 +61,7 @@
   .note { white-space: pre-wrap; margin-top: 8px; color: var(--text); }
   .acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
   .empty { text-align: center; color: var(--faint); padding: 48px 0; }
-  footer { position: fixed; left: 0; right: 0; bottom: var(--ad, 0px); background: var(--back); border-top: 1px solid var(--line); padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); }
+  footer { flex: none; background: var(--back); border-top: 1px solid var(--line); padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); }
   .row { display: flex; gap: 8px; }
   .row + .row { margin-top: 8px; }
   input, select, textarea { font: inherit; color: var(--text); background: var(--card); border: 1px solid var(--line); border-radius: 9px; padding: 9px 11px; min-width: 0; }
@@ -86,7 +88,7 @@
   .ev .bar { flex: none; width: 4px; align-self: stretch; border-radius: 2px; background: var(--accent); }
   .ev .what { flex: 1; min-width: 0; word-break: break-word; }
   .ev small { display: block; color: var(--faint); font-size: 12px; margin-top: 2px; }
-  body.plain { padding-bottom: calc(24px + var(--ad, 0px) + env(safe-area-inset-bottom)); }
+  body.plain main { padding-bottom: calc(20px + env(safe-area-inset-bottom)); }
   body.plain footer { display: none; }
   .swatches { display: flex; flex-wrap: wrap; gap: 10px; }
   .swatches button { width: 34px; height: 34px; border-radius: 50%; padding: 0; border: 2px solid transparent; }
@@ -357,18 +359,25 @@ function add() {
 
 // ───── 아래에서 올라오는 작은 창(글 쓰기 · 문구 고르기 · 빈칸 채우기) ─────
 // 창이 떠 있는 동안 뒤 목록은 움직이지 않게 묶고, 창은 키보드 위 보이는 자리에 맞춘다.
-let lockY = 0;
 function lockScroll(on) {
-  const b = document.body.style;
-  if (on && b.position !== "fixed") { lockY = scrollY; b.position = "fixed"; b.top = -lockY + "px"; b.left = "0"; b.right = "0"; }
-  if (!on && b.position === "fixed") { b.position = ""; b.top = ""; b.left = ""; b.right = ""; scrollTo(0, lockY); }
+  $("list").style.overflowY = on ? "hidden" : "";
 }
 function fitShade() {
   const vv = window.visualViewport, s = $("shade");
   if (!vv || s.hidden) return;
   s.style.top = vv.offsetTop + "px"; s.style.height = vv.height + "px";
 }
-if (window.visualViewport) { visualViewport.addEventListener("resize", fitShade); visualViewport.addEventListener("scroll", fitShade); }
+function fitBody() {
+  const vv = window.visualViewport;
+  if (!vv) return;
+  document.documentElement.style.setProperty("--vh", vv.height + "px");
+  if (vv.offsetTop) window.scrollTo(0, 0);
+}
+if (window.visualViewport) {
+  visualViewport.addEventListener("resize", () => { fitBody(); fitShade(); });
+  visualViewport.addEventListener("scroll", () => { fitBody(); fitShade(); });
+  fitBody();
+}
 function sheet(html, ready) {
   $("sheet").innerHTML = html; $("shade").hidden = false;
   lockScroll(true); fitShade();
@@ -583,9 +592,9 @@ function beginDrag(t, y) {
   // 화면 위 · 아래 끝에 가까우면 천천히 민다
   scrollTick = setInterval(() => {
     if (!drag) return;
-    const edge = document.querySelector("header").getBoundingClientRect().bottom + 40;
-    const foot = document.querySelector("footer"), bottom = (foot && getComputedStyle(foot).display !== "none" ? foot.getBoundingClientRect().top : innerHeight) - 40;
-    if (lastY < edge) scrollBy(0, -Math.ceil((edge - lastY) / 5)); else if (lastY > bottom) scrollBy(0, Math.ceil((lastY - bottom) / 5)); else return;
+    const edge = $("list").getBoundingClientRect().top + 40;
+    const bottom = $("list").getBoundingClientRect().bottom - 40;
+    if (lastY < edge) $("list").scrollBy(0, -Math.ceil((edge - lastY) / 5)); else if (lastY > bottom) $("list").scrollBy(0, Math.ceil((lastY - bottom) / 5)); else return;
     moveDrag(lastY);
   }, 30);
 }
