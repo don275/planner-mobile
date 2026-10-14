@@ -98,6 +98,11 @@
   .find { display: flex; gap: 8px; margin-top: 8px; }
   .find input { flex: 1; }
   mark { background: #ffe082; color: #202124; border-radius: 3px; padding: 0 1px; }
+  .item, .proj, .steps li { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  .dragsrc { opacity: .3; }
+  .ghost { position: fixed; z-index: 40; left: 14px; right: 14px; pointer-events: none; background: var(--card); color: var(--text); border: 1.5px solid var(--accent); border-radius: 12px;
+    padding: 11px 14px; box-shadow: 0 8px 24px rgba(0,0,0,.28); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transform: scale(1.02); }
+  .dropline { position: fixed; z-index: 39; left: 16px; right: 16px; height: 3px; border-radius: 2px; background: var(--accent); pointer-events: none; }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -189,6 +194,15 @@ function view() {
   for (const op of inbox) {
     if (op.op === "rename") { todos.forEach(x => { if ((x.section || "") === op.from) x.section = op.to; }); continue; }
     if (op.op === "add") { todos.push({ id: op.id, section: op.section, text: op.text, steps: [op.text], step: 0, due: op.due || "", stepDues: [], notes: "" }); continue; }
+    if (op.op === "move") {
+      const from = todos.findIndex(x => x.id === op.id);
+      if (from < 0 || op.before === op.id) continue;
+      const [it] = todos.splice(from, 1); it.section = op.section;
+      let at = op.before ? todos.findIndex(x => x.id === op.before) : -1;
+      if (at < 0) { at = todos.length; for (let k = todos.length - 1; k >= 0; k--) if ((todos[k].section || "") === op.section) { at = k + 1; break; } }
+      todos.splice(at, 0, it); continue;
+    }
+    if (op.op === "moveSection") continue;
     const item = todos.find(x => x.id === op.id);
     if (!item) continue;
     if (op.op === "check") { if (item.step < item.steps.length - 1) { item.step++; sync(item); } else item.gone = true; }
@@ -198,6 +212,11 @@ function view() {
     if (op.op === "editStep" && op.step < item.steps.length) item.steps[op.step] = op.text;
     if (op.op === "delete") item.gone = true;
     if (op.op === "addStep") { item.steps.push(op.text); if (item.stepDues.some(Boolean)) item.stepDues.push(""); }
+    if (op.op === "moveStep" && op.from < item.steps.length && op.to < item.steps.length) {
+      const [s] = item.steps.splice(op.from, 1); item.steps.splice(op.to, 0, s);
+      if (item.stepDues.some(Boolean)) { while (item.stepDues.length < item.steps.length) item.stepDues.push(""); const [d] = item.stepDues.splice(op.from, 1); item.stepDues.splice(op.to, 0, d); sync(item); }
+      item.text = item.steps.join(" → ");
+    }
     if (op.op === "due") {
       const many = item.steps.length > 1;
       if (many && op.step != null) { while (item.stepDues.length < item.steps.length) item.stepDues.push(""); item.stepDues[op.step] = op.due; sync(item); if (!item.stepDues.some(Boolean)) { item.stepDues = []; item.due = ""; } }
@@ -206,6 +225,20 @@ function view() {
     }
   }
   return todos.filter(x => !x.gone);
+}
+
+// 프로젝트 순서: PC 가 보낸 순서에 아직 안 넘어간 이름 바꾸기 · 순서 바꾸기를 겹친다.
+function sectionOrder() {
+  let secs = [...((state && state.sections) || [])];
+  for (const op of inbox) {
+    if (op.op === "rename") secs = secs.map(s => s === op.from ? op.to : s);
+    if (op.op === "moveSection" && secs.includes(op.name)) {
+      secs = secs.filter(s => s !== op.name);
+      const at = op.end === "1" ? -1 : secs.indexOf(op.before);
+      if (at < 0) secs.push(op.name); else secs.splice(at, 0, op.name);
+    }
+  }
+  return secs;
 }
 
 function dueLabel(item) {
@@ -246,6 +279,7 @@ function logsHtml() {
 }
 
 function render() {
+  if (drag) return;     // 끄는 중에는 다시 그리지 않는다(놓은 뒤 그린다)
   document.body.classList.toggle("plain", filter === "events" || filter === "logs");
   if (filter === "events" || filter === "logs") {
     $("list").innerHTML = filter === "events" ? eventsHtml() : logsHtml();
@@ -256,23 +290,23 @@ function render() {
     return;
   }
   const todos = view().filter(x => (filter === "all" || (x.due && x.due <= today())) && (!query || hits(x.section || "", x.steps.join(" "), x.notes || "")));
-  const order = [...new Set([...(state ? state.sections || [] : []), ...todos.map(x => x.section || "")])];
+  const order = [...new Set([...sectionOrder(), ...todos.map(x => x.section || "")])];
   const colors = (state && state.colors) || {}, pinned = (state && state.pinned) || [];
   let html = "";
   for (const name of order) {
     const items = todos.filter(x => (x.section || "") === name);
     if (!items.length) continue;
-    html += `<section><div class="proj"><i style="${colors[name] ? "background:" + esc(colors[name]) : ""}"></i><b data-project="${esc(name)}">${esc(name || "기타")}</b>`
+    html += `<section><div class="proj" data-sec="${esc(name)}"><i style="${colors[name] ? "background:" + esc(colors[name]) : ""}"></i><b data-project="${esc(name)}">${esc(name || "기타")}</b>`
       + (pinned.includes(name) ? `<small>고정</small>` : "") + `<small>${items.length}</small></div>`;
     for (const item of items) {
       const due = dueLabel(item), many = item.steps.length > 1;
-      html += `<div class="item"><button class="box${item.step > 0 ? " part" : ""}" data-check="${esc(item.id)}" aria-label="완료"></button><div class="body">`
+      html += `<div class="item" data-id="${esc(item.id)}" data-sec="${esc(item.section || "")}"><button class="box${item.step > 0 ? " part" : ""}" data-check="${esc(item.id)}" aria-label="완료"></button><div class="body">`
         + `<div class="text" data-open="${esc(item.id)}">${mark(many ? item.steps[item.step] : item.text)}</div><div class="meta" data-open="${esc(item.id)}">`
         + (many ? `<span>${item.step + 1}/${item.steps.length}</span>` + (item.step < item.steps.length - 1 ? `<span>다음: ${esc(item.steps[item.step + 1])}</span>` : "") : "")
         + (due ? `<span class="due ${due.cls}">${due.text}</span>` : "") + (item.notes && opened !== item.id ? `<span>메모</span>` : "") + `</div>`;
       if (opened === item.id) {
         html += `<div class="more">`;
-        if (many) html += `<ul class="steps">` + item.steps.map((s, i) => `<li class="${i < item.step ? "done" : i === item.step ? "now" : ""}"><span data-stepname="${i}">${i + 1}. ${esc(s)}</span>`
+        if (many) html += `<ul class="steps" data-steps="${esc(item.id)}">` + item.steps.map((s, i) => `<li class="${i < item.step ? "done" : i === item.step ? "now" : ""}"${i >= item.step ? ` data-stepi="${i}"` : ""}><span data-stepname="${i}">${i + 1}. ${esc(s)}</span>`
           + (i >= item.step ? `<button data-stepdue="${i}">${item.stepDues[i] ? "~" + md(item.stepDues[i]) : "마감일"}</button>` : "") + `</li>`).join("") + `</ul>`;
         if (item.notes) html += `<div class="note">${esc(item.notes)}</div>`;
         html += `<div class="acts">` + (item.step > 0 ? `<button data-act="back">이전 단계</button>` : "")
@@ -513,8 +547,109 @@ document.addEventListener("pointerdown", () => {
   getToken(true);
 }, true);
 
+// ───── 꾹 눌러 끌어서 순서 바꾸기(할 일 · 단계 · 프로젝트) ─────
+let drag = null, holdTimer = null, holdStart = null, suppressClick = false, lastY = 0, scrollTick = null;
+function dragKind(el) {
+  if (el.closest("button, input, select, textarea, a")) return null;
+  const li = el.closest(".steps li[data-stepi]"); if (li) return { kind: "step", el: li };
+  const item = el.closest(".item"); if (item) return { kind: "item", el: item };
+  const proj = el.closest(".proj"); if (proj) return { kind: "proj", el: proj };
+  return null;
+}
+function candidates() {
+  if (drag.kind === "step") return [...drag.el.parentElement.querySelectorAll("li[data-stepi]")].filter(x => x !== drag.el);
+  if (drag.kind === "proj") return [...$("list").querySelectorAll(".proj")].filter(x => x !== drag.el);
+  return [...$("list").querySelectorAll(".item, .proj")].filter(x => x !== drag.el);
+}
+// 손가락 위치에서 놓일 자리: 그 위치보다 아래쪽 반에 걸친 첫 칸의 앞
+function findDrop(y) {
+  const list = candidates();
+  let before = null;
+  for (const c of list) { const r = c.getBoundingClientRect(); if (y < r.top + r.height / 2) { before = c; break; } }
+  const last = list[list.length - 1];
+  const lineY = before ? before.getBoundingClientRect().top - 2 : last ? last.getBoundingClientRect().bottom + 1 : drag.el.getBoundingClientRect().bottom;
+  return { before, lineY };
+}
+function beginDrag(t, y) {
+  holdTimer = null;
+  if (query || (filter !== "all" && filter !== "today")) return;
+  drag = { ...t, target: null };
+  const label = t.kind === "step" ? t.el.querySelector("span").textContent : t.kind === "proj" ? t.el.querySelector("b").textContent : t.el.querySelector(".text").textContent;
+  drag.ghost = document.createElement("div"); drag.ghost.className = "ghost"; drag.ghost.textContent = label; document.body.appendChild(drag.ghost);
+  drag.line = document.createElement("div"); drag.line.className = "dropline"; document.body.appendChild(drag.line);
+  t.el.classList.add("dragsrc");
+  try { navigator.vibrate && navigator.vibrate(12); } catch {}
+  moveDrag(y);
+  // 화면 위 · 아래 끝에 가까우면 천천히 민다
+  scrollTick = setInterval(() => {
+    if (!drag) return;
+    const edge = document.querySelector("header").getBoundingClientRect().bottom + 36;
+    const foot = document.querySelector("footer"), bottom = (foot && getComputedStyle(foot).display !== "none" ? foot.getBoundingClientRect().top : innerHeight) - 36;
+    if (lastY < edge) scrollBy(0, -Math.ceil((edge - lastY) / 6)); else if (lastY > bottom) scrollBy(0, Math.ceil((lastY - bottom) / 6)); else return;
+    moveDrag(lastY);
+  }, 30);
+}
+function moveDrag(y) {
+  lastY = y;
+  drag.ghost.style.top = (y - 72) + "px";     // 손가락 위쪽에 띄워서 놓일 자리 줄이 가리지 않게
+  drag.target = findDrop(y);
+  drag.line.style.top = drag.target.lineY + "px";
+}
+function endDrag(drop) {
+  const d = drag; drag = null; clearInterval(scrollTick);
+  d.ghost.remove(); d.line.remove(); d.el.classList.remove("dragsrc");
+  suppressClick = true; setTimeout(() => suppressClick = false, 350);
+  if (!drop || !d.target) return;
+  const before = d.target.before;
+  if (d.kind === "item") {
+    const id = d.el.dataset.id;
+    let section, beforeId = "";
+    if (before && before.classList.contains("item")) { section = before.dataset.sec; beforeId = before.dataset.id; }
+    else {
+      // 프로젝트 머리 앞 = 바로 위 프로젝트의 맨 끝, 맨 위 머리 앞 = 첫 프로젝트의 맨 앞
+      const heads = [...$("list").querySelectorAll(".proj")], at = before ? heads.indexOf(before) : heads.length;
+      if (at > 0) section = heads[at - 1].dataset.sec;
+      else { section = heads[0] ? heads[0].dataset.sec : ""; const first = $("list").querySelector(`.item[data-sec="${CSS.escape(section)}"]`); beforeId = first ? first.dataset.id : ""; }
+    }
+    // 제자리면 아무것도 안 한다
+    const next = [...$("list").querySelectorAll(".item")].find((x, i, all) => all[i - 1] === d.el);
+    const same = section === d.el.dataset.sec && (beforeId === id || (next ? beforeId === next.dataset.id && next.dataset.sec === section : !beforeId));
+    if (same) return;
+    push({ op: "move", id, section, before: beforeId }, section === d.el.dataset.sec ? "순서를 바꿨습니다" : "\u0027" + (section || "기타") + "\u0027(으)로 옮겼습니다");
+  } else if (d.kind === "proj") {
+    const name = d.el.dataset.sec, heads = [...$("list").querySelectorAll(".proj")];
+    const nextHead = heads[heads.indexOf(d.el) + 1];
+    if (before === nextHead || (!before && !nextHead)) return;
+    push(before ? { op: "moveSection", name, before: before.dataset.sec } : { op: "moveSection", name, before: "", end: "1" }, "프로젝트 순서를 바꿨습니다");
+  } else {
+    const id = d.el.parentElement.dataset.steps, from = Number(d.el.dataset.stepi);
+    let to = before ? Number(before.dataset.stepi) : Math.max(...[...d.el.parentElement.querySelectorAll("li[data-stepi]")].map(x => Number(x.dataset.stepi))) + 1;
+    if (to > from) to--;
+    if (to === from) return;
+    push({ op: "moveStep", id, from, to }, "단계 순서를 바꿨습니다");
+  }
+}
+$("list").addEventListener("pointerdown", e => {
+  if (e.button > 0 || drag) return;
+  const t = dragKind(e.target);
+  if (!t) return;
+  holdStart = { x: e.clientX, y: e.clientY };
+  clearTimeout(holdTimer);
+  holdTimer = setTimeout(() => beginDrag(t, holdStart.y), 420);
+});
+document.addEventListener("pointermove", e => {
+  if (holdTimer && holdStart && Math.hypot(e.clientX - holdStart.x, e.clientY - holdStart.y) > 8) { clearTimeout(holdTimer); holdTimer = null; }
+  if (drag) moveDrag(e.clientY);
+});
+document.addEventListener("pointerup", () => { clearTimeout(holdTimer); holdTimer = null; if (drag) endDrag(true); });
+document.addEventListener("pointercancel", () => { clearTimeout(holdTimer); holdTimer = null; if (drag) endDrag(false); });
+// 끄는 동안에는 화면이 같이 밀리지 않게 한다
+document.addEventListener("touchmove", e => { if (drag) e.preventDefault(); }, { passive: false });
+$("list").addEventListener("contextmenu", e => { if (drag || holdTimer) e.preventDefault(); });
+
 // ───── 누르기 ─────
 $("list").addEventListener("click", e => {
+  if (suppressClick) { e.preventDefault(); return; }
   const box = e.target.closest("[data-check]");
   if (box) { check(box.dataset.check); return; }
   const id = opened, item = id && view().find(x => x.id === id);
