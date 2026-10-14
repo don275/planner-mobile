@@ -181,12 +181,16 @@ function view() {
   const todos = (state ? state.todos : []).map(x => ({ ...x, steps: [...(x.steps || [x.text])], stepDues: [...(x.stepDues || [])] }));
   const sync = item => { if (item.stepDues.some(Boolean)) item.due = item.stepDues[Math.min(item.step, item.stepDues.length - 1)] || ""; };
   for (const op of inbox) {
+    if (op.op === "rename") { todos.forEach(x => { if ((x.section || "") === op.from) x.section = op.to; }); continue; }
     if (op.op === "add") { todos.push({ id: op.id, section: op.section, text: op.text, steps: [op.text], step: 0, due: op.due || "", stepDues: [], notes: "" }); continue; }
     const item = todos.find(x => x.id === op.id);
     if (!item) continue;
     if (op.op === "check") { if (item.step < item.steps.length - 1) { item.step++; sync(item); } else item.gone = true; }
     if (op.op === "back" && item.step > 0) { item.step--; sync(item); }
     if (op.op === "note") item.notes = item.notes ? item.notes.trimEnd() + "\n" + op.text : op.text;
+    if (op.op === "edit" && item.steps.length < 2) { item.text = op.text; item.steps = [op.text]; }
+    if (op.op === "editStep" && op.step < item.steps.length) item.steps[op.step] = op.text;
+    if (op.op === "delete") item.gone = true;
     if (op.op === "addStep") { item.steps.push(op.text); if (item.stepDues.some(Boolean)) item.stepDues.push(""); }
     if (op.op === "due") {
       const many = item.steps.length > 1;
@@ -252,7 +256,7 @@ function render() {
   for (const name of order) {
     const items = todos.filter(x => (x.section || "") === name);
     if (!items.length) continue;
-    html += `<section><div class="proj"><i style="${colors[name] ? "background:" + esc(colors[name]) : ""}"></i><b>${esc(name || "기타")}</b>`
+    html += `<section><div class="proj"><i style="${colors[name] ? "background:" + esc(colors[name]) : ""}"></i><b data-project="${esc(name)}">${esc(name || "기타")}</b>`
       + (pinned.includes(name) ? `<small>고정</small>` : "") + `<small>${items.length}</small></div>`;
     for (const item of items) {
       const due = dueLabel(item), many = item.steps.length > 1;
@@ -262,11 +266,12 @@ function render() {
         + (due ? `<span class="due ${due.cls}">${due.text}</span>` : "") + (item.notes && opened !== item.id ? `<span>메모</span>` : "") + `</div>`;
       if (opened === item.id) {
         html += `<div class="more">`;
-        if (many) html += `<ul class="steps">` + item.steps.map((s, i) => `<li class="${i < item.step ? "done" : i === item.step ? "now" : ""}"><span>${i + 1}. ${esc(s)}</span>`
+        if (many) html += `<ul class="steps">` + item.steps.map((s, i) => `<li class="${i < item.step ? "done" : i === item.step ? "now" : ""}"><span data-stepname="${i}">${i + 1}. ${esc(s)}</span>`
           + (i >= item.step ? `<button data-stepdue="${i}">${item.stepDues[i] ? "~" + md(item.stepDues[i]) : "마감일"}</button>` : "") + `</li>`).join("") + `</ul>`;
         if (item.notes) html += `<div class="note">${esc(item.notes)}</div>`;
         html += `<div class="acts">` + (item.step > 0 ? `<button data-act="back">이전 단계</button>` : "")
           + `<button data-act="step">단계 추가</button><button data-act="note">메모 추가</button>`
+          + (many ? "" : `<button data-act="edit">수정</button>`) + `<button data-act="delete">삭제</button>`
           + (many ? "" : `<button data-act="due">${item.due ? "마감 " + md(item.due) : "마감일"}</button>`) + `</div></div>`;
       }
       html += `</div></div>`;
@@ -315,8 +320,8 @@ function sheet(html, ready) {
   if (ready) ready($("sheet"));
 }
 function closeSheet() { $("shade").hidden = true; $("sheet").innerHTML = ""; }
-function ask(title, placeholder, done) {
-  sheet(`<h2>${esc(title)}</h2><textarea id="askText" rows="3" placeholder="${esc(placeholder)}"></textarea>
+function ask(title, placeholder, done, value) {
+  sheet(`<h2>${esc(title)}</h2><textarea id="askText" rows="3" placeholder="${esc(placeholder)}">${esc(value || "")}</textarea>
     <div class="end"><button data-close>취소</button><button class="primary" id="askOk">저장</button></div>`, s => {
     const box = s.querySelector("#askText"); setTimeout(() => box.focus(), 50);
     s.querySelector("#askOk").onclick = () => { const v = box.value.replace(/　/g, " ").trim(); if (!v) { box.focus(); return; } closeSheet(); done(v); };
@@ -466,6 +471,18 @@ $("list").addEventListener("click", e => {
   const box = e.target.closest("[data-check]");
   if (box) { check(box.dataset.check); return; }
   const id = opened, item = id && view().find(x => x.id === id);
+  const project = e.target.closest("[data-project]");
+  if (project && project.dataset.project) {
+    const from = project.dataset.project;
+    ask("프로젝트 이름 바꾸기", "프로젝트 이름", v => { if (v !== from) push({ op: "rename", from, to: v.replace(/[\[\]]/g, "").trim() }, "이름을 바꿨습니다"); }, from);
+    return;
+  }
+  const stepName = e.target.closest("[data-stepname]");
+  if (stepName && item) {
+    const i = Number(stepName.dataset.stepname);
+    ask((i + 1) + "단계 이름 바꾸기", "단계 이름", v => push({ op: "editStep", id, step: i, text: v.replace(/→|->/g, " ") }, "단계 이름을 바꿨습니다"), item.steps[i]);
+    return;
+  }
   const stepDue = e.target.closest("[data-stepdue]");
   if (stepDue && item) { const i = Number(stepDue.dataset.stepdue); pickDate(item.stepDues[i], v => push({ op: "due", id, step: i, due: v }, v ? (i + 1) + "단계 마감 " + md(v) : "마감일을 지웠습니다")); return; }
   const act = e.target.closest("[data-act]");
@@ -474,6 +491,8 @@ $("list").addEventListener("click", e => {
     if (a === "back") push({ op: "back", id }, "'" + item.steps[item.step - 1] + "' 단계로 되돌렸습니다");
     if (a === "note") ask("메모 추가", "메모", v => push({ op: "note", id, text: v }, "메모를 넣었습니다"));
     if (a === "step") ask("단계 추가", "맨 끝에 붙일 단계", v => push({ op: "addStep", id, text: v.replace(/→|->/g, " ") }, "단계를 넣었습니다"));
+    if (a === "edit") ask("할 일 수정", "할 일", v => push({ op: "edit", id, text: v.replace(/→|->/g, " ") }, "고쳤습니다"), item.text);
+    if (a === "delete" && confirm("'" + (item.steps.length > 1 ? item.text : item.text) + "' 을(를) 삭제할까요?")) { opened = null; push({ op: "delete", id }, "삭제했습니다"); }
     if (a === "due") pickDate(item.due, v => push({ op: "due", id, due: v }, v ? "마감 " + md(v) : "마감일을 지웠습니다"));
     return;
   }
