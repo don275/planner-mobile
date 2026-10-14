@@ -68,7 +68,6 @@
   <div class="top">
     <h1>업무 플래너</h1>
     <span class="state" id="state"></span>
-    <button id="refresh" aria-label="새로고침">새로고침</button>
   </div>
   <div class="chips">
     <button class="chip on" data-filter="all">전체</button>
@@ -104,17 +103,17 @@ const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } cat
 
 let state = load("state", null);          // PC 에서 받은 목록
 let inbox = load("inbox", []);            // 아직 PC 가 가져가지 않은 내 변경
-let filter = "all", opened = null, token = null, demo = !CLIENT_ID, picked = false;
+let filter = "all", opened = null, token = null, demo = !CLIENT_ID, picked = false, problem = "";   // problem: 맞추지 못했을 때만 위에 한 줄로 알린다
 
 function sample() {
   const t = today(), plus = n => day(new Date(Date.parse(t) + n * 86400000));
-  return { updated: new Date().toISOString(), sections: ["고정 업무", "이한결", "계약 수정·검토"], todos: [
-    { id: "s1", section: "고정 업무", text: "M2M 가주문 제품 상태 조회 → 당일 주문 수량·재고 확인", steps: ["M2M 가주문 제품 상태 조회", "당일 주문 수량·재고 확인"], step: 0, due: t, stepDues: [], notes: "", repeat: true },
-    { id: "s2", section: "고정 업무", text: "온라인몰·이메일 주문 건 확인 → M2M 주문 시트 전송", steps: ["온라인몰·이메일 주문 건 확인", "M2M 주문 시트 전송"], step: 0, due: t, stepDues: [], notes: "", repeat: true },
-    { id: "s3", section: "이한결", text: "자료 수급 → 신보 안내서 작성 → 검수 요청", steps: ["자료 수급", "신보 안내서 작성", "검수 요청"], step: 1, due: plus(2), stepDues: [plus(-1), plus(2), plus(7)], notes: "XLOVE 신보 안내서 참고\n2000개 제작 예정", repeat: false },
-    { id: "s4", section: "이한결", text: "바코드 리걸라인 생성", steps: ["바코드 리걸라인 생성"], step: 0, due: "", stepDues: [], notes: "", repeat: false },
-    { id: "s5", section: "계약 수정·검토", text: "계약서 발매일 반영 여부 확인", steps: ["계약서 발매일 반영 여부 확인"], step: 0, due: plus(-1), stepDues: [], notes: "", repeat: false },
-    { id: "s6", section: "계약 수정·검토", text: "대표님 계약서 확인 → 전자 계약 발송", steps: ["대표님 계약서 확인", "전자 계약 발송"], step: 0, due: plus(9), stepDues: [], notes: "", repeat: false } ] };
+  return { updated: new Date().toISOString(), sections: ["매일 하는 일", "가을 행사", "거래처"], todos: [
+    { id: "s1", section: "매일 하는 일", text: "주문 확인 → 출고 요청", steps: ["주문 확인", "출고 요청"], step: 0, due: t, stepDues: [], notes: "", repeat: true },
+    { id: "s2", section: "매일 하는 일", text: "문의 메일 답장", steps: ["문의 메일 답장"], step: 0, due: t, stepDues: [], notes: "", repeat: true },
+    { id: "s3", section: "가을 행사", text: "장소 확정 → 안내문 작성 → 참석자에게 발송", steps: ["장소 확정", "안내문 작성", "참석자에게 발송"], step: 1, due: plus(2), stepDues: [plus(-1), plus(2), plus(7)], notes: "작년 안내문 참고\n참석 예정 40명", repeat: false },
+    { id: "s4", section: "가을 행사", text: "인쇄물 견적 받기", steps: ["인쇄물 견적 받기"], step: 0, due: "", stepDues: [], notes: "", repeat: false },
+    { id: "s5", section: "거래처", text: "계약서 수정 사항 확인", steps: ["계약서 수정 사항 확인"], step: 0, due: plus(-1), stepDues: [], notes: "", repeat: false },
+    { id: "s6", section: "거래처", text: "대표님 검토 → 전자 계약 발송", steps: ["대표님 검토", "전자 계약 발송"], step: 0, due: plus(9), stepDues: [], notes: "", repeat: false } ] };
 }
 
 // PC 에서 받은 목록에 아직 안 넘어간 내 변경을 겹쳐서 보여 준다.
@@ -157,7 +156,7 @@ function render() {
         + `<div class="text">${esc(many ? item.steps[item.step] : item.text)}</div><div class="meta">`
         + (many ? `<span>${item.step + 1}/${item.steps.length}</span>` + (item.step < item.steps.length - 1 ? `<span>다음: ${esc(item.steps[item.step + 1])}</span>` : "") : "")
         + (due ? `<span class="due ${due.cls}">${due.text}</span>` : "")
-        + (item.notes ? `<span>메모</span>` : "") + (item.wait ? `<span class="wait">PC 반영 대기</span>` : "") + `</div>`;
+        + (item.notes ? `<span>메모</span>` : "") + `</div>`;
       if (opened === item.id) {
         html += `<div class="more">` + (many ? `<ol>` + item.steps.map((s, i) => `<li class="${i < item.step ? "done" : i === item.step ? "now" : ""}">${esc(s)}${(item.stepDues || [])[i] ? " · ~" + Number(item.stepDues[i].slice(5, 7)) + "/" + Number(item.stepDues[i].slice(8)) : ""}</li>`).join("") + `</ol>` : "")
           + (item.notes ? (many ? "\n" : "") + esc(item.notes) : "") + (!many && !item.notes ? "메모 없음" : "") + `</div>`;
@@ -170,8 +169,7 @@ function render() {
   const names = order.filter(Boolean), sel = $("newSection"), keep = sel.value;
   sel.innerHTML = names.map(n => `<option>${esc(n)}</option>`).join("") + `<option value="">기타</option>`;
   if (picked && (names.includes(keep) || keep === "")) sel.value = keep;
-  const when = state && state.updated ? new Date(state.updated) : null;
-  $("state").textContent = (inbox.length ? "보낼 것 " + inbox.length + " · " : "") + (when ? (when.getMonth() + 1) + "/" + when.getDate() + " " + String(when.getHours()).padStart(2, "0") + ":" + String(when.getMinutes()).padStart(2, "0") + " 기준" : "");
+  $("state").textContent = problem;
   $("banner").hidden = !demo && !!token;
   $("bannerText").textContent = demo ? "견본 자료입니다" : "구글에 연결하면 내 할 일이 보입니다";
   $("connect").hidden = demo;
@@ -234,7 +232,8 @@ let busy = false;
 async function send() {
   if (demo || !token || busy) return;
   busy = true;
-  try { await writeFile(INBOX_FILE, { ops: inbox }); } catch (e) { toast(e.message); }
+  try { await writeFile(INBOX_FILE, { ops: inbox }); problem = ""; } catch (e) { problem = "연결 안 됨"; }
+  render();
   busy = false;
 }
 async function refresh() {
@@ -248,9 +247,10 @@ async function refresh() {
       inbox = inbox.filter(op => !taken.has(op.key));
       state = fresh; save("state", state); save("inbox", inbox);
     }
+    problem = "";
     render();
     await send();
-  } catch (e) { toast(e.message); }
+  } catch (e) { problem = "연결 안 됨"; render(); }
 }
 function connect() {
   if (!window.google) { toast("구글 연결 준비 중입니다. 잠시 뒤 다시 눌러 주세요"); return; }
@@ -270,7 +270,6 @@ document.querySelectorAll("[data-filter]").forEach(b => b.addEventListener("clic
 $("add").addEventListener("click", add);
 $("newSection").addEventListener("change", () => picked = true);
 $("newText").addEventListener("keydown", e => { if (e.key === "Enter") add(); });
-$("refresh").addEventListener("click", refresh);
 $("connect").addEventListener("click", connect);
 $("undo").addEventListener("click", () => {
   if (!lastOp) return;
@@ -278,6 +277,8 @@ $("undo").addEventListener("click", () => {
   $("toast").hidden = true; render(); send();
 });
 document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
+// 화면을 보고 있는 동안에는 알아서 맞춘다.
+setInterval(() => { if (!demo && token && !document.hidden) refresh(); }, 20000);
 if (!demo) { const s = document.createElement("script"); s.src = "https://accounts.google.com/gsi/client"; s.async = true; document.head.appendChild(s); }
 if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
 refresh();
