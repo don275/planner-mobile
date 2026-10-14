@@ -99,10 +99,11 @@
   .find input { flex: 1; }
   mark { background: #ffe082; color: #202124; border-radius: 3px; padding: 0 1px; }
   .item, .proj, .steps li { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
-  .dragsrc { opacity: .3; }
-  .ghost { position: fixed; z-index: 40; left: 14px; right: 14px; pointer-events: none; background: var(--card); color: var(--text); border: 1.5px solid var(--accent); border-radius: 12px;
-    padding: 11px 14px; box-shadow: 0 8px 24px rgba(0,0,0,.28); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transform: scale(1.02); }
-  .dropline { position: fixed; z-index: 39; left: 16px; right: 16px; height: 3px; border-radius: 2px; background: var(--accent); pointer-events: none; }
+  .ghost { position: fixed; z-index: 40; margin: 0; pointer-events: none; background: var(--card); color: var(--text); border: 1.5px solid var(--accent); border-radius: 12px;
+    padding-left: 10px; padding-right: 10px; box-shadow: 0 12px 30px rgba(0,0,0,.32); transform: scale(1.03); list-style: none; }
+  .ghost .hint { position: absolute; right: 10px; top: -11px; background: var(--accent); color: var(--on-accent); font-size: 12px; font-weight: 700; padding: 2px 9px; border-radius: 999px; }
+  .slot { border: 2px dashed var(--accent); border-radius: 12px; background: var(--tint); margin: 4px 0; list-style: none; }
+  .proj.droptarget { box-shadow: 0 0 0 2px var(--accent) inset; }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -548,6 +549,7 @@ document.addEventListener("pointerdown", () => {
 }, true);
 
 // ───── 꾹 눌러 끌어서 순서 바꾸기(할 일 · 단계 · 프로젝트) ─────
+// 집으면 손가락에 붙어 따라오고, 놓일 자리에는 점선 빈칸이 생겨서 다른 줄들이 비켜선다.
 let drag = null, holdTimer = null, holdStart = null, suppressClick = false, lastY = 0, scrollTick = null;
 function dragKind(el) {
   if (el.closest("button, input, select, textarea, a")) return null;
@@ -556,79 +558,91 @@ function dragKind(el) {
   const proj = el.closest(".proj"); if (proj) return { kind: "proj", el: proj };
   return null;
 }
-function candidates() {
-  if (drag.kind === "step") return [...drag.el.parentElement.querySelectorAll("li[data-stepi]")].filter(x => x !== drag.el);
-  if (drag.kind === "proj") return [...$("list").querySelectorAll(".proj")].filter(x => x !== drag.el);
-  return [...$("list").querySelectorAll(".item, .proj")].filter(x => x !== drag.el);
-}
-// 손가락 위치에서 놓일 자리: 그 위치보다 아래쪽 반에 걸친 첫 칸의 앞
-function findDrop(y) {
-  const list = candidates();
-  let before = null;
-  for (const c of list) { const r = c.getBoundingClientRect(); if (y < r.top + r.height / 2) { before = c; break; } }
-  const last = list[list.length - 1];
-  const lineY = before ? before.getBoundingClientRect().top - 2 : last ? last.getBoundingClientRect().bottom + 1 : drag.el.getBoundingClientRect().bottom;
-  return { before, lineY };
-}
+const nextItem = (from, skip) => { let n = from.nextElementSibling; while (n && (n === skip || !n.classList.contains("item"))) n = n.nextElementSibling; return n; };
+const nextSection = (from, skip) => { let n = from.nextElementSibling; while (n && (n === skip || n.tagName !== "SECTION")) n = n.nextElementSibling; return n; };
+const mid = el => { const r = el.getBoundingClientRect(); return r.top + r.height / 2; };
 function beginDrag(t, y) {
   holdTimer = null;
   if (query || (filter !== "all" && filter !== "today")) return;
-  drag = { ...t, target: null };
-  const label = t.kind === "step" ? t.el.querySelector("span").textContent : t.kind === "proj" ? t.el.querySelector("b").textContent : t.el.querySelector(".text").textContent;
-  drag.ghost = document.createElement("div"); drag.ghost.className = "ghost"; drag.ghost.textContent = label; document.body.appendChild(drag.ghost);
-  drag.line = document.createElement("div"); drag.line.className = "dropline"; document.body.appendChild(drag.line);
-  t.el.classList.add("dragsrc");
+  const src = t.kind === "proj" ? t.el.parentElement : t.el;      // 프로젝트는 묶음째 옮긴다
+  const r = t.el.getBoundingClientRect();
+  drag = { ...t, src, offset: y - r.top, h: r.height, origin: t.kind === "item" ? t.el.dataset.sec : null };
+  drag.ghost = t.el.cloneNode(true); drag.ghost.classList.add("ghost"); drag.ghost.classList.remove("now", "done");
+  Object.assign(drag.ghost.style, { left: r.left + "px", width: r.width + "px", top: r.top + "px" });
+  drag.hint = document.createElement("span"); drag.hint.className = "hint"; drag.hint.hidden = true; drag.ghost.appendChild(drag.hint);
+  document.body.appendChild(drag.ghost);
+  drag.slot = document.createElement(t.kind === "step" ? "li" : "div"); drag.slot.className = "slot"; drag.slot.style.height = r.height + "px";
+  src.parentElement.insertBefore(drag.slot, src);
+  // 처음 자리(놓았을 때 그대로면 아무것도 안 한다)
+  if (t.kind === "item") drag.was = (nextItem(src) || {}).dataset?.id || "";
+  if (t.kind === "proj") drag.was = nextSection(src) || null;
+  src.style.display = "none";
   // 집을 때 진동: 앱이면 앱의 진동(아이폰 포함), 아니면 브라우저 진동(안드로이드)
   try { if (native() && native().haptic) native().haptic(); else if (navigator.vibrate) navigator.vibrate(12); } catch {}
   moveDrag(y);
   // 화면 위 · 아래 끝에 가까우면 천천히 민다
   scrollTick = setInterval(() => {
     if (!drag) return;
-    const edge = document.querySelector("header").getBoundingClientRect().bottom + 36;
-    const foot = document.querySelector("footer"), bottom = (foot && getComputedStyle(foot).display !== "none" ? foot.getBoundingClientRect().top : innerHeight) - 36;
-    if (lastY < edge) scrollBy(0, -Math.ceil((edge - lastY) / 6)); else if (lastY > bottom) scrollBy(0, Math.ceil((lastY - bottom) / 6)); else return;
+    const edge = document.querySelector("header").getBoundingClientRect().bottom + 40;
+    const foot = document.querySelector("footer"), bottom = (foot && getComputedStyle(foot).display !== "none" ? foot.getBoundingClientRect().top : innerHeight) - 40;
+    if (lastY < edge) scrollBy(0, -Math.ceil((edge - lastY) / 5)); else if (lastY > bottom) scrollBy(0, Math.ceil((lastY - bottom) / 5)); else return;
     moveDrag(lastY);
   }, 30);
 }
+// 빈칸을 손가락(끄는 줄의 가운데)이 있는 자리로 옮긴다.
 function moveDrag(y) {
   lastY = y;
-  drag.ghost.style.top = (y - 72) + "px";     // 손가락 위쪽에 띄워서 놓일 자리 줄이 가리지 않게
-  drag.target = findDrop(y);
-  drag.line.style.top = drag.target.lineY + "px";
+  drag.ghost.style.top = (y - drag.offset) + "px";
+  const at = y - drag.offset + drag.h / 2, slot = drag.slot;
+  if (drag.kind === "step") {
+    const ul = slot.parentElement, lis = [...ul.querySelectorAll("li[data-stepi]")].filter(x => x !== drag.src);
+    const before = lis.find(x => at < mid(x));
+    if (before) { if (slot.nextElementSibling !== before) ul.insertBefore(slot, before); } else if (ul.lastElementChild !== slot) ul.appendChild(slot);
+  } else if (drag.kind === "proj") {
+    const secs = [...$("list").querySelectorAll("section")].filter(x => x !== drag.src);
+    const before = secs.find(x => at < mid(x.querySelector(".proj")));
+    if (before) { if (nextSection(slot, drag.src) !== before || slot.nextElementSibling !== before && slot.nextElementSibling !== drag.src) $("list").insertBefore(slot, before); }
+    else if (secs.length && nextSection(slot, drag.src)) secs[secs.length - 1].after(slot);
+  } else {
+    const all = [...$("list").querySelectorAll(".item, .proj")].filter(x => x !== drag.src);
+    const before = all.find(x => at < mid(x));
+    if (!before) { const secs = $("list").querySelectorAll("section"), last = secs[secs.length - 1]; if (last && last.lastElementChild !== slot) last.appendChild(slot); }
+    else if (before.classList.contains("item")) { if (slot.nextElementSibling !== before) before.before(slot); }
+    else {
+      // 프로젝트 머리 위 = 바로 위 프로젝트의 맨 끝, 맨 위 머리 위 = 첫 프로젝트의 맨 앞
+      const sec = before.parentElement, prev = sec.previousElementSibling;
+      if (prev && prev.tagName === "SECTION") { if (prev.lastElementChild !== slot) prev.appendChild(slot); }
+      else if (before.nextElementSibling !== slot) before.after(slot);
+    }
+    // 다른 프로젝트로 가면 그 프로젝트 머리를 표시하고, 끄는 줄에 어디로 가는지 적는다
+    const into = slot.closest("section"), name = into ? into.querySelector(".proj").dataset.sec : drag.origin;
+    $("list").querySelectorAll(".proj.droptarget").forEach(p => p.classList.remove("droptarget"));
+    if (name !== drag.origin && into) into.querySelector(".proj").classList.add("droptarget");
+    drag.hint.hidden = name === drag.origin; drag.hint.textContent = "→ " + (name || "기타");
+  }
 }
 function endDrag(drop) {
   const d = drag; drag = null; clearInterval(scrollTick);
-  d.ghost.remove(); d.line.remove(); d.el.classList.remove("dragsrc");
+  d.ghost.remove();
+  $("list").querySelectorAll(".proj.droptarget").forEach(p => p.classList.remove("droptarget"));
   suppressClick = true; setTimeout(() => suppressClick = false, 350);
-  if (!drop || !d.target) return;
-  const before = d.target.before;
-  if (d.kind === "item") {
-    const id = d.el.dataset.id;
-    let section, beforeId = "";
-    if (before && before.classList.contains("item")) { section = before.dataset.sec; beforeId = before.dataset.id; }
-    else {
-      // 프로젝트 머리 앞 = 바로 위 프로젝트의 맨 끝, 맨 위 머리 앞 = 첫 프로젝트의 맨 앞
-      const heads = [...$("list").querySelectorAll(".proj")], at = before ? heads.indexOf(before) : heads.length;
-      if (at > 0) section = heads[at - 1].dataset.sec;
-      else { section = heads[0] ? heads[0].dataset.sec : ""; const first = $("list").querySelector(`.item[data-sec="${CSS.escape(section)}"]`); beforeId = first ? first.dataset.id : ""; }
+  let op = null, said = "";
+  if (drop) {
+    if (d.kind === "item") {
+      const into = d.slot.closest("section"), section = into ? into.querySelector(".proj").dataset.sec : d.origin;
+      const next = nextItem(d.slot, d.src), before = next ? next.dataset.id : "";
+      if (section !== d.origin || before !== d.was) { op = { op: "move", id: d.el.dataset.id, section, before }; said = section === d.origin ? "순서를 바꿨습니다" : "'" + (section || "기타") + "'(으)로 옮겼습니다"; }
+    } else if (d.kind === "proj") {
+      const next = nextSection(d.slot, d.src);
+      if (next !== d.was) { op = next ? { op: "moveSection", name: d.el.dataset.sec, before: next.querySelector(".proj").dataset.sec } : { op: "moveSection", name: d.el.dataset.sec, before: "", end: "1" }; said = "프로젝트 순서를 바꿨습니다"; }
+    } else {
+      const ul = d.slot.parentElement, order = [...ul.children].filter(x => x !== d.src);
+      const from = Number(d.src.dataset.stepi), to = order.indexOf(d.slot);
+      if (to !== from) { op = { op: "moveStep", id: ul.dataset.steps, from, to }; said = "단계 순서를 바꿨습니다"; }
     }
-    // 제자리면 아무것도 안 한다
-    const next = [...$("list").querySelectorAll(".item")].find((x, i, all) => all[i - 1] === d.el);
-    const same = section === d.el.dataset.sec && (beforeId === id || (next ? beforeId === next.dataset.id && next.dataset.sec === section : !beforeId));
-    if (same) return;
-    push({ op: "move", id, section, before: beforeId }, section === d.el.dataset.sec ? "순서를 바꿨습니다" : "\u0027" + (section || "기타") + "\u0027(으)로 옮겼습니다");
-  } else if (d.kind === "proj") {
-    const name = d.el.dataset.sec, heads = [...$("list").querySelectorAll(".proj")];
-    const nextHead = heads[heads.indexOf(d.el) + 1];
-    if (before === nextHead || (!before && !nextHead)) return;
-    push(before ? { op: "moveSection", name, before: before.dataset.sec } : { op: "moveSection", name, before: "", end: "1" }, "프로젝트 순서를 바꿨습니다");
-  } else {
-    const id = d.el.parentElement.dataset.steps, from = Number(d.el.dataset.stepi);
-    let to = before ? Number(before.dataset.stepi) : Math.max(...[...d.el.parentElement.querySelectorAll("li[data-stepi]")].map(x => Number(x.dataset.stepi))) + 1;
-    if (to > from) to--;
-    if (to === from) return;
-    push({ op: "moveStep", id, from, to }, "단계 순서를 바꿨습니다");
   }
+  d.slot.remove(); d.src.style.display = "";
+  if (op) push(op, said); else render();
 }
 $("list").addEventListener("pointerdown", e => {
   if (e.button > 0 || drag) return;
@@ -636,7 +650,7 @@ $("list").addEventListener("pointerdown", e => {
   if (!t) return;
   holdStart = { x: e.clientX, y: e.clientY };
   clearTimeout(holdTimer);
-  holdTimer = setTimeout(() => beginDrag(t, holdStart.y), 420);
+  holdTimer = setTimeout(() => beginDrag(t, holdStart.y), 380);
 });
 document.addEventListener("pointermove", e => {
   if (holdTimer && holdStart && Math.hypot(e.clientX - holdStart.x, e.clientY - holdStart.y) > 8) { clearTimeout(holdTimer); holdTimer = null; }
@@ -647,7 +661,6 @@ document.addEventListener("pointercancel", () => { clearTimeout(holdTimer); hold
 // 끄는 동안에는 화면이 같이 밀리지 않게 한다
 document.addEventListener("touchmove", e => { if (drag) e.preventDefault(); }, { passive: false });
 $("list").addEventListener("contextmenu", e => { if (drag || holdTimer) e.preventDefault(); });
-
 // ───── 누르기 ─────
 $("list").addEventListener("click", e => {
   if (suppressClick) { e.preventDefault(); return; }
