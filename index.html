@@ -12,11 +12,11 @@
 <style>
   :root {
     --accent: #212121; --on-accent: #fff; --back: #f6f7f9; --card: #fff; --text: #202124; --sub: #5f6368; --faint: #80868b;
-    --line: #dee1e6; --red: #d93025; --orange: #e37400; --green: #188048; --tint: #ececec;
+    --line: #dee1e6; --red: #d93025; --orange: #e37400; --green: #188048; --tint: #ececec; --shade: rgba(0,0,0,.32);
   }
   @media (prefers-color-scheme: dark) {
     :root { --accent: #e8eaed; --on-accent: #202124; --back: #202124; --card: #292a2d; --text: #e8eaed; --sub: #aaafb5; --faint: #8a9096;
-      --line: #46494d; --red: #f28b82; --orange: #faad5a; --green: #5ec489; --tint: #3c4043; }
+      --line: #46494d; --red: #f28b82; --orange: #faad5a; --green: #5ec489; --tint: #3c4043; --shade: rgba(0,0,0,.55); }
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; background: var(--back); color: var(--text); font: 15px/1.45 -apple-system, "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; }
@@ -35,7 +35,7 @@
   main { padding: 4px 16px 0; }
   section { margin-top: 14px; }
   .proj { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 10px; background: var(--tint); font-weight: 700; }
-  .proj i { width: 4px; height: 18px; border-radius: 2px; background: var(--accent); }
+  .proj i { width: 4px; height: 18px; border-radius: 2px; background: var(--accent); flex: none; }
   .proj b { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .proj small { font-weight: 400; color: var(--sub); }
   .item { display: flex; gap: 10px; padding: 11px 4px 10px; border-bottom: 1px solid var(--line); }
@@ -45,21 +45,35 @@
   .body { flex: 1; min-width: 0; }
   .text { word-break: break-word; }
   .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 5px; font-size: 12.5px; color: var(--sub); }
-  .step { background: var(--accent); color: var(--on-accent); border-radius: 999px; padding: 2px 10px; font-weight: 700; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .due { font-weight: 700; }
   .due.late { color: var(--red); } .due.soon { color: var(--orange); } .due.far { color: var(--sub); font-weight: 400; }
-  .wait { color: var(--orange); }
-  .more { margin-top: 8px; padding: 8px 10px; border-radius: 9px; background: var(--tint); font-size: 13px; color: var(--sub); white-space: pre-wrap; }
-  .more ol { margin: 0 0 0 18px; padding: 0; } .more li.done { text-decoration: line-through; color: var(--faint); } .more li.now { color: var(--text); font-weight: 700; }
+  .more { margin-top: 8px; padding: 10px; border-radius: 10px; background: var(--tint); font-size: 13.5px; color: var(--sub); }
+  .steps { margin: 0; padding: 0; list-style: none; }
+  .steps li { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
+  .steps li span { flex: 1; min-width: 0; word-break: break-word; }
+  .steps li.done span { text-decoration: line-through; color: var(--faint); }
+  .steps li.now span { color: var(--text); font-weight: 700; }
+  .steps li button, .acts button { font-size: 12.5px; padding: 3px 9px; border-radius: 999px; }
+  .note { white-space: pre-wrap; margin-top: 8px; color: var(--text); }
+  .acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
   .empty { text-align: center; color: var(--faint); padding: 48px 0; }
   footer { position: fixed; left: 0; right: 0; bottom: 0; background: var(--back); border-top: 1px solid var(--line); padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); }
   .row { display: flex; gap: 8px; }
   .row + .row { margin-top: 8px; }
-  input, select { font: inherit; color: var(--text); background: var(--card); border: 1px solid var(--line); border-radius: 9px; padding: 9px 11px; min-width: 0; }
-  input:focus, select:focus { outline: none; border-color: var(--accent); }
+  input, select, textarea { font: inherit; color: var(--text); background: var(--card); border: 1px solid var(--line); border-radius: 9px; padding: 9px 11px; min-width: 0; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
   #newText { flex: 1; } #newSection { flex: 1; } #newDue { flex: none; width: 138px; }
-  .toast { position: fixed; left: 50%; bottom: calc(150px + env(safe-area-inset-bottom)); transform: translateX(-50%); background: var(--accent); color: var(--on-accent); padding: 9px 14px; border-radius: 999px; font-size: 13.5px; display: flex; gap: 12px; align-items: center; white-space: nowrap; }
+  .toast { position: fixed; z-index: 30; left: 50%; bottom: calc(150px + env(safe-area-inset-bottom)); transform: translateX(-50%); background: var(--accent); color: var(--on-accent); padding: 9px 14px; border-radius: 999px; font-size: 13.5px; display: flex; gap: 12px; align-items: center; white-space: nowrap; }
   .toast button { background: transparent; border: 0; color: inherit; font-weight: 700; padding: 0; text-decoration: underline; }
+  .shade { position: fixed; inset: 0; z-index: 20; background: var(--shade); display: flex; align-items: flex-end; }
+  .sheet { width: 100%; max-height: 82vh; overflow: auto; background: var(--back); border-radius: 16px 16px 0 0; padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); }
+  .sheet h2 { font-size: 16px; margin: 0 0 12px; }
+  .sheet textarea, .sheet input { width: 100%; }
+  .sheet label { display: block; font-size: 13px; color: var(--sub); margin: 10px 0 4px; }
+  .sheet .end { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+  .phrase { display: block; width: 100%; text-align: left; margin-bottom: 8px; padding: 10px 12px; }
+  .phrase small { display: block; color: var(--sub); font-size: 12.5px; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #picker { position: fixed; left: -100px; top: 0; width: 1px; height: 1px; opacity: 0; }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -68,6 +82,7 @@
   <div class="top">
     <h1>업무 플래너</h1>
     <span class="state" id="state"></span>
+    <button id="phrases">문구</button>
   </div>
   <div class="chips">
     <button class="chip on" data-filter="all">전체</button>
@@ -86,28 +101,40 @@
     <input id="newDue" type="date" aria-label="마감일">
   </div>
 </footer>
+<input id="picker" type="date" aria-hidden="true" tabindex="-1">
 <div class="toast" id="toast" hidden><span id="toastText"></span><button id="undo">되돌리기</button></div>
+<div class="shade" id="shade" hidden><div class="sheet" id="sheet"></div></div>
 
 <script>
-// ───── 설정: 구글 웹 클라이언트 ID 를 넣으면 실제 자료에 연결된다. 비어 있으면 견본 자료로만 돈다. ─────
+// ───── 설정: 구글 웹 클라이언트 ID. 비어 있으면 견본 자료로만 돈다. ─────
 const CLIENT_ID = "803298183649-crabbost4n0hbhmi4tuhgpt9q5dskaoh.apps.googleusercontent.com";
 const SCOPE = "https://www.googleapis.com/auth/drive.appdata";
 const STATE_FILE = "planner-state.json";     // PC 가 올리는 현재 목록
-const INBOX_FILE = "planner-inbox.json";     // 폰에서 한 일(체크 · 추가). PC 가 가져가서 반영한다
+const INBOX_FILE = "planner-inbox.json";     // 폰에서 한 일. PC 가 가져가서 반영한다
+// 앱(아이폰 · 안드로이드)으로 감쌌을 때: 앱이 window.PlannerNative = { signIn(), copy(text) } 를 넣어 주면 그걸 쓴다.
+const native = () => window.PlannerNative || null;
 
 const $ = id => document.getElementById(id);
 const day = d => d.toISOString().slice(0, 10);
 const today = () => day(new Date(Date.now() - new Date().getTimezoneOffset() * 60000));
+const md = s => s ? Number(s.slice(5, 7)) + "/" + Number(s.slice(8, 10)) : "";
 const load = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
 const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const newKey = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 
 let state = load("state", null);          // PC 에서 받은 목록
 let inbox = load("inbox", []);            // 아직 PC 가 가져가지 않은 내 변경
-let filter = "all", opened = null, token = null, demo = !CLIENT_ID, picked = false, problem = "";   // problem: 맞추지 못했을 때만 위에 한 줄로 알린다
+let filter = "all", opened = null, token = null, picked = false, problem = "";
+let demo = (!CLIENT_ID && !native()) || new URLSearchParams(location.search).has("demo");   // ?demo 를 붙이면 견본 자료로만 돈다(시험용)
 
 function sample() {
   const t = today(), plus = n => day(new Date(Date.parse(t) + n * 86400000));
-  return { updated: new Date().toISOString(), sections: ["매일 하는 일", "가을 행사", "거래처"], todos: [
+  return { updated: new Date().toISOString(), sections: ["매일 하는 일", "가을 행사", "거래처"], pinned: ["매일 하는 일"],
+    colors: { "가을 행사": "#8E24AA", "거래처": "#00897B" },
+    phrases: [{ name: "입고지 안내", text: "입고지 정보 전달드립니다!\n\n입고지: (주소)\n담당자: (이름)\n연락처: (번호)" },
+              { name: "출고일 안내", text: "{업체명} 담당자님, 안녕하세요.\n{상품명} 출고일은 {출고일}입니다." }],
+    todos: [
     { id: "s1", section: "매일 하는 일", text: "주문 확인 → 출고 요청", steps: ["주문 확인", "출고 요청"], step: 0, due: t, stepDues: [], notes: "", repeat: true },
     { id: "s2", section: "매일 하는 일", text: "문의 메일 답장", steps: ["문의 메일 답장"], step: 0, due: t, stepDues: [], notes: "", repeat: true },
     { id: "s3", section: "가을 행사", text: "장소 확정 → 안내문 작성 → 참석자에게 발송", steps: ["장소 확정", "안내문 작성", "참석자에게 발송"], step: 1, due: plus(2), stepDues: [plus(-1), plus(2), plus(7)], notes: "작년 안내문 참고\n참석 예정 40명", repeat: false },
@@ -116,17 +143,23 @@ function sample() {
     { id: "s6", section: "거래처", text: "대표님 검토 → 전자 계약 발송", steps: ["대표님 검토", "전자 계약 발송"], step: 0, due: plus(9), stepDues: [], notes: "", repeat: false } ] };
 }
 
-// PC 에서 받은 목록에 아직 안 넘어간 내 변경을 겹쳐서 보여 준다.
+// PC 에서 받은 목록에 아직 안 넘어간 내 변경을 겹쳐서 보여 준다(PC 와 같은 규칙으로).
 function view() {
-  const todos = (state ? state.todos : []).map(x => ({ ...x }));
+  const todos = (state ? state.todos : []).map(x => ({ ...x, steps: [...(x.steps || [x.text])], stepDues: [...(x.stepDues || [])] }));
+  const sync = item => { if (item.stepDues.some(Boolean)) item.due = item.stepDues[Math.min(item.step, item.stepDues.length - 1)] || ""; };
   for (const op of inbox) {
-    if (op.op === "add") todos.push({ id: op.id, section: op.section, text: op.text, steps: [op.text], step: 0, due: op.due || "", stepDues: [], notes: "", wait: true });
-    if (op.op === "check") {
-      const item = todos.find(x => x.id === op.id);
-      if (!item) continue;
-      item.wait = true;
-      if (item.step < item.steps.length - 1) { item.step++; if ((item.stepDues || []).some(Boolean)) item.due = item.stepDues[item.step] || ""; }
-      else item.gone = true;
+    if (op.op === "add") { todos.push({ id: op.id, section: op.section, text: op.text, steps: [op.text], step: 0, due: op.due || "", stepDues: [], notes: "" }); continue; }
+    const item = todos.find(x => x.id === op.id);
+    if (!item) continue;
+    if (op.op === "check") { if (item.step < item.steps.length - 1) { item.step++; sync(item); } else item.gone = true; }
+    if (op.op === "back" && item.step > 0) { item.step--; sync(item); }
+    if (op.op === "note") item.notes = item.notes ? item.notes.trimEnd() + "\n" + op.text : op.text;
+    if (op.op === "addStep") { item.steps.push(op.text); if (item.stepDues.some(Boolean)) item.stepDues.push(""); }
+    if (op.op === "due") {
+      const many = item.steps.length > 1;
+      if (many && op.step != null) { while (item.stepDues.length < item.steps.length) item.stepDues.push(""); item.stepDues[op.step] = op.due; sync(item); if (!item.stepDues.some(Boolean)) { item.stepDues = []; item.due = ""; } }
+      else if (item.stepDues.some(Boolean)) { item.stepDues[Math.min(item.step, item.stepDues.length - 1)] = op.due; sync(item); }
+      else item.due = op.due;
     }
   }
   return todos.filter(x => !x.gone);
@@ -135,31 +168,34 @@ function view() {
 function dueLabel(item) {
   if (!item.due) return item.repeat ? { text: "반복", cls: "far" } : null;
   const left = Math.round((Date.parse(item.due) - Date.parse(today())) / 86400000);
-  const [, m, d] = item.due.split("-").map(Number);
   const when = left === 0 ? "오늘" : left > 0 ? "D-" + left : (-left) + "일 지남";
-  return { text: item.repeat ? "반복 · " + (left === 0 ? "오늘" : when) : m + "/" + d + " (" + when + ")", cls: left <= 0 ? "late" : left <= 3 ? "soon" : "far" };
+  return { text: item.repeat ? "반복 · " + when : md(item.due) + " (" + when + ")", cls: left <= 0 ? "late" : left <= 3 ? "soon" : "far" };
 }
-
-function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
 
 function render() {
   const todos = view().filter(x => filter === "all" || (x.due && x.due <= today()));
   const order = [...new Set([...(state ? state.sections || [] : []), ...todos.map(x => x.section || "")])];
+  const colors = (state && state.colors) || {}, pinned = (state && state.pinned) || [];
   let html = "";
   for (const name of order) {
     const items = todos.filter(x => (x.section || "") === name);
     if (!items.length) continue;
-    html += `<section><div class="proj"><i></i><b>${esc(name || "기타")}</b><small>${items.length}</small></div>`;
+    html += `<section><div class="proj"><i style="${colors[name] ? "background:" + esc(colors[name]) : ""}"></i><b>${esc(name || "기타")}</b>`
+      + (pinned.includes(name) ? `<small>고정</small>` : "") + `<small>${items.length}</small></div>`;
     for (const item of items) {
       const due = dueLabel(item), many = item.steps.length > 1;
-      html += `<div class="item"><button class="box${item.step > 0 ? " part" : ""}" data-check="${esc(item.id)}" aria-label="완료"></button><div class="body" data-open="${esc(item.id)}">`
-        + `<div class="text">${esc(many ? item.steps[item.step] : item.text)}</div><div class="meta">`
+      html += `<div class="item"><button class="box${item.step > 0 ? " part" : ""}" data-check="${esc(item.id)}" aria-label="완료"></button><div class="body">`
+        + `<div class="text" data-open="${esc(item.id)}">${esc(many ? item.steps[item.step] : item.text)}</div><div class="meta" data-open="${esc(item.id)}">`
         + (many ? `<span>${item.step + 1}/${item.steps.length}</span>` + (item.step < item.steps.length - 1 ? `<span>다음: ${esc(item.steps[item.step + 1])}</span>` : "") : "")
-        + (due ? `<span class="due ${due.cls}">${due.text}</span>` : "")
-        + (item.notes ? `<span>메모</span>` : "") + `</div>`;
+        + (due ? `<span class="due ${due.cls}">${due.text}</span>` : "") + (item.notes && opened !== item.id ? `<span>메모</span>` : "") + `</div>`;
       if (opened === item.id) {
-        html += `<div class="more">` + (many ? `<ol>` + item.steps.map((s, i) => `<li class="${i < item.step ? "done" : i === item.step ? "now" : ""}">${esc(s)}${(item.stepDues || [])[i] ? " · ~" + Number(item.stepDues[i].slice(5, 7)) + "/" + Number(item.stepDues[i].slice(8)) : ""}</li>`).join("") + `</ol>` : "")
-          + (item.notes ? (many ? "\n" : "") + esc(item.notes) : "") + (!many && !item.notes ? "메모 없음" : "") + `</div>`;
+        html += `<div class="more">`;
+        if (many) html += `<ul class="steps">` + item.steps.map((s, i) => `<li class="${i < item.step ? "done" : i === item.step ? "now" : ""}"><span>${i + 1}. ${esc(s)}</span>`
+          + (i >= item.step ? `<button data-stepdue="${i}">${item.stepDues[i] ? "~" + md(item.stepDues[i]) : "마감일"}</button>` : "") + `</li>`).join("") + `</ul>`;
+        if (item.notes) html += `<div class="note">${esc(item.notes)}</div>`;
+        html += `<div class="acts">` + (item.step > 0 ? `<button data-act="back">이전 단계</button>` : "")
+          + `<button data-act="step">단계 추가</button><button data-act="note">메모 추가</button>`
+          + (many ? "" : `<button data-act="due">${item.due ? "마감 " + md(item.due) : "마감일"}</button>`) + `</div></div>`;
       }
       html += `</div></div>`;
     }
@@ -182,31 +218,77 @@ function toast(text, op) {
   clearTimeout(toastTimer); toastTimer = setTimeout(() => $("toast").hidden = true, 4000);
 }
 
-function push(op) { inbox.push(op); save("inbox", inbox); render(); send(); }
+function push(op, said) { op.key = op.key || newKey(); op.at = new Date().toISOString(); inbox.push(op); save("inbox", inbox); render(); send(); if (said) toast(said, op); }
 
 function check(id) {
   const item = view().find(x => x.id === id);
   if (!item) return;
-  const op = { op: "check", id, at: new Date().toISOString(), key: Math.random().toString(36).slice(2) };
   const last = item.step >= item.steps.length - 1;
-  push(op);
-  toast(last ? "완료했습니다" : "'" + item.steps[item.step] + "' 완료", op);
+  push({ op: "check", id }, last ? "완료했습니다" : "'" + item.steps[item.step] + "' 완료");
 }
 
 function add() {
   const text = $("newText").value.replace(/　/g, " ").trim();
   if (!text) { $("newText").focus(); return; }
-  const op = { op: "add", id: "m" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), section: $("newSection").value, text, due: $("newDue").value, at: new Date().toISOString() };
-  op.key = op.id;
-  $("newText").value = ""; $("newDue").value = "";
-  push(op);
-  toast("추가했습니다", op);
+  const id = "m" + newKey();
+  $("newText").value = ""; const due = $("newDue").value; $("newDue").value = "";
+  push({ op: "add", id, key: id, section: $("newSection").value, text, due }, "추가했습니다");
+}
+
+// ───── 아래에서 올라오는 작은 창(글 쓰기 · 문구 고르기 · 빈칸 채우기) ─────
+function sheet(html, ready) {
+  $("sheet").innerHTML = html; $("shade").hidden = false;
+  if (ready) ready($("sheet"));
+}
+function closeSheet() { $("shade").hidden = true; $("sheet").innerHTML = ""; }
+function ask(title, placeholder, done) {
+  sheet(`<h2>${esc(title)}</h2><textarea id="askText" rows="3" placeholder="${esc(placeholder)}"></textarea>
+    <div class="end"><button data-close>취소</button><button class="primary" id="askOk">저장</button></div>`, s => {
+    const box = s.querySelector("#askText"); setTimeout(() => box.focus(), 50);
+    s.querySelector("#askOk").onclick = () => { const v = box.value.replace(/　/g, " ").trim(); if (!v) { box.focus(); return; } closeSheet(); done(v); };
+  });
+}
+
+// 날짜 고르기: 숨겨 둔 날짜 칸을 연다. 고른 날이 없으면(지우기) 빈 값.
+function pickDate(current, done) {
+  const p = $("picker");
+  p.value = current || "";
+  p.onchange = () => { done(p.value || ""); p.onchange = null; };
+  try { p.showPicker(); } catch { const v = prompt("마감일 (예: " + today() + ", 비우면 지움)", current || ""); if (v !== null && (v === "" || /^\d{4}-\d{2}-\d{2}$/.test(v))) done(v); }
+}
+
+// ───── 문구 ─────
+async function copy(text) {
+  try { if (native() && native().copy) { await native().copy(text); return true; } } catch {}
+  try { await navigator.clipboard.writeText(text); return true; } catch {}
+  const t = document.createElement("textarea"); t.value = text; document.body.appendChild(t); t.select();
+  const ok = document.execCommand("copy"); t.remove(); return ok;
+}
+function blanks(text) { return [...new Set([...(text || "").matchAll(/\{([^{}\n]{1,30})\}/g)].map(m => m[1].trim()).filter(Boolean))]; }
+function showPhrases() {
+  const list = (state && state.phrases) || [];
+  if (!list.length) { sheet(`<h2>문구</h2><div class="empty">저장한 문구가 없습니다. PC 앱의 [문구 ▾ › 문구 관리]에서 만들면 여기 보입니다.</div><div class="end"><button data-close>닫기</button></div>`); return; }
+  sheet(`<h2>문구</h2>` + list.map((p, i) => `<button class="phrase" data-phrase="${i}">${esc(p.name)}<small>${esc(p.text.replace(/\n+/g, " "))}</small></button>`).join("")
+    + `<div class="end"><button data-close>닫기</button></div>`);
+}
+function usePhrase(p) {
+  const names = blanks(p.text);
+  const finish = async text => { closeSheet(); toast(await copy(text) ? "'" + p.name + "' 복사했습니다" : "복사하지 못했습니다"); };
+  if (!names.length) { finish(p.text); return; }
+  sheet(`<h2>${esc(p.name)}</h2>` + names.map((n, i) => `<label>${esc(n)}</label><input data-blank="${i}" autocomplete="off">`).join("")
+    + `<div class="end"><button data-close>취소</button><button class="primary" id="fillOk">복사</button></div>`, s => {
+    setTimeout(() => s.querySelector("[data-blank]").focus(), 50);
+    s.querySelector("#fillOk").onclick = () => {
+      const values = {}; names.forEach((n, i) => values[n] = s.querySelector(`[data-blank="${i}"]`).value.trim());
+      finish(p.text.replace(/\{([^{}\n]{1,30})\}/g, (m, n) => values[n.trim()] ?? m));
+    };
+  });
 }
 
 // ───── 구글 드라이브(앱 전용 숨김 폴더) ─────
 async function api(path, options) {
   const res = await fetch("https://www.googleapis.com/" + path, { ...options, headers: { Authorization: "Bearer " + token, ...((options || {}).headers || {}) } });
-  if (res.status === 401) { token = null; throw new Error("다시 연결해 주세요"); }
+  if (res.status === 401) { token = null; throw new Error("auth"); }
   if (!res.ok) throw new Error("구글 응답 " + res.status);
   return res;
 }
@@ -227,17 +309,17 @@ async function writeFile(name, value) {
   return api("upload/drive/v3/files?uploadType=multipart", { method: "POST", body: form });
 }
 
-// 내 변경을 올린다. PC 가 이미 가져간 것(올려 둔 파일에서 사라진 것)은 내 쪽에서도 지운다.
 let busy = false;
 async function send() {
   if (demo || !token || busy) return;
   busy = true;
   try { await writeFile(INBOX_FILE, { ops: inbox }); problem = ""; } catch (e) { problem = "연결 안 됨"; }
-  render();
   busy = false;
+  render();
 }
 async function refresh() {
   if (demo) { if (!state) { state = sample(); save("state", state); } render(); return; }
+  if (!token && native()) { try { token = await native().signIn(); } catch {} }
   if (!token) { render(); return; }
   try {
     const fresh = await readFile(STATE_FILE);
@@ -252,24 +334,46 @@ async function refresh() {
     await send();
   } catch (e) { problem = "연결 안 됨"; render(); }
 }
-function connect() {
+async function connect() {
+  if (native()) { try { token = await native().signIn(); refresh(); } catch { toast("구글 연결을 하지 못했습니다"); } return; }
   if (!window.google) { toast("구글 연결 준비 중입니다. 잠시 뒤 다시 눌러 주세요"); return; }
   google.accounts.oauth2.initTokenClient({ client_id: CLIENT_ID, scope: SCOPE, callback: r => { if (r.access_token) { token = r.access_token; refresh(); } } }).requestAccessToken();
 }
 
+// ───── 누르기 ─────
 $("list").addEventListener("click", e => {
-  const box = e.target.closest("[data-check]"), body = e.target.closest("[data-open]");
-  if (box) check(box.dataset.check);
-  else if (body) { opened = opened === body.dataset.open ? null : body.dataset.open; render(); }
+  const box = e.target.closest("[data-check]");
+  if (box) { check(box.dataset.check); return; }
+  const id = opened, item = id && view().find(x => x.id === id);
+  const stepDue = e.target.closest("[data-stepdue]");
+  if (stepDue && item) { const i = Number(stepDue.dataset.stepdue); pickDate(item.stepDues[i], v => push({ op: "due", id, step: i, due: v }, v ? (i + 1) + "단계 마감 " + md(v) : "마감일을 지웠습니다")); return; }
+  const act = e.target.closest("[data-act]");
+  if (act && item) {
+    const a = act.dataset.act;
+    if (a === "back") push({ op: "back", id }, "'" + item.steps[item.step - 1] + "' 단계로 되돌렸습니다");
+    if (a === "note") ask("메모 추가", "메모", v => push({ op: "note", id, text: v }, "메모를 넣었습니다"));
+    if (a === "step") ask("단계 추가", "맨 끝에 붙일 단계", v => push({ op: "addStep", id, text: v.replace(/→|->/g, " ") }, "단계를 넣었습니다"));
+    if (a === "due") pickDate(item.due, v => push({ op: "due", id, due: v }, v ? "마감 " + md(v) : "마감일을 지웠습니다"));
+    return;
+  }
+  const body = e.target.closest("[data-open]");
+  if (body) { opened = opened === body.dataset.open ? null : body.dataset.open; render(); }
 });
+$("sheet").addEventListener("click", e => {
+  if (e.target.closest("[data-close]")) { closeSheet(); return; }
+  const p = e.target.closest("[data-phrase]");
+  if (p) usePhrase(((state && state.phrases) || [])[Number(p.dataset.phrase)]);
+});
+$("shade").addEventListener("click", e => { if (e.target === $("shade")) closeSheet(); });
 document.querySelectorAll("[data-filter]").forEach(b => b.addEventListener("click", () => {
   filter = b.dataset.filter;
   document.querySelectorAll("[data-filter]").forEach(x => x.classList.toggle("on", x === b));
   render();
 }));
+$("phrases").addEventListener("click", showPhrases);
 $("add").addEventListener("click", add);
-$("newSection").addEventListener("change", () => picked = true);
 $("newText").addEventListener("keydown", e => { if (e.key === "Enter") add(); });
+$("newSection").addEventListener("change", () => picked = true);
 $("connect").addEventListener("click", connect);
 $("undo").addEventListener("click", () => {
   if (!lastOp) return;
@@ -279,7 +383,7 @@ $("undo").addEventListener("click", () => {
 document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
 // 화면을 보고 있는 동안에는 알아서 맞춘다.
 setInterval(() => { if (!demo && token && !document.hidden) refresh(); }, 20000);
-if (!demo) { const s = document.createElement("script"); s.src = "https://accounts.google.com/gsi/client"; s.async = true; document.head.appendChild(s); }
+if (!demo && !native()) { const s = document.createElement("script"); s.src = "https://accounts.google.com/gsi/client"; s.async = true; document.head.appendChild(s); }
 if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
 refresh();
 </script>
