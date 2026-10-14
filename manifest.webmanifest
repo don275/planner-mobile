@@ -1,6 +1,6 @@
 {
-  "name": "업무 플래너",
-  "short_name": "플래너",
+  "name": "Mebys Planner",
+  "short_name": "Mebys Planner",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#f6f7f9",
