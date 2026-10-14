@@ -23,7 +23,8 @@
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; background: var(--back); color: var(--text); font: 15px/1.45 -apple-system, "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; }
   html, body { height: 100%; overflow: hidden; overscroll-behavior: none; }
-  body { display: flex; flex-direction: column; height: var(--vh, 100dvh); padding-bottom: var(--ad, 0px); }
+  /* 앱 창에 꼭 맞춘다(높이 값을 따로 재지 않는다). 키보드가 화면을 덮는 경우에만 그만큼 위로 올린다 */
+  body { position: fixed; left: 0; right: 0; top: 0; bottom: var(--kb, 0px); display: flex; flex-direction: column; padding-bottom: var(--ad, 0px); }
   header { flex: none; z-index: 5; background: var(--back); padding: calc(10px + env(safe-area-inset-top)) 16px 8px; border-bottom: 1px solid var(--line); }
   .top { display: flex; align-items: center; gap: 8px; }
   h1 { font-size: 18px; margin: 0; flex: none; white-space: nowrap; }
@@ -370,7 +371,9 @@ function fitShade() {
 function fitBody() {
   const vv = window.visualViewport;
   if (!vv) return;
-  document.documentElement.style.setProperty("--vh", vv.height + "px");
+  // 키보드가 화면 위에 덮였을 때만(웹 브라우저) 가려진 만큼 비운다. 앱이 창 자체를 줄이면 0 이 된다.
+  const covered = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+  document.documentElement.style.setProperty("--kb", (covered > 80 ? covered : 0) + "px");
   if (vv.offsetTop) window.scrollTo(0, 0);
 }
 if (window.visualViewport) {
