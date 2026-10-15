@@ -93,6 +93,11 @@
   .sheet textarea, .sheet input { width: 100%; }
   .sheet label { display: block; font-size: 13px; color: var(--sub); margin: 10px 0 4px; }
   .sheet .end { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+  .lkrows { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .lkrow { display: grid; grid-template-columns: 96px 1fr auto auto; gap: 6px; align-items: center; }
+  .lkrow input { width: 100%; padding: 7px 8px; }
+  .lkrow span { font-size: 12px; color: var(--sub); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .lkrow button { padding: 6px 9px; }
   .phrase { display: block; width: 100%; text-align: left; margin-bottom: 8px; padding: 10px 12px; }
   .phrase small { display: block; color: var(--sub); font-size: 12.5px; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   #picker { position: fixed; left: -100px; top: 0; width: 1px; height: 1px; opacity: 0; }
@@ -609,9 +614,82 @@ function moveTo(item) {
 
 function showPhrases() {
   const list = (state && state.phrases) || [];
-  if (!list.length) { sheet(`<h2>문구</h2><div class="empty">저장한 문구가 없습니다. PC 앱의 [문구 ▾ › 문구 관리]에서 만들면 여기 보입니다.</div><div class="end"><button data-close>닫기</button></div>`); return; }
-  sheet(`<h2>문구</h2>` + list.map((p, i) => `<button class="phrase" data-phrase="${i}">${esc(p.name)}<small>${esc(p.text.replace(/\n+/g, " "))}</small></button>`).join("")
-    + `<div class="end"><button data-close>닫기</button></div>`);
+  const links = `<button class="phrase" id="linksOpen">판매처 링크 만들기<small>주소나 받은 판매처 글을 붙여 넣으면 보낼 글로 만들어 줍니다</small></button>`;
+  const ready = s => { s.querySelector("#linksOpen").onclick = () => storeLinks(); };
+  if (!list.length) { sheet(`<h2>문구</h2>` + links + `<div class="empty">저장한 문구가 없습니다. PC 앱의 [문구 ▾ › 문구 관리]에서 만들면 여기 보입니다.</div><div class="end"><button data-close>닫기</button></div>`, ready); return; }
+  sheet(`<h2>문구</h2>` + links + list.map((p, i) => `<button class="phrase" data-phrase="${i}">${esc(p.name)}<small>${esc(p.text.replace(/\n+/g, " "))}</small></button>`).join("")
+    + `<div class="end"><button data-close>닫기</button></div>`, ready);
+}
+
+// ───── 판매처 링크 만들기(PC 와 같은 규칙): 주소마다 한 줄, 이름은 받은 글에 적힌 것 → 전에 적은 것 → 아는 판매처 ─────
+const KNOWN_STORES = [["yes24.com", "예스24"], ["aladin.co.kr", "알라딘"], ["kyobobook.co.kr", "교보문고"], ["hottracks.co.kr", "핫트랙스"], ["synnara.co.kr", "신나라레코드"],
+  ["ktown4u.com", "케이타운포유"], ["applemusic.co.kr", "애플뮤직"], ["interpark.com", "인터파크"], ["makestar.co", "메이크스타"], ["withmuu.com", "위드뮤"], ["weverseshop.io", "위버스샵"],
+  ["dearmymuse.com", "디어마이뮤즈"], ["musicplant.co.kr", "뮤직플랜트"], ["soundwave", "사운드웨이브"], ["everline", "에버라인"], ["coupang.com", "쿠팡"], ["11st.co.kr", "11번가"],
+  ["gmarket.co.kr", "G마켓"], ["smartstore.naver.com", "스마트스토어"], ["musinsa.com", "무신사"], ["jumpup", "점프업이엔티"]];
+const linkHost = u => { try { return new URL(u).hostname.toLowerCase().replace(/^(www|m|mobile)\./, ""); } catch { return ""; } };
+function guessStore(url) {
+  const learned = load("linkNames", {})[linkHost(url)];
+  if (learned) return learned;
+  const k = KNOWN_STORES.find(([d]) => url.toLowerCase().includes(d));
+  return k ? k[1] : "";
+}
+function linksFromText(text, rows) {
+  const lines = (text || "").replace(/\r/g, "").split("\n"), urlRx = /https?:\/\/[^\s<>"']+/g, hasUrl = s => /https?:\/\//.test(s);
+  let added = 0;
+  lines.forEach((line, i) => {
+    for (const m of line.match(urlRx) || []) {
+      const url = m.replace(/[.,)]+$/, "");
+      if (rows.some(r => r.url === url)) continue;
+      let label = line.replace(urlRx, "").replace(/[:：\-–|·]+\s*$/, "").trim().replace(/^[:：\-·]+|[:：\-·]+$/g, "").trim();
+      if (!label && i > 0 && !hasUrl(lines[i - 1])) label = lines[i - 1].trim().replace(/[:：]+$/, "").trim();
+      if (label.length > 20) label = "";
+      rows.push({ name: label || guessStore(url), url }); added++;
+    }
+  });
+  return added;
+}
+function storeLinks() {
+  const rows = [];
+  let head = load("linkHead", "안녕하세요! 주요 판매처 링크 공유드립니다."), foot = load("linkFoot", "공식 계정에 게시물 업로드 시 해당 판매처 링크를 활용해 주시면 감사하겠습니다!");
+  const build = () => [head.trim(), "", ...rows.filter(r => r.url).map(r => (r.name.trim() ? r.name.trim() + " : " : "") + r.url), "", foot.trim()].join("\n").replace(/^\n+|\n+$/g, "").replace(/\n{3,}/g, "\n\n");
+  sheet(`<h2>판매처 링크 만들기</h2>
+    <label>머리말</label><input id="lkHead">
+    <label>판매처 <span id="lkCount"></span></label><div id="lkRows" class="lkrows"></div>
+    <textarea id="lkPaste" rows="3" placeholder="판매처 주소나 받은 글을 여기 붙여 넣기"></textarea>
+    <div class="row" style="margin-top:6px"><button id="lkClip">복사한 것 붙여넣기</button><button id="lkAdd">넣기</button></div>
+    <label>맺음말</label><textarea id="lkFoot" rows="2"></textarea>
+    <div class="end"><button data-close>닫기</button><button class="primary" id="lkCopy">복사</button></div>`, s => {
+    const $s = q => s.querySelector(q);
+    $s("#lkHead").value = head; $s("#lkFoot").value = foot;
+    $s("#lkHead").oninput = e => { head = e.target.value; };
+    $s("#lkFoot").oninput = e => { foot = e.target.value; };
+    const draw = () => {
+      $s("#lkCount").textContent = rows.length ? "· " + rows.length + "곳" : "";
+      $s("#lkRows").innerHTML = rows.length ? rows.map((r, i) => `<div class="lkrow"><input data-lkname="${i}" value="${esc(r.name)}" placeholder="판매처 이름"><span>${esc(r.url)}</span>`
+        + `<button data-lkup="${i}" aria-label="위로">▲</button><button data-lkdel="${i}" aria-label="지우기">✕</button></div>`).join("") : `<div class="empty" style="padding:8px 0">아래에 주소를 붙여 넣으세요</div>`;
+    };
+    $s("#lkRows").addEventListener("input", e => {
+      const i = e.target.dataset.lkname; if (i == null) return;
+      rows[i].name = e.target.value;
+      const h = linkHost(rows[i].url);
+      if (h && e.target.value.trim()) { const names = load("linkNames", {}); names[h] = e.target.value.trim(); save("linkNames", names); }     // 다음부터 자동
+    });
+    $s("#lkRows").addEventListener("click", e => {
+      const up = e.target.closest("[data-lkup]"), del = e.target.closest("[data-lkdel]");
+      if (up) { const i = Number(up.dataset.lkup); if (i > 0) { [rows[i - 1], rows[i]] = [rows[i], rows[i - 1]]; draw(); } }
+      if (del) { rows.splice(Number(del.dataset.lkdel), 1); draw(); }
+    });
+    const addText = t => { const n = linksFromText(t, rows); draw(); toast(n ? n + "곳을 넣었습니다" : "주소를 찾지 못했습니다"); };
+    $s("#lkAdd").onclick = () => { addText($s("#lkPaste").value); $s("#lkPaste").value = ""; };
+    $s("#lkClip").onclick = async () => { try { addText(await navigator.clipboard.readText()); } catch { toast("붙여넣기를 못 했습니다. 아래 칸에 길게 눌러 붙여 넣어 주세요"); } };
+    $s("#lkPaste").addEventListener("paste", () => setTimeout(() => { if (/https?:\/\//.test($s("#lkPaste").value)) { addText($s("#lkPaste").value); $s("#lkPaste").value = ""; } }, 0));
+    $s("#lkCopy").onclick = async () => {
+      if (!rows.length) { toast("넣은 판매처가 없습니다"); return; }
+      save("linkHead", head); save("linkFoot", foot);
+      toast(await copy(build()) ? "복사했습니다. 카톡에 붙여 넣으세요" : "복사하지 못했습니다");
+    };
+    draw();
+  });
 }
 function usePhrase(p) {
   const names = blanks(p.text);
@@ -622,7 +700,8 @@ function usePhrase(p) {
     setTimeout(() => s.querySelector("[data-blank]").focus(), 50);
     s.querySelector("#fillOk").onclick = () => {
       const values = {}; names.forEach((n, i) => values[n] = s.querySelector(`[data-blank="${i}"]`).value.trim());
-      finish(p.text.replace(/\{([^{}\n]{1,30})\}/g, (m, n) => values[n.trim()] ?? m));
+      const lines = p.text.split("\n").filter(line => { const bs = [...line.matchAll(/\{([^{}\n]{1,30})\}/g)]; return !bs.length || bs.some(b => values[b[1].trim()]); });
+      finish(lines.map(line => line.replace(/\{([^{}\n]{1,30})\}/g, (m, n) => values[n.trim()] ?? m)).join("\n").replace(/\n{3,}/g, "\n\n").trim());
     };
   });
 }
