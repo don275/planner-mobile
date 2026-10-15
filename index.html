@@ -11,14 +11,14 @@
 <title>Mebys Planner</title>
 <style>
   :root {
-    --accent: #212121; --on-accent: #fff; --back: #f6f7f9; --card: #fff; --text: #202124; --sub: #5f6368; --faint: #80868b;
+    --accent: #212121; --on-accent: #fff; --back: #f6f7f9; --canvas: #eceff3; --card: #fff; --text: #202124; --sub: #5f6368; --faint: #80868b;
     --line: #dee1e6; --red: #d93025; --orange: #e37400; --green: #188048; --tint: #ececec; --shade: rgba(0,0,0,.32);
   }
   @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) { --accent: #e8eaed; --on-accent: #202124; --back: #202124; --card: #292a2d; --text: #e8eaed; --sub: #aaafb5; --faint: #8a9096;
+    :root:not([data-theme="light"]) { --accent: #e8eaed; --on-accent: #202124; --back: #202124; --canvas: #17181a; --card: #292a2d; --text: #e8eaed; --sub: #aaafb5; --faint: #8a9096;
       --line: #46494d; --red: #f28b82; --orange: #faad5a; --green: #5ec489; --tint: #3c4043; --shade: rgba(0,0,0,.55); }
   }
-  :root[data-theme="dark"] { --accent: #e8eaed; --on-accent: #202124; --back: #202124; --card: #292a2d; --text: #e8eaed; --sub: #aaafb5; --faint: #8a9096;
+  :root[data-theme="dark"] { --accent: #e8eaed; --on-accent: #202124; --back: #202124; --canvas: #17181a; --card: #292a2d; --text: #e8eaed; --sub: #aaafb5; --faint: #8a9096;
       --line: #46494d; --red: #f28b82; --orange: #faad5a; --green: #5ec489; --tint: #3c4043; --shade: rgba(0,0,0,.55); }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; background: var(--back); color: var(--text); font: 15px/1.45 -apple-system, "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; }
@@ -116,6 +116,13 @@
   .ghost .hint { position: absolute; right: 10px; top: -11px; background: var(--accent); color: var(--on-accent); font-size: 12px; font-weight: 700; padding: 2px 9px; border-radius: 999px; }
   .slot { border: 2px dashed var(--accent); border-radius: 12px; background: var(--tint); margin: 4px 0; list-style: none; }
   .proj.droptarget { box-shadow: 0 0 0 2px var(--accent) inset; }
+  /* 프로젝트 카드(C): 회색 바탕 위에 프로젝트마다 둥근 카드, 왼쪽에 프로젝트 색 띠, 머리는 옅은 프로젝트 색 */
+  main { background: var(--canvas); }
+  section { background: var(--card); border-radius: 14px; overflow: hidden; border-left: 5px solid var(--sc, var(--accent)); margin-top: 12px; box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+  section .proj { border-radius: 0; background: color-mix(in srgb, var(--sc, var(--accent)) 12%, var(--card)); }
+  section .proj i { display: none; }
+  section .item { padding-left: 10px; padding-right: 10px; }
+  .past { color: var(--faint); font-size: 12px; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -332,12 +339,12 @@ function render() {
     // 프로젝트 안에서는 PC 처럼 중요 표시한 일이 먼저
     const items = todos.filter(x => (x.section || "") === name).sort((a, b) => (b.star ? 1 : 0) - (a.star ? 1 : 0));
     if (!items.length) continue;
-    html += `<section><div class="proj" data-sec="${esc(name)}"><i style="${colors[name] ? "background:" + esc(colors[name]) : ""}"></i><b data-project="${esc(name)}">${esc(name || "기타")}</b>`
+    html += `<section style="${colors[name] ? "--sc:" + esc(colors[name]) : ""}"><div class="proj" data-sec="${esc(name)}"><i style="${colors[name] ? "background:" + esc(colors[name]) : ""}"></i><b data-project="${esc(name)}">${esc(name || "기타")}</b>`
       + (pinned.includes(name) ? `<small>고정</small>` : "") + `<small>${items.length}</small></div>`;
     for (const item of items) {
       const due = dueLabel(item), many = item.steps.length > 1;
       html += `<div class="item" data-id="${esc(item.id)}" data-sec="${esc(item.section || "")}"><button class="box${item.step > 0 ? " part" : ""}" data-check="${esc(item.id)}" aria-label="완료"></button><div class="body">`
-        + `<div class="text" data-open="${esc(item.id)}">${item.star ? `<span class="star">★</span> ` : ""}${mark(many ? item.steps[item.step] : item.text)}</div><div class="meta" data-open="${esc(item.id)}">`
+        + `${many && item.step > 0 ? `<div class="past">✓ ${esc((item.step > 3 ? "… › " : "") + item.steps.slice(Math.max(0, item.step - 3), item.step).join(" › "))}</div>` : ""}<div class="text" data-open="${esc(item.id)}">${item.star ? `<span class="star">★</span> ` : ""}${mark(many ? item.steps[item.step] : item.text)}</div><div class="meta" data-open="${esc(item.id)}">`
         + (many ? `<span>${item.step + 1}/${item.steps.length}</span>` + (item.step < item.steps.length - 1 ? `<span>다음: ${esc(item.steps[item.step + 1])}</span>` : "") : "")
         + (due ? `<span class="due ${due.cls}">${due.text}</span>` : "") + (item.remind ? `<span>알림 ${remindLabel(item.remind)}</span>` : "")
         + (item.files ? `<span>첨부 ${item.files}</span>` : "") + (item.notes && opened !== item.id ? `<span>메모</span>` : "") + `</div>`;
