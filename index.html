@@ -224,6 +224,22 @@ function view() {
     if (op.op === "editStep" && op.step < item.steps.length) item.steps[op.step] = op.text;
     if (op.op === "delete") item.gone = true;
     if (op.op === "star") item.star = !!op.on;
+    if (op.op === "extract" && op.step >= item.step && op.step < item.steps.length && item.steps.length - item.step >= 2) {
+      const had = item.stepDues.some(Boolean), name = item.steps[op.step], due = had ? item.stepDues[op.step] || "" : "";
+      item.steps.splice(op.step, 1); if (had) item.stepDues.splice(op.step, 1);
+      if (had && item.steps.length === 1) { item.due = item.stepDues[0] || ""; item.stepDues = []; } else sync(item);
+      item.text = item.steps.join(" → ");
+      const fresh = { id: op.newId, section: op.section, text: name, steps: [name], step: 0, due, stepDues: [], notes: "" };
+      let at = op.before ? todos.findIndex(x => x.id === op.before) : -1;
+      if (at < 0) { if (op.section === (item.section || "")) at = todos.indexOf(item) + 1; else { at = todos.length; for (let k = todos.length - 1; k >= 0; k--) if ((todos[k].section || "") === op.section) { at = k + 1; break; } } }
+      todos.splice(at, 0, fresh);
+    }
+    if (op.op === "split" && item.steps.length - item.step >= 2) {
+      const had = item.stepDues.some(Boolean);
+      const made = item.steps.slice(item.step).map((n, i) => { const si = item.step + i;
+        return { id: op.key + "-" + si, section: item.section, text: n, steps: [n], step: 0, due: had ? item.stepDues[si] || "" : si === item.steps.length - 1 ? item.due : "", stepDues: [], notes: i === 0 ? item.notes : "", star: i === 0 && item.star }; });
+      todos.splice(todos.indexOf(item), 1, ...made);
+    }
     if (op.op === "addStep") { item.steps.push(op.text); if (item.stepDues.some(Boolean)) item.stepDues.push(""); }
     if (op.op === "moveStep" && op.from < item.steps.length && op.to < item.steps.length) {
       const [s] = item.steps.splice(op.from, 1); item.steps.splice(op.to, 0, s);
@@ -331,6 +347,7 @@ function render() {
           + (i >= item.step ? `<button data-stepdue="${i}">${item.stepDues[i] ? "~" + md(item.stepDues[i]) : "마감일"}</button>` : "") + `</li>`).join("") + `</ul>`;
         if (item.notes) html += `<div class="note">${esc(item.notes)}</div>`;
         html += `<div class="acts">` + (item.step > 0 ? `<button data-act="back">이전 단계</button>` : "")
+          + (many && item.steps.length - item.step >= 2 ? `<button data-act="split">단계 나누기</button>` : "")
           + `<button data-act="star">${item.star ? "중요 해제" : "★ 중요"}</button><button data-act="step">단계 추가</button><button data-act="note">메모 추가</button>`
           + (many ? "" : `<button data-act="edit">수정</button>`) + `<button data-act="delete">삭제</button>`
           + (many ? "" : `<button data-act="due">${item.due ? "마감 " + md(item.due) : "마감일"}</button>`) + `</div></div>`;
@@ -595,7 +612,7 @@ function beginDrag(t, y) {
   if (query || (filter !== "all" && filter !== "today")) return;
   const src = t.kind === "proj" ? t.el.parentElement : t.el;      // 프로젝트는 묶음째 옮긴다
   const r = t.el.getBoundingClientRect();
-  drag = { ...t, src, offset: y - r.top, h: r.height, origin: t.kind === "item" ? t.el.dataset.sec : null };
+  drag = { ...t, src, offset: y - r.top, h: r.height, origin: t.kind === "item" ? t.el.dataset.sec : null, ul: t.kind === "step" ? t.el.parentElement : null };
   drag.ghost = t.el.cloneNode(true); drag.ghost.classList.add("ghost"); drag.ghost.classList.remove("now", "done");
   Object.assign(drag.ghost.style, { left: r.left + "px", width: r.width + "px", top: r.top + "px" });
   drag.hint = document.createElement("span"); drag.hint.className = "hint"; drag.hint.hidden = true; drag.ghost.appendChild(drag.hint);
@@ -624,7 +641,19 @@ function moveDrag(y) {
   drag.ghost.style.top = (y - drag.offset) + "px";
   const at = y - drag.offset + drag.h / 2, slot = drag.slot;
   if (drag.kind === "step") {
-    const ul = slot.parentElement, lis = [...ul.querySelectorAll("li[data-stepi]")].filter(x => x !== drag.src);
+    // 단계 목록 위 · 아래로 멀리 끌면: 할 일로 빼기(목록 사이에 빈칸이 생긴다)
+    const box = drag.ul.getBoundingClientRect();
+    if (at < box.top - 28 || at > box.bottom + 28) {
+      if (!drag.outSlot) { drag.outSlot = document.createElement("div"); drag.outSlot.className = "slot"; drag.outSlot.style.height = "44px"; }
+      slot.style.display = "none";
+      placeAmongItems(drag.outSlot, at, null);
+      const into = drag.outSlot.closest("section"), name = into ? into.querySelector(".proj").dataset.sec : "";
+      drag.hint.hidden = false; drag.hint.textContent = "⇱ 할 일로 빼기 · " + (name || "기타");
+      return;
+    }
+    if (drag.outSlot && drag.outSlot.parentElement) drag.outSlot.remove();
+    slot.style.display = ""; drag.hint.hidden = false; drag.hint.textContent = "↕ 단계 순서 바꾸기";
+    const ul = drag.ul, lis = [...ul.querySelectorAll("li[data-stepi]")].filter(x => x !== drag.src);
     const before = lis.find(x => at < mid(x));
     if (before) { if (slot.nextElementSibling !== before) ul.insertBefore(slot, before); } else if (ul.lastElementChild !== slot) ul.appendChild(slot);
   } else if (drag.kind === "proj") {
@@ -633,16 +662,7 @@ function moveDrag(y) {
     if (before) { if (nextSection(slot, drag.src) !== before || slot.nextElementSibling !== before && slot.nextElementSibling !== drag.src) $("list").insertBefore(slot, before); }
     else if (secs.length && nextSection(slot, drag.src)) secs[secs.length - 1].after(slot);
   } else {
-    const all = [...$("list").querySelectorAll(".item, .proj")].filter(x => x !== drag.src);
-    const before = all.find(x => at < mid(x));
-    if (!before) { const secs = $("list").querySelectorAll("section"), last = secs[secs.length - 1]; if (last && last.lastElementChild !== slot) last.appendChild(slot); }
-    else if (before.classList.contains("item")) { if (slot.nextElementSibling !== before) before.before(slot); }
-    else {
-      // 프로젝트 머리 위 = 바로 위 프로젝트의 맨 끝, 맨 위 머리 위 = 첫 프로젝트의 맨 앞
-      const sec = before.parentElement, prev = sec.previousElementSibling;
-      if (prev && prev.tagName === "SECTION") { if (prev.lastElementChild !== slot) prev.appendChild(slot); }
-      else if (before.nextElementSibling !== slot) before.after(slot);
-    }
+    placeAmongItems(slot, at, drag.src);
     // 다른 프로젝트로 가면 그 프로젝트 머리를 표시하고, 끄는 줄에 어디로 가는지 적는다
     const into = slot.closest("section"), name = into ? into.querySelector(".proj").dataset.sec : drag.origin;
     $("list").querySelectorAll(".proj.droptarget").forEach(p => p.classList.remove("droptarget"));
@@ -650,6 +670,20 @@ function moveDrag(y) {
     drag.hint.hidden = name === drag.origin; drag.hint.textContent = "→ " + (name || "기타");
   }
 }
+// 할 일들 사이에 빈칸 놓기(할 일 끌기 · 단계를 할 일로 빼기 함께 씀)
+function placeAmongItems(slot, at, skip) {
+  const all = [...$("list").querySelectorAll(".item, .proj")].filter(x => x !== skip);
+  const before = all.find(x => at < mid(x));
+  if (!before) { const secs = $("list").querySelectorAll("section"), last = secs[secs.length - 1]; if (last && last.lastElementChild !== slot) last.appendChild(slot); }
+  else if (before.classList.contains("item")) { if (slot.nextElementSibling !== before) before.before(slot); }
+  else {
+    // 프로젝트 머리 위 = 바로 위 프로젝트의 맨 끝, 맨 위 머리 위 = 첫 프로젝트의 맨 앞
+    const sec = before.parentElement, prev = sec.previousElementSibling;
+    if (prev && prev.tagName === "SECTION") { if (prev.lastElementChild !== slot) prev.appendChild(slot); }
+    else if (before.nextElementSibling !== slot) before.after(slot);
+  }
+}
+
 function endDrag(drop) {
   const d = drag; drag = null; clearInterval(scrollTick);
   d.ghost.remove();
@@ -664,13 +698,18 @@ function endDrag(drop) {
     } else if (d.kind === "proj") {
       const next = nextSection(d.slot, d.src);
       if (next !== d.was) { op = next ? { op: "moveSection", name: d.el.dataset.sec, before: next.querySelector(".proj").dataset.sec } : { op: "moveSection", name: d.el.dataset.sec, before: "", end: "1" }; said = "프로젝트 순서를 바꿨습니다"; }
+    } else if (d.outSlot && d.outSlot.parentElement) {
+      const into = d.outSlot.closest("section"), section = into ? into.querySelector(".proj").dataset.sec : "";
+      const next = nextItem(d.outSlot, null);
+      op = { op: "extract", id: d.ul.dataset.steps, step: Number(d.src.dataset.stepi), section, before: next ? next.dataset.id : "", newId: "m" + newKey() };
+      said = "할 일로 뺐습니다";
     } else {
       const ul = d.slot.parentElement, order = [...ul.children].filter(x => x !== d.src);
       const from = Number(d.src.dataset.stepi), to = order.indexOf(d.slot);
       if (to !== from) { op = { op: "moveStep", id: ul.dataset.steps, from, to }; said = "단계 순서를 바꿨습니다"; }
     }
   }
-  d.slot.remove(); d.src.style.display = "";
+  d.slot.remove(); d.src.style.display = ""; if (d.outSlot) d.outSlot.remove();
   if (op) push(op, said); else render();
 }
 $("list").addEventListener("pointerdown", e => {
@@ -716,6 +755,7 @@ $("list").addEventListener("click", e => {
     if (a === "back") push({ op: "back", id }, "'" + item.steps[item.step - 1] + "' 단계로 되돌렸습니다");
     if (a === "note") ask("메모 추가", "메모", v => push({ op: "note", id, text: v }, "메모를 넣었습니다"));
     if (a === "step") addSteps(id);
+    if (a === "split" && confirm("안 한 단계를 하나씩 따로 할 일로 나눌까요?")) { opened = null; push({ op: "split", id }, (item.steps.length - item.step) + "개 할 일로 나눴습니다"); }
     if (a === "star") push({ op: "star", id, on: !item.star }, item.star ? "중요 표시를 뺐습니다" : "중요 표시했습니다");
     if (a === "edit") ask("할 일 수정", "할 일", v => push({ op: "edit", id, text: v.replace(/→|->/g, " ") }, "고쳤습니다"), item.text);
     if (a === "delete" && confirm("'" + (item.steps.length > 1 ? item.text : item.text) + "' 을(를) 삭제할까요?")) { opened = null; push({ op: "delete", id }, "삭제했습니다"); }
