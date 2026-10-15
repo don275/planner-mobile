@@ -62,6 +62,13 @@
   .steps li button, .acts button { font-size: 12.5px; padding: 3px 9px; border-radius: 999px; }
   .note { white-space: pre-wrap; margin-top: 8px; color: var(--text); }
   .acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .quick { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 4px 0 6px; }
+  .quick button { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 10px 12px; border-radius: 12px; text-align: left; font-weight: 600; }
+  .quick button small { font-weight: 400; opacity: .65; font-size: 12px; }
+  .quick button.on { outline: 2px solid var(--accent); }
+  .latebar { display: flex; align-items: center; gap: 8px; margin: 10px 2px 2px; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, #D93025 12%, transparent); }
+  .latebar span { flex: 1; font-weight: 600; color: #D93025; }
+  .latebar button { font-size: 13px; padding: 5px 11px; border-radius: 999px; }
   .empty { text-align: center; color: var(--faint); padding: 48px 0; }
   footer { flex: none; background: var(--back); border-top: 1px solid var(--line); padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); }
   .row { display: flex; gap: 8px; }
@@ -228,6 +235,12 @@ function view() {
       todos.splice(at, 0, it); continue;
     }
     if (op.op === "moveSection") continue;
+    if (op.op === "dueMany") {
+      for (const it of todos.filter(x => op.ids.split(",").includes(x.id))) {
+        if (it.stepDues.some(Boolean)) { it.stepDues[Math.min(it.step, it.stepDues.length - 1)] = op.due; sync(it); } else it.due = op.due;
+      }
+      continue;
+    }
     const item = todos.find(x => x.id === op.id);
     if (!item) continue;
     if (op.op === "check") { if (item.step < item.steps.length - 1) { item.step++; sync(item); } else item.gone = true; }
@@ -342,6 +355,8 @@ function render() {
   const order = [...new Set([...sectionOrder(), ...todos.map(x => x.section || "")])];
   const colors = (state && state.colors) || {}, pinned = (state && state.pinned) || [];
   let html = "";
+  const late = filter === "today" && !query ? todos.filter(x => x.due && x.due < today()) : [];
+  if (late.length) html += `<div class="latebar"><span>지난 마감 ${late.length}건</span><button data-late="0">모두 오늘로</button><button data-late="1">내일로</button></div>`;
   for (const name of order) {
     // 프로젝트 안에서는 PC 처럼 중요 표시한 일이 먼저
     const items = todos.filter(x => (x.section || "") === name).sort((a, b) => (b.star ? 1 : 0) - (a.star ? 1 : 0));
@@ -472,7 +487,22 @@ function ask(title, placeholder, done, value) {
 }
 
 // 날짜 고르기: 숨겨 둔 날짜 칸을 연다. 고른 날이 없으면(지우기) 빈 값.
+function quickDues() {
+  const t = Date.parse(today()), wd = new Date(t).getUTCDay(), at = n => day(new Date(t + n * 86400000)), list = [["오늘", at(0)], ["내일", at(1)]];
+  const toFri = (5 - wd + 7) % 7, toMon = (1 - wd + 7) % 7;
+  if (toFri >= 2) list.push(["이번 주 금요일", at(toFri)]);
+  list.push(["다음 주 월요일", at(toMon || 7)], ["일주일 뒤", at(7)]);
+  return list;
+}
 function pickDate(current, done) {
+  sheet(`<h2>마감일</h2><div class="quick">` + quickDues().map(([n, d]) => `<button data-q="${d}"${d === current ? ` class="on"` : ""}>${n}<small>${dayTitle(d).replace(" · 오늘", "")}</small></button>`).join("") + `</div>`
+    + `<div class="end">${current ? `<button id="dueClear">지우기</button>` : ""}<button data-close>취소</button><button class="primary" id="dueMore">날짜 고르기</button></div>`, s => {
+    s.querySelectorAll("[data-q]").forEach(b => b.addEventListener("click", () => { closeSheet(); done(b.dataset.q); }));
+    if (current) s.querySelector("#dueClear").addEventListener("click", () => { closeSheet(); done(""); });
+    s.querySelector("#dueMore").addEventListener("click", () => { closeSheet(); pickDay(current, done); });
+  });
+}
+function pickDay(current, done) {
   const p = $("picker");
   p.value = current || "";
   p.onchange = () => { done(p.value || ""); p.onchange = null; };
@@ -765,6 +795,12 @@ $("list").addEventListener("click", e => {
   if (suppressClick) { e.preventDefault(); return; }
   const box = e.target.closest("[data-check]");
   if (box) { check(box.dataset.check); return; }
+  const lateBtn = e.target.closest("[data-late]");
+  if (lateBtn) {
+    const ids = view().filter(x => x.due && x.due < today()).map(x => x.id), to = quickDues()[Number(lateBtn.dataset.late)][1];
+    if (ids.length) push({ op: "dueMany", ids: ids.join(","), due: to }, "지난 마감 " + ids.length + "건을 " + (lateBtn.dataset.late === "0" ? "오늘" : "내일") + "로 옮겼습니다");
+    return;
+  }
   const id = opened, item = id && view().find(x => x.id === id);
   const project = e.target.closest("[data-project]");
   if (project && project.dataset.project) {
