@@ -316,8 +316,10 @@ function remindLabel(s) {
 function dueLabel(item) {
   if (!item.due) return item.repeat ? { text: "반복", cls: "far" } : null;
   const left = Math.round((Date.parse(item.due) - Date.parse(today())) / 86400000);
+  // 반복 업무는 지난 날을 따지지 않는다(다음 차례에 또 생긴다)
+  if (item.repeat) return left === 0 ? { text: "반복 · 오늘", cls: "late" } : { text: "반복", cls: "far" };
   const when = left === 0 ? "오늘" : left > 0 ? "D-" + left : (-left) + "일 지남";
-  return { text: item.repeat ? "반복 · " + when : md(item.due) + " (" + when + ")", cls: left <= 0 ? "late" : left <= 3 ? "soon" : "far" };
+  return { text: md(item.due) + " (" + when + ")", cls: left <= 0 ? "late" : left <= 3 ? "soon" : "far" };
 }
 
 const WEEK = ["일", "월", "화", "수", "목", "금", "토"];
@@ -365,7 +367,7 @@ function render() {
   const order = [...new Set([...sectionOrder(), ...todos.map(x => x.section || "")])];
   const colors = (state && state.colors) || {}, pinned = (state && state.pinned) || [];
   let html = "";
-  const late = filter === "today" && !query ? todos.filter(x => x.due && x.due < today()) : [];
+  const late = filter === "today" && !query ? todos.filter(x => x.due && x.due < today() && !x.repeat) : [];
   if (late.length) html += `<div class="latebar"><span>지난 마감 ${late.length}건</span><button data-late="0">모두 오늘로</button><button data-late="1">내일로</button></div>`;
   for (const name of order) {
     // 프로젝트 안에서는 PC 처럼 중요 표시한 일이 먼저
@@ -831,7 +833,7 @@ $("list").addEventListener("click", e => {
   if (box) { check(box.dataset.check); return; }
   const lateBtn = e.target.closest("[data-late]");
   if (lateBtn) {
-    const ids = view().filter(x => x.due && x.due < today()).map(x => x.id), to = quickDues()[Number(lateBtn.dataset.late)][1];
+    const ids = view().filter(x => x.due && x.due < today() && !x.repeat).map(x => x.id), to = quickDues()[Number(lateBtn.dataset.late)][1];
     if (ids.length) push({ op: "dueMany", ids: ids.join(","), due: to }, "지난 마감 " + ids.length + "건을 " + (lateBtn.dataset.late === "0" ? "오늘" : "내일") + "로 옮겼습니다");
     return;
   }
