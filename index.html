@@ -62,6 +62,8 @@
   .steps li button, .acts button { font-size: 12.5px; padding: 3px 9px; border-radius: 999px; }
   .note { white-space: pre-wrap; margin-top: 8px; color: var(--text); }
   .acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .subh { margin: 10px 14px 2px; padding-top: 4px; font-size: 12.5px; font-weight: 700; color: var(--sc, var(--accent)); display: flex; align-items: center; gap: 8px; }
+  .subh::after { content: ""; flex: 1; height: 1px; background: var(--line, rgba(127,127,127,.18)); }
   .note a.link { color: #1A73E8; text-decoration: underline; word-break: break-all; }
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .note a.link { color: #8AB4F8; } }
   :root[data-theme="dark"] .note a.link { color: #8AB4F8; }
@@ -239,7 +241,7 @@ function view() {
     if (op.op === "move") {
       const from = todos.findIndex(x => x.id === op.id);
       if (from < 0 || op.before === op.id) continue;
-      const [it] = todos.splice(from, 1); it.section = op.section;
+      const [it] = todos.splice(from, 1); it.section = op.section; if (op.sub !== undefined) it.sub = op.sub;
       let at = op.before ? todos.findIndex(x => x.id === op.before) : -1;
       if (at < 0) { at = todos.length; for (let k = todos.length - 1; k >= 0; k--) if ((todos[k].section || "") === op.section) { at = k + 1; break; } }
       todos.splice(at, 0, it); continue;
@@ -266,7 +268,7 @@ function view() {
       item.steps.splice(op.step, 1); if (had) item.stepDues.splice(op.step, 1);
       if (had && item.steps.length === 1) { item.due = item.stepDues[0] || ""; item.stepDues = []; } else sync(item);
       item.text = item.steps.join(" → ");
-      const fresh = { id: op.newId, section: op.section, text: name, steps: [name], step: 0, due, stepDues: [], notes: "" };
+      const fresh = { id: op.newId, section: op.section, sub: op.section === (item.section || "") ? item.sub : "", text: name, steps: [name], step: 0, due, stepDues: [], notes: "" };
       let at = op.before ? todos.findIndex(x => x.id === op.before) : -1;
       if (at < 0) { if (op.section === (item.section || "")) at = todos.indexOf(item) + 1; else { at = todos.length; for (let k = todos.length - 1; k >= 0; k--) if ((todos[k].section || "") === op.section) { at = k + 1; break; } } }
       todos.splice(at, 0, fresh);
@@ -274,7 +276,7 @@ function view() {
     if (op.op === "split" && item.steps.length - item.step >= 2) {
       const had = item.stepDues.some(Boolean);
       const made = item.steps.slice(item.step).map((n, i) => { const si = item.step + i;
-        return { id: op.key + "-" + si, section: item.section, text: n, steps: [n], step: 0, due: had ? item.stepDues[si] || "" : si === item.steps.length - 1 ? item.due : "", stepDues: [], notes: i === 0 ? item.notes : "", star: i === 0 && item.star }; });
+        return { id: op.key + "-" + si, section: item.section, sub: item.sub, text: n, steps: [n], step: 0, due: had ? item.stepDues[si] || "" : si === item.steps.length - 1 ? item.due : "", stepDues: [], notes: i === 0 ? item.notes : "", star: i === 0 && item.star }; });
       todos.splice(todos.indexOf(item), 1, ...made);
     }
     if (op.op === "addStep") { item.steps.push(op.text); if (item.stepDues.some(Boolean)) item.stepDues.push(""); }
@@ -371,13 +373,18 @@ function render() {
   if (late.length) html += `<div class="latebar"><span>지난 마감 ${late.length}건</span><button data-late="0">모두 오늘로</button><button data-late="1">내일로</button></div>`;
   for (const name of order) {
     // 프로젝트 안에서는 PC 처럼 중요 표시한 일이 먼저
-    const items = todos.filter(x => (x.section || "") === name).sort((a, b) => (b.star ? 1 : 0) - (a.star ? 1 : 0));
+    // 부제 없는 일 먼저, 그다음 부제마다(처음 나온 순서). 같은 부제 안에서는 PC 처럼 중요 표시한 일이 먼저
+    const inSec = todos.filter(x => (x.section || "") === name), subs = [""];
+    inSec.forEach(x => { if (!subs.includes(x.sub || "")) subs.push(x.sub || ""); });
+    const items = inSec.map((x, i) => [x, i]).sort((a, b) => subs.indexOf(a[0].sub || "") - subs.indexOf(b[0].sub || "") || (b[0].star ? 1 : 0) - (a[0].star ? 1 : 0) || a[1] - b[1]).map(p => p[0]);
+    let lastSub = "";
     if (!items.length) continue;
     html += `<section style="${colors[name] ? "--sc:" + esc(colors[name]) : ""}"><div class="proj" data-sec="${esc(name)}"><i style="${colors[name] ? "background:" + esc(colors[name]) : ""}"></i><b data-project="${esc(name)}">${esc(name || "기타")}</b>`
       + (pinned.includes(name) ? `<small>고정</small>` : "") + `<small>${items.length}</small></div><div class="board">`;
     for (const item of items) {
       const due = dueLabel(item), many = item.steps.length > 1;
-      html += `<div class="item" data-id="${esc(item.id)}" data-sec="${esc(item.section || "")}"><button class="box${item.step > 0 ? " part" : ""}" data-check="${esc(item.id)}" aria-label="완료"></button><div class="body">`
+      if ((item.sub || "") !== lastSub) { lastSub = item.sub || ""; if (lastSub) html += `<div class="subh">${esc(lastSub)}</div>`; }
+      html += `<div class="item" data-id="${esc(item.id)}" data-sec="${esc(item.section || "")}" data-sub="${esc(item.sub || "")}"><button class="box${item.step > 0 ? " part" : ""}" data-check="${esc(item.id)}" aria-label="완료"></button><div class="body">`
         + `${many && item.step > 0 ? `<div class="past">✓ ${esc((item.step > 3 ? "… › " : "") + item.steps.slice(Math.max(0, item.step - 3), item.step).join(" › "))}</div>` : ""}<div class="text" data-open="${esc(item.id)}">${item.star ? `<span class="star">★</span> ` : ""}${mark(many ? item.steps[item.step] : item.text)}</div><div class="meta" data-open="${esc(item.id)}">`
         + (many ? `<span>${item.step + 1}/${item.steps.length}</span>` + (item.step < item.steps.length - 1 ? `<span>다음: ${esc(item.steps[item.step + 1])}</span>` : "") : "")
         + (due ? `<span class="due ${due.cls}">${due.text}</span>` : "") + (item.remind ? `<span>알림 ${remindLabel(item.remind)}</span>` : "")
@@ -595,7 +602,7 @@ function moveTo(item) {
     s.querySelectorAll("[data-to]").forEach(b => b.addEventListener("click", () => {
       const to = names[Number(b.dataset.to)];
       closeSheet();
-      push({ op: "move", id: item.id, section: to, before: "" }, "'" + (to || "기타") + "'(으)로 옮겼습니다");
+      push({ op: "move", id: item.id, section: to, before: "", sub: "" }, "'" + (to || "기타") + "'(으)로 옮겼습니다");
     }));
   });
 }
@@ -766,8 +773,9 @@ function moveDrag(y) {
 }
 // 할 일들 사이에 빈칸 놓기(할 일 끌기 · 단계를 할 일로 빼기 함께 씀)
 function placeAmongItems(slot, at, skip) {
-  const all = [...$("list").querySelectorAll(".item, .proj")].filter(x => x !== skip);
+  const all = [...$("list").querySelectorAll(".item, .proj, .subh")].filter(x => x !== skip);
   const before = all.find(x => at < mid(x));
+  if (before && before.classList.contains("subh")) { if (slot.nextElementSibling !== before) before.before(slot); return; }
   const sheetOf = sec => sec && sec.querySelector(".board");
   if (!before) { const secs = $("list").querySelectorAll("section"), last = sheetOf(secs[secs.length - 1]); if (last && last.lastElementChild !== slot) last.appendChild(slot); }
   else if (before.classList.contains("item")) { if (slot.nextElementSibling !== before) before.before(slot); }
@@ -789,7 +797,10 @@ function endDrag(drop) {
     if (d.kind === "item") {
       const into = d.slot.closest("section"), section = into ? into.querySelector(".proj").dataset.sec : d.origin;
       const next = nextItem(d.slot, d.src), before = next ? next.dataset.id : "";
-      if (section !== d.origin || before !== d.was) { op = { op: "move", id: d.el.dataset.id, section, before }; said = section === d.origin ? "순서를 바꿨습니다" : "'" + (section || "기타") + "'(으)로 옮겼습니다"; }
+      // 놓인 자리 바로 위가 부제 줄이면 그 부제, 할 일이면 그 일의 부제, 맨 위면 부제 없음
+      let up = d.slot.previousElementSibling; while (up && (up === d.src || up.classList.contains("slot"))) up = up.previousElementSibling;
+      const sub = !up ? "" : up.classList.contains("subh") ? up.textContent : up.dataset.sub || "";
+      if (section !== d.origin || before !== d.was || sub !== (d.el.dataset.sub || "")) { op = { op: "move", id: d.el.dataset.id, section, before, sub }; said = section !== d.origin ? "'" + (section || "기타") + "'(으)로 옮겼습니다" : sub !== (d.el.dataset.sub || "") ? (sub ? "'" + sub + "' 부제로 옮겼습니다" : "부제에서 뺐습니다") : "순서를 바꿨습니다"; }
     } else if (d.kind === "proj") {
       const next = nextSection(d.slot, d.src);
       if (next !== d.was) { op = next ? { op: "moveSection", name: d.el.dataset.sec, before: next.querySelector(".proj").dataset.sec } : { op: "moveSection", name: d.el.dataset.sec, before: "", end: "1" }; said = "프로젝트 순서를 바꿨습니다"; }
