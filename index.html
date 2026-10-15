@@ -62,6 +62,9 @@
   .steps li button, .acts button { font-size: 12.5px; padding: 3px 9px; border-radius: 999px; }
   .note { white-space: pre-wrap; margin-top: 8px; color: var(--text); }
   .acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .note a.link { color: #1A73E8; text-decoration: underline; word-break: break-all; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .note a.link { color: #8AB4F8; } }
+  :root[data-theme="dark"] .note a.link { color: #8AB4F8; }
   .quick { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 4px 0 6px; }
   .quick button { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 10px 12px; border-radius: 12px; text-align: left; font-weight: 600; }
   .quick button small { font-weight: 400; opacity: .65; font-size: 12px; }
@@ -179,6 +182,13 @@ const STATE_FILE = "planner-state.json";     // PC 가 올리는 현재 목록
 const INBOX_FILE = "planner-inbox.json";     // 폰에서 한 일. PC 가 가져가서 반영한다
 // 앱(아이폰 · 안드로이드)으로 감쌌을 때: 앱이 window.PlannerNative = { signIn(), copy(text) } 를 넣어 주면 그걸 쓴다.
 const native = () => window.PlannerNative || null;
+// 메모 속 주소(https://…, www.…)는 눌러 열 수 있게. 앱이 PlannerNative.openUrl(url) 을 주면 그걸로(바깥 브라우저) 연다.
+const linkify = s => esc(s).replace(/(?:https?:\/\/|www\.)[^\s<>"']+/g, m => { const u = m.replace(/[.,)]+$/, ""), rest = m.slice(u.length);
+  return `<a class="link" href="${/^www\./i.test(u) ? "https://" + u : u}" target="_blank" rel="noopener">${u}</a>${rest}`; });
+function openLink(url) {
+  try { if (window.PlannerNative?.openUrl) { window.PlannerNative.openUrl(url); return; } } catch {}
+  window.open(url, "_blank", "noopener");
+}
 // 앱이 광고 띠를 띄우거나 없앨 때 부른다(광고 제거를 사면 0). 웹 화면에는 광고가 없다.
 window.plannerSetAdHeight = px => document.documentElement.style.setProperty("--ad", (Number(px) || 0) + "px");
 
@@ -374,7 +384,7 @@ function render() {
         html += `<div class="more">`;
         if (many) html += `<ul class="steps" data-steps="${esc(item.id)}">` + item.steps.map((s, i) => `<li class="${i < item.step ? "done" : i === item.step ? "now" : ""}"${i >= item.step ? ` data-stepi="${i}"` : ""}><span data-stepname="${i}">${i + 1}. ${esc(s)}</span>`
           + (i >= item.step ? `<button data-stepdue="${i}">${item.stepDues[i] ? "~" + md(item.stepDues[i]) : "마감일"}</button>` : "") + `</li>`).join("") + `</ul>`;
-        if (item.notes) html += `<div class="note">${esc(item.notes)}</div>`;
+        if (item.notes) html += `<div class="note">${linkify(item.notes)}</div>`;
         html += `<div class="acts">` + (item.step > 0 ? `<button data-act="back">이전 단계</button>` : "")
           + (many && item.steps.length - item.step >= 2 ? `<button data-act="split">단계 나누기</button>` : "")
           + `<button data-act="star">${item.star ? "중요 해제" : "★ 중요"}</button><button data-act="step">단계 추가</button><button data-act="note">메모 추가</button>`
@@ -815,6 +825,8 @@ $("list").addEventListener("contextmenu", e => { if (drag || holdTimer) e.preven
 // ───── 누르기 ─────
 $("list").addEventListener("click", e => {
   if (suppressClick) { e.preventDefault(); return; }
+  const link = e.target.closest("a.link");
+  if (link) { e.preventDefault(); openLink(link.getAttribute("href").replace(/&amp;/g, "&")); return; }
   const box = e.target.closest("[data-check]");
   if (box) { check(box.dataset.check); return; }
   const lateBtn = e.target.closest("[data-late]");
