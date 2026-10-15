@@ -614,23 +614,30 @@ function moveTo(item) {
 
 function showPhrases() {
   const list = (state && state.phrases) || [];
-  const links = `<button class="phrase" id="linksOpen">판매처 링크 만들기<small>주소나 받은 판매처 글을 붙여 넣으면 보낼 글로 만들어 줍니다</small></button>`;
+  const links = `<button class="phrase" id="linksOpen">링크 모음 만들기<small>주소나 받은 링크 글을 붙여 넣으면 보낼 글로 정리해 줍니다</small></button>`;
   const ready = s => { s.querySelector("#linksOpen").onclick = () => storeLinks(); };
   if (!list.length) { sheet(`<h2>문구</h2>` + links + `<div class="empty">저장한 문구가 없습니다. PC 앱의 [문구 ▾ › 문구 관리]에서 만들면 여기 보입니다.</div><div class="end"><button data-close>닫기</button></div>`, ready); return; }
   sheet(`<h2>문구</h2>` + links + list.map((p, i) => `<button class="phrase" data-phrase="${i}">${esc(p.name)}<small>${esc(p.text.replace(/\n+/g, " "))}</small></button>`).join("")
     + `<div class="end"><button data-close>닫기</button></div>`, ready);
 }
 
-// ───── 판매처 링크 만들기(PC 와 같은 규칙): 주소마다 한 줄, 이름은 받은 글에 적힌 것 → 전에 적은 것 → 아는 판매처 ─────
+// ───── 링크 모음 만들기(PC 와 같은 규칙): 주소마다 한 줄, 이름은 받은 글에 적힌 것 → 전에 적은 것 → 아는 사이트 ─────
 const KNOWN_STORES = [["yes24.com", "예스24"], ["aladin.co.kr", "알라딘"], ["kyobobook.co.kr", "교보문고"], ["hottracks.co.kr", "핫트랙스"], ["synnara.co.kr", "신나라레코드"],
   ["ktown4u.com", "케이타운포유"], ["applemusic.co.kr", "애플뮤직"], ["interpark.com", "인터파크"], ["makestar.co", "메이크스타"], ["withmuu.com", "위드뮤"], ["weverseshop.io", "위버스샵"],
   ["dearmymuse.com", "디어마이뮤즈"], ["musicplant.co.kr", "뮤직플랜트"], ["soundwave", "사운드웨이브"], ["everline", "에버라인"], ["coupang.com", "쿠팡"], ["11st.co.kr", "11번가"],
-  ["gmarket.co.kr", "G마켓"], ["smartstore.naver.com", "스마트스토어"], ["musinsa.com", "무신사"], ["jumpup", "점프업이엔티"]];
+  ["gmarket.co.kr", "G마켓"], ["smartstore.naver.com", "스마트스토어"], ["musinsa.com", "무신사"], ["jumpup", "점프업이엔티"],
+  ["docs.google.com/spreadsheets", "구글 시트"], ["docs.google.com/document", "구글 문서"], ["docs.google.com/presentation", "구글 슬라이드"], ["docs.google.com/forms", "구글 설문"], ["forms.gle", "구글 설문"],
+  ["drive.google.com", "구글 드라이브"], ["youtube.com", "유튜브"], ["youtu.be", "유튜브"], ["instagram.com", "인스타그램"], ["x.com", "X"], ["twitter.com", "X"], ["threads.net", "스레드"],
+  ["facebook.com", "페이스북"], ["tiktok.com", "틱톡"], ["blog.naver.com", "네이버 블로그"], ["cafe.naver.com", "네이버 카페"], ["naver.com", "네이버"], ["notion.so", "노션"], ["notion.site", "노션"],
+  ["pf.kakao.com", "카카오 채널"], ["open.kakao.com", "카카오 오픈채팅"], ["melon.com", "멜론"], ["genie.co.kr", "지니"], ["spotify.com", "스포티파이"], ["music.apple.com", "Apple Music"],
+  ["dropbox.com", "드롭박스"], ["figma.com", "피그마"], ["zoom.us", "줌"], ["github.com", "GitHub"]];
 const linkHost = u => { try { return new URL(u).hostname.toLowerCase().replace(/^(www|m|mobile)\./, ""); } catch { return ""; } };
 function guessStore(url) {
   const learned = load("linkNames", {})[linkHost(url)];
   if (learned) return learned;
-  const k = KNOWN_STORES.find(([d]) => url.toLowerCase().includes(d));
+  // "x.com" 이 "dropbox.com" 에 걸리지 않게: 주소 이름이면 끝까지 같아야 한다
+  const u = url.toLowerCase(), h = linkHost(url);
+  const k = KNOWN_STORES.find(([d]) => d.includes("/") || !d.includes(".") ? u.includes(d) : h === d || h.endsWith("." + d));
   return k ? k[1] : "";
 }
 function linksFromText(text, rows) {
@@ -650,22 +657,24 @@ function linksFromText(text, rows) {
 }
 function storeLinks() {
   const rows = [];
-  let head = load("linkHead", "안녕하세요! 주요 판매처 링크 공유드립니다."), foot = load("linkFoot", "공식 계정에 게시물 업로드 시 해당 판매처 링크를 활용해 주시면 감사하겠습니다!");
-  const build = () => [head.trim(), "", ...rows.filter(r => r.url).map(r => (r.name.trim() ? r.name.trim() + " : " : "") + r.url), "", foot.trim()].join("\n").replace(/^\n+|\n+$/g, "").replace(/\n{3,}/g, "\n\n");
-  sheet(`<h2>판매처 링크 만들기</h2>
+  let head = load("linkHead", "안녕하세요! 링크 공유드립니다."), foot = load("linkFoot", ""), two = load("linkTwoLine", false);
+  const build = () => [head.trim(), "", ...rows.filter(r => r.url).map(r => !r.name.trim() ? r.url : two ? r.name.trim() + "\n" + r.url + "\n" : r.name.trim() + " : " + r.url), "", foot.trim()].join("\n").replace(/^\n+|\n+$/g, "").replace(/\n{3,}/g, "\n\n");
+  sheet(`<h2>링크 모음 만들기</h2>
     <label>머리말</label><input id="lkHead">
-    <label>판매처 <span id="lkCount"></span></label><div id="lkRows" class="lkrows"></div>
-    <textarea id="lkPaste" rows="3" placeholder="판매처 주소나 받은 글을 여기 붙여 넣기"></textarea>
+    <label>링크 <span id="lkCount"></span></label><div id="lkRows" class="lkrows"></div>
+    <textarea id="lkPaste" rows="3" placeholder="주소나 받은 링크 글을 여기 붙여 넣기"></textarea>
     <div class="row" style="margin-top:6px"><button id="lkClip">복사한 것 붙여넣기</button><button id="lkAdd">넣기</button></div>
-    <label>맺음말</label><textarea id="lkFoot" rows="2"></textarea>
+    <label>맺음말</label><textarea id="lkFoot" rows="2" placeholder="(없으면 비워 두기)"></textarea>
+    <label>보내는 모양</label><select id="lkTwo"><option value="0">한 줄로: 이름 : 주소</option><option value="1">두 줄로: 이름 아래 주소</option></select>
     <div class="end"><button data-close>닫기</button><button class="primary" id="lkCopy">복사</button></div>`, s => {
     const $s = q => s.querySelector(q);
-    $s("#lkHead").value = head; $s("#lkFoot").value = foot;
+    $s("#lkHead").value = head; $s("#lkFoot").value = foot; $s("#lkTwo").value = two ? "1" : "0";
+    $s("#lkTwo").onchange = e => { two = e.target.value === "1"; save("linkTwoLine", two); };
     $s("#lkHead").oninput = e => { head = e.target.value; };
     $s("#lkFoot").oninput = e => { foot = e.target.value; };
     const draw = () => {
       $s("#lkCount").textContent = rows.length ? "· " + rows.length + "곳" : "";
-      $s("#lkRows").innerHTML = rows.length ? rows.map((r, i) => `<div class="lkrow"><input data-lkname="${i}" value="${esc(r.name)}" placeholder="판매처 이름"><span>${esc(r.url)}</span>`
+      $s("#lkRows").innerHTML = rows.length ? rows.map((r, i) => `<div class="lkrow"><input data-lkname="${i}" value="${esc(r.name)}" placeholder="이름"><span>${esc(r.url)}</span>`
         + `<button data-lkup="${i}" aria-label="위로">▲</button><button data-lkdel="${i}" aria-label="지우기">✕</button></div>`).join("") : `<div class="empty" style="padding:8px 0">아래에 주소를 붙여 넣으세요</div>`;
     };
     $s("#lkRows").addEventListener("input", e => {
@@ -684,7 +693,7 @@ function storeLinks() {
     $s("#lkClip").onclick = async () => { try { addText(await navigator.clipboard.readText()); } catch { toast("붙여넣기를 못 했습니다. 아래 칸에 길게 눌러 붙여 넣어 주세요"); } };
     $s("#lkPaste").addEventListener("paste", () => setTimeout(() => { if (/https?:\/\//.test($s("#lkPaste").value)) { addText($s("#lkPaste").value); $s("#lkPaste").value = ""; } }, 0));
     $s("#lkCopy").onclick = async () => {
-      if (!rows.length) { toast("넣은 판매처가 없습니다"); return; }
+      if (!rows.length) { toast("넣은 링크가 없습니다"); return; }
       save("linkHead", head); save("linkFoot", foot);
       toast(await copy(build()) ? "복사했습니다. 카톡에 붙여 넣으세요" : "복사하지 못했습니다");
     };
