@@ -46,7 +46,8 @@
   .item { display: flex; gap: 10px; padding: 11px 4px 10px; border-bottom: 1px solid var(--line); }
   .item:last-child { border-bottom: 0; }
   .box { flex: none; width: 24px; height: 24px; margin-top: 1px; border: 1.6px solid var(--faint); border-radius: 7px; background: var(--card); padding: 0; position: relative; }
-  .box.part::after { content: ""; position: absolute; inset: 6px; border-radius: 2px; background: var(--accent); }
+  /* 단계가 진행 중: 옅은 색 바탕 + 색 테두리(눌러 둔 것처럼 보이지 않게) */
+  .box.part { border-color: var(--sc, var(--accent)); background: color-mix(in srgb, var(--sc, var(--accent)) 14%, var(--card)); }
   .body { flex: 1; min-width: 0; }
   .text { word-break: break-word; }
   .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 5px; font-size: 12.5px; color: var(--sub); }
@@ -62,8 +63,13 @@
   .steps li button, .acts button { font-size: 12.5px; padding: 3px 9px; border-radius: 999px; }
   .note { white-space: pre-wrap; margin-top: 8px; color: var(--text); }
   .acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-  .subh { margin: 10px 14px 2px; padding-top: 4px; font-size: 12.5px; font-weight: 700; color: var(--sc, var(--accent)); display: flex; align-items: center; gap: 8px; }
+  /* 부제: 프로젝트 색 알약(이름 · 개수) + 옅은 줄 */
+  .subh { margin: 12px 12px 4px; display: flex; align-items: center; gap: 10px; }
+  .subh span { padding: 3px 11px; border-radius: 999px; font-size: 13px; font-weight: 700; color: var(--sc, var(--accent)); background: color-mix(in srgb, var(--sc, var(--accent)) 14%, var(--card)); }
+  .subh span b { margin-left: 6px; font-weight: 700; opacity: .75; }
   .subh::after { content: ""; flex: 1; height: 1px; background: var(--line, rgba(127,127,127,.18)); }
+  /* 펼친(고른) 할 일: 왼쪽 막대 + 옅은 바탕 */
+  .item.open { background: color-mix(in srgb, var(--accent) 6%, var(--card)); box-shadow: inset 4px 0 0 var(--accent); }
   .note a.link { color: #1A73E8; text-decoration: underline; word-break: break-all; }
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .note a.link { color: #8AB4F8; } }
   :root[data-theme="dark"] .note a.link { color: #8AB4F8; }
@@ -80,7 +86,7 @@
   .row + .row { margin-top: 8px; }
   input, select, textarea { font: inherit; color: var(--text); background: var(--card); border: 1px solid var(--line); border-radius: 9px; padding: 9px 11px; min-width: 0; }
   input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
-  #newText { flex: 1; } #newSection { flex: 1; } #newDue { flex: none; width: 138px; }
+  #newText { flex: 1; } #newSection { flex: 1; } #newSub { flex: 1; } #newDue { flex: none; width: 138px; }
   .toast { position: fixed; z-index: 30; left: 50%; bottom: calc(150px + env(safe-area-inset-bottom)); transform: translateX(-50%); background: var(--accent); color: var(--on-accent); padding: 9px 14px; border-radius: 999px; font-size: 13.5px; display: flex; gap: 12px; align-items: center; white-space: nowrap; }
   .toast button { background: transparent; border: 0; color: inherit; font-weight: 700; padding: 0; text-decoration: underline; }
   .shade { position: fixed; left: 0; right: 0; top: 0; height: 100%; z-index: 20; background: var(--shade); display: flex; align-items: flex-end; overscroll-behavior: contain; }
@@ -98,6 +104,7 @@
   .lkrow input { width: 100%; padding: 7px 8px; }
   .lkrow span { font-size: 12px; color: var(--sub); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
   .lkrow button { padding: 6px 9px; }
+  .phrase.subto { margin-left: 22px; width: calc(100% - 22px); }
   .phrase { display: block; width: 100%; text-align: left; margin-bottom: 8px; padding: 10px 12px; }
   .phrase small { display: block; color: var(--sub); font-size: 12.5px; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   #picker { position: fixed; left: -100px; top: 0; width: 1px; height: 1px; opacity: 0; }
@@ -174,6 +181,7 @@
   </div>
   <div class="row">
     <select id="newSection" aria-label="프로젝트"></select>
+    <select id="newSub" aria-label="부제" hidden></select>
     <input id="newDue" type="date" aria-label="마감일">
   </div>
 </footer>
@@ -242,7 +250,7 @@ function view() {
   const sync = item => { if (item.stepDues.some(Boolean)) item.due = item.stepDues[Math.min(item.step, item.stepDues.length - 1)] || ""; };
   for (const op of inbox) {
     if (op.op === "rename") { todos.forEach(x => { if ((x.section || "") === op.from) x.section = op.to; }); continue; }
-    if (op.op === "add") { todos.push({ id: op.id, section: op.section, text: op.text, steps: [op.text], step: 0, due: op.due || "", stepDues: [], notes: "" }); continue; }
+    if (op.op === "add") { todos.push({ id: op.id, section: op.section, sub: op.sub || "", text: op.text, steps: [op.text], step: 0, due: op.due || "", stepDues: [], notes: "" }); continue; }
     if (op.op === "move") {
       const from = todos.findIndex(x => x.id === op.id);
       if (from < 0 || op.before === op.id) continue;
@@ -388,8 +396,8 @@ function render() {
       + (pinned.includes(name) ? `<small>고정</small>` : "") + `<small>${items.length}</small></div><div class="board">`;
     for (const item of items) {
       const due = dueLabel(item), many = item.steps.length > 1;
-      if ((item.sub || "") !== lastSub) { lastSub = item.sub || ""; if (lastSub) html += `<div class="subh">${esc(lastSub)}</div>`; }
-      html += `<div class="item" data-id="${esc(item.id)}" data-sec="${esc(item.section || "")}" data-sub="${esc(item.sub || "")}"><button class="box${item.step > 0 ? " part" : ""}" data-check="${esc(item.id)}" aria-label="완료"></button><div class="body">`
+      if ((item.sub || "") !== lastSub) { lastSub = item.sub || ""; if (lastSub) html += `<div class="subh"><span>${esc(lastSub)}<b>${items.filter(x => (x.sub || "") === lastSub).length}</b></span></div>`; }
+      html += `<div class="item${opened === item.id ? " open" : ""}" data-id="${esc(item.id)}" data-sec="${esc(item.section || "")}" data-sub="${esc(item.sub || "")}"><button class="box${item.step > 0 ? " part" : ""}" data-check="${esc(item.id)}" aria-label="완료"></button><div class="body">`
         + `${many && item.step > 0 ? `<div class="past">✓ ${esc((item.step > 3 ? "… › " : "") + item.steps.slice(Math.max(0, item.step - 3), item.step).join(" › "))}</div>` : ""}<div class="text" data-open="${esc(item.id)}">${item.star ? `<span class="star">★</span> ` : ""}${mark(many ? item.steps[item.step] : item.text)}</div><div class="meta" data-open="${esc(item.id)}">`
         + (many ? `<span>${item.step + 1}/${item.steps.length}</span>` + (item.step < item.steps.length - 1 ? `<span>다음: ${esc(item.steps[item.step + 1])}</span>` : "") : "")
         + (due ? `<span class="due ${due.cls}">${due.text}</span>` : "") + (item.remind ? `<span>알림 ${remindLabel(item.remind)}</span>` : "")
@@ -414,6 +422,7 @@ function render() {
   const names = order.filter(Boolean), sel = $("newSection"), keep = sel.value;
   sel.innerHTML = names.map(n => `<option>${esc(n)}</option>`).join("") + `<option value="">기타</option>`;
   if (picked && (names.includes(keep) || keep === "")) sel.value = keep;
+  fillSubs();
   $("state").textContent = problem;
   $("banner").hidden = !demo && (!!token || (booting && !!state));
   $("bannerText").textContent = demo ? "견본 자료입니다" : "구글에 연결하면 내 할 일이 보입니다";
@@ -438,6 +447,14 @@ function check(id) {
   push({ op: "check", id }, last ? "완료했습니다" : "'" + item.steps[item.step] + "' 완료");
 }
 
+// 고른 프로젝트에 부제가 있으면 부제도 고를 수 있게(없으면 숨긴다)
+function fillSubs() {
+  const sec = $("newSection").value, box = $("newSub"), keep = box.value;
+  const subs = [...new Set(view().filter(x => (x.section || "") === sec && x.sub).map(x => x.sub))];
+  box.hidden = !subs.length;
+  box.innerHTML = `<option value="">부제 없음</option>` + subs.map(s => `<option>${esc(s)}</option>`).join("");
+  if (subs.includes(keep)) box.value = keep;
+}
 function add() {
   let text = $("newText").value.replace(/　/g, " ").trim();
   if (!text) { $("newText").focus(); return; }
@@ -445,7 +462,7 @@ function add() {
   let due = $("newDue").value, worded = false;
   if (!due) { const w = wordDue(text); if (w) { text = w.text; due = w.due; worded = true; } }
   $("newText").value = ""; $("newDue").value = "";
-  push({ op: "add", id, key: id, section: $("newSection").value, text, due }, worded ? "마감 " + dayTitle(due).replace(" · 오늘", "") + "로 추가했습니다" : "추가했습니다");
+  push({ op: "add", id, key: id, section: $("newSection").value, sub: $("newSub").hidden ? "" : $("newSub").value, text, due }, worded ? "마감 " + dayTitle(due).replace(" · 오늘", "") + "로 추가했습니다" : "추가했습니다");
 }
 
 // ───── 아래에서 올라오는 작은 창(글 쓰기 · 문구 고르기 · 빈칸 채우기) ─────
@@ -599,15 +616,21 @@ async function copy(text) {
 function blanks(text) { return [...new Set([...(text || "").matchAll(/\{([^{}\n]{1,30})\}/g)].map(m => m[1].trim()).filter(Boolean))]; }
 // 다른 프로젝트로 옮기기: 그 프로젝트 맨 끝으로(PC 의 op "move" 가 받는다)
 function moveTo(item) {
-  const here = item.section || "";
-  const names = [...new Set([...sectionOrder(), ...view().map(x => x.section || "")])].filter(n => n !== here);
-  if (!names.length) { toast("옮길 다른 프로젝트가 없습니다"); return; }
-  sheet(`<h2>어느 프로젝트로 옮길까요?</h2>` + names.map((n, i) => `<button class="phrase" data-to="${i}">${esc(n || "기타")}</button>`).join("")
+  const here = item.section || "", hereSub = item.sub || "", all = view();
+  const names = [...new Set([...sectionOrder(), ...all.map(x => x.section || "")])];
+  // 프로젝트마다 한 줄, 그 아래에 부제 줄(지금 있는 자리는 뺀다)
+  const targets = [];
+  for (const n of names) {
+    if (!(n === here && !hereSub)) targets.push({ section: n, sub: "" });
+    for (const s of [...new Set(all.filter(x => (x.section || "") === n && x.sub).map(x => x.sub))]) if (!(n === here && s === hereSub)) targets.push({ section: n, sub: s });
+  }
+  if (!targets.length) { toast("옮길 곳이 없습니다"); return; }
+  sheet(`<h2>어디로 옮길까요?</h2>` + targets.map((g, i) => `<button class="phrase${g.sub ? " subto" : ""}" data-to="${i}">${g.sub ? "› " + esc(g.sub) + `<small>${esc(g.section || "기타")}</small>` : esc(g.section || "기타")}</button>`).join("")
     + `<div class="end"><button data-close>취소</button></div>`, s => {
     s.querySelectorAll("[data-to]").forEach(b => b.addEventListener("click", () => {
-      const to = names[Number(b.dataset.to)];
+      const g = targets[Number(b.dataset.to)];
       closeSheet();
-      push({ op: "move", id: item.id, section: to, before: "", sub: "" }, "'" + (to || "기타") + "'(으)로 옮겼습니다");
+      push({ op: "move", id: item.id, section: g.section, before: "", sub: g.sub }, "'" + (g.section || "기타") + (g.sub ? " › " + g.sub : "") + "'(으)로 옮겼습니다");
     }));
   });
 }
@@ -887,7 +910,7 @@ function endDrag(drop) {
       const next = nextItem(d.slot, d.src), before = next ? next.dataset.id : "";
       // 놓인 자리 바로 위가 부제 줄이면 그 부제, 할 일이면 그 일의 부제, 맨 위면 부제 없음
       let up = d.slot.previousElementSibling; while (up && (up === d.src || up.classList.contains("slot"))) up = up.previousElementSibling;
-      const sub = !up ? "" : up.classList.contains("subh") ? up.textContent : up.dataset.sub || "";
+      const sub = !up ? "" : up.classList.contains("subh") ? up.querySelector("span").firstChild.textContent : up.dataset.sub || "";
       if (section !== d.origin || before !== d.was || sub !== (d.el.dataset.sub || "")) { op = { op: "move", id: d.el.dataset.id, section, before, sub }; said = section !== d.origin ? "'" + (section || "기타") + "'(으)로 옮겼습니다" : sub !== (d.el.dataset.sub || "") ? (sub ? "'" + sub + "' 부제로 옮겼습니다" : "부제에서 뺐습니다") : "순서를 바꿨습니다"; }
     } else if (d.kind === "proj") {
       const next = nextSection(d.slot, d.src);
@@ -987,7 +1010,7 @@ $("settings").addEventListener("click", showSettings);
 applyLook();
 $("add").addEventListener("click", add);
 $("newText").addEventListener("keydown", e => { if (e.key === "Enter") add(); });
-$("newSection").addEventListener("change", () => picked = true);
+$("newSection").addEventListener("change", () => { picked = true; fillSubs(); });
 // 입력 줄 접기: 칸을 누르면 펼치고, 밖으로 나가고 글자가 비었으면 접는다(날짜 · 프로젝트를 고르는 동안엔 그대로)
 {
   const foot = document.querySelector("footer");
