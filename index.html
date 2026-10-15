@@ -116,12 +116,18 @@
   .ghost .hint { position: absolute; right: 10px; top: -11px; background: var(--accent); color: var(--on-accent); font-size: 12px; font-weight: 700; padding: 2px 9px; border-radius: 999px; }
   .slot { border: 2px dashed var(--accent); border-radius: 12px; background: var(--tint); margin: 4px 0; list-style: none; }
   .proj.droptarget { box-shadow: 0 0 0 2px var(--accent) inset; }
-  /* 프로젝트 카드(C): 회색 바탕 위에 프로젝트마다 둥근 카드, 왼쪽에 프로젝트 색 띠, 머리는 옅은 프로젝트 색 */
+  /* 깔끔한 목록: 회색 바탕 위에 프로젝트 이름 줄(색 점), 그 아래 할 일들을 흰 판 한 장에 */
   main { background: var(--canvas); }
-  section { background: var(--card); border-radius: 14px; overflow: hidden; border-left: 5px solid var(--sc, var(--accent)); margin-top: 12px; box-shadow: 0 1px 2px rgba(0,0,0,.06); }
-  section .proj { border-radius: 0; background: color-mix(in srgb, var(--sc, var(--accent)) 12%, var(--card)); }
-  section .proj i { display: none; }
-  section .item { padding-left: 10px; padding-right: 10px; }
+  section { margin-top: 16px; }
+  section .proj { background: none; border-radius: 0; padding: 4px 4px 8px; }
+  section .proj i { width: 9px; height: 9px; border-radius: 50%; background: var(--sc, var(--accent)); }
+  section .proj small { margin-left: 2px; }
+  .board { background: var(--card); border-radius: 12px; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+  .board .item { padding: 12px 14px; border-bottom: 1px solid color-mix(in srgb, var(--line) 55%, var(--card)); }
+  .board .item:last-child { border-bottom: 0; }
+  .meta .due { padding: 1px 8px; border-radius: 999px; background: var(--tint); }
+  .meta .due.late { background: color-mix(in srgb, var(--red) 16%, var(--card)); }
+  .meta .due.soon { background: color-mix(in srgb, var(--orange) 16%, var(--card)); }
   .past { color: var(--faint); font-size: 12px; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   [hidden] { display: none !important; }
 </style>
@@ -340,7 +346,7 @@ function render() {
     const items = todos.filter(x => (x.section || "") === name).sort((a, b) => (b.star ? 1 : 0) - (a.star ? 1 : 0));
     if (!items.length) continue;
     html += `<section style="${colors[name] ? "--sc:" + esc(colors[name]) : ""}"><div class="proj" data-sec="${esc(name)}"><i style="${colors[name] ? "background:" + esc(colors[name]) : ""}"></i><b data-project="${esc(name)}">${esc(name || "기타")}</b>`
-      + (pinned.includes(name) ? `<small>고정</small>` : "") + `<small>${items.length}</small></div>`;
+      + (pinned.includes(name) ? `<small>고정</small>` : "") + `<small>${items.length}</small></div><div class="board">`;
     for (const item of items) {
       const due = dueLabel(item), many = item.steps.length > 1;
       html += `<div class="item" data-id="${esc(item.id)}" data-sec="${esc(item.section || "")}"><button class="box${item.step > 0 ? " part" : ""}" data-check="${esc(item.id)}" aria-label="완료"></button><div class="body">`
@@ -361,7 +367,7 @@ function render() {
       }
       html += `</div></div>`;
     }
-    html += `</section>`;
+    html += `</div></section>`;
   }
   $("list").innerHTML = html || `<div class="empty">${query ? "찾는 할 일이 없습니다" : filter === "today" ? "오늘 마감인 일이 없습니다" : "남은 일이 없습니다"}</div>`;
   const names = order.filter(Boolean), sel = $("newSection"), keep = sel.value;
@@ -681,13 +687,14 @@ function moveDrag(y) {
 function placeAmongItems(slot, at, skip) {
   const all = [...$("list").querySelectorAll(".item, .proj")].filter(x => x !== skip);
   const before = all.find(x => at < mid(x));
-  if (!before) { const secs = $("list").querySelectorAll("section"), last = secs[secs.length - 1]; if (last && last.lastElementChild !== slot) last.appendChild(slot); }
+  const sheetOf = sec => sec && sec.querySelector(".board");
+  if (!before) { const secs = $("list").querySelectorAll("section"), last = sheetOf(secs[secs.length - 1]); if (last && last.lastElementChild !== slot) last.appendChild(slot); }
   else if (before.classList.contains("item")) { if (slot.nextElementSibling !== before) before.before(slot); }
   else {
     // 프로젝트 머리 위 = 바로 위 프로젝트의 맨 끝, 맨 위 머리 위 = 첫 프로젝트의 맨 앞
     const sec = before.parentElement, prev = sec.previousElementSibling;
-    if (prev && prev.tagName === "SECTION") { if (prev.lastElementChild !== slot) prev.appendChild(slot); }
-    else if (before.nextElementSibling !== slot) before.after(slot);
+    if (prev && prev.tagName === "SECTION") { const s = sheetOf(prev); if (s && s.lastElementChild !== slot) s.appendChild(slot); }
+    else { const s = sheetOf(sec); if (s && s.firstElementChild !== slot) s.prepend(slot); }
   }
 }
 
