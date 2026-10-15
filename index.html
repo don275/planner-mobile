@@ -237,6 +237,7 @@ function view() {
     if (op.op === "editStep" && op.step < item.steps.length) item.steps[op.step] = op.text;
     if (op.op === "delete") item.gone = true;
     if (op.op === "star") item.star = !!op.on;
+    if (op.op === "dup") { const copy = { ...item, id: op.newId, step: 0, steps: [...item.steps], stepDues: [...item.stepDues], remind: "" }; sync(copy); todos.splice(todos.indexOf(item) + 1, 0, copy); }
     if (op.op === "extract" && op.step >= item.step && op.step < item.steps.length && item.steps.length - item.step >= 2) {
       const had = item.stepDues.some(Boolean), name = item.steps[op.step], due = had ? item.stepDues[op.step] || "" : "";
       item.steps.splice(op.step, 1); if (had) item.stepDues.splice(op.step, 1);
@@ -362,6 +363,7 @@ function render() {
         html += `<div class="acts">` + (item.step > 0 ? `<button data-act="back">이전 단계</button>` : "")
           + (many && item.steps.length - item.step >= 2 ? `<button data-act="split">단계 나누기</button>` : "")
           + `<button data-act="star">${item.star ? "중요 해제" : "★ 중요"}</button><button data-act="step">단계 추가</button><button data-act="note">메모 추가</button>`
+          + `<button data-act="dup">복제</button><button data-act="moveto">옮기기</button>`
           + (many ? "" : `<button data-act="edit">수정</button>`) + `<button data-act="delete">삭제</button>`
           + (many ? "" : `<button data-act="due">${item.due ? "마감 " + md(item.due) : "마감일"}</button>`) + `</div></div>`;
       }
@@ -519,6 +521,21 @@ async function copy(text) {
   const ok = document.execCommand("copy"); t.remove(); return ok;
 }
 function blanks(text) { return [...new Set([...(text || "").matchAll(/\{([^{}\n]{1,30})\}/g)].map(m => m[1].trim()).filter(Boolean))]; }
+// 다른 프로젝트로 옮기기: 그 프로젝트 맨 끝으로(PC 의 op "move" 가 받는다)
+function moveTo(item) {
+  const here = item.section || "";
+  const names = [...new Set([...sectionOrder(), ...view().map(x => x.section || "")])].filter(n => n !== here);
+  if (!names.length) { toast("옮길 다른 프로젝트가 없습니다"); return; }
+  sheet(`<h2>어느 프로젝트로 옮길까요?</h2>` + names.map((n, i) => `<button class="phrase" data-to="${i}">${esc(n || "기타")}</button>`).join("")
+    + `<div class="end"><button data-close>취소</button></div>`, s => {
+    s.querySelectorAll("[data-to]").forEach(b => b.addEventListener("click", () => {
+      const to = names[Number(b.dataset.to)];
+      closeSheet();
+      push({ op: "move", id: item.id, section: to, before: "" }, "'" + (to || "기타") + "'(으)로 옮겼습니다");
+    }));
+  });
+}
+
 function showPhrases() {
   const list = (state && state.phrases) || [];
   if (!list.length) { sheet(`<h2>문구</h2><div class="empty">저장한 문구가 없습니다. PC 앱의 [문구 ▾ › 문구 관리]에서 만들면 여기 보입니다.</div><div class="end"><button data-close>닫기</button></div>`); return; }
@@ -770,6 +787,8 @@ $("list").addEventListener("click", e => {
     if (a === "note") ask("메모 추가", "메모", v => push({ op: "note", id, text: v }, "메모를 넣었습니다"));
     if (a === "step") addSteps(id);
     if (a === "split" && confirm("안 한 단계를 하나씩 따로 할 일로 나눌까요?")) { opened = null; push({ op: "split", id }, (item.steps.length - item.step) + "개 할 일로 나눴습니다"); }
+    if (a === "dup") { const newId = "m" + newKey(); opened = newId; push({ op: "dup", id, newId }, "복제했습니다"); }
+    if (a === "moveto") moveTo(item);
     if (a === "star") push({ op: "star", id, on: !item.star }, item.star ? "중요 표시를 뺐습니다" : "중요 표시했습니다");
     if (a === "edit") ask("할 일 수정", "할 일", v => push({ op: "edit", id, text: v.replace(/→|->/g, " ") }, "고쳤습니다"), item.text);
     if (a === "delete" && confirm("'" + (item.steps.length > 1 ? item.text : item.text) + "' 을(를) 삭제할까요?")) { opened = null; push({ op: "delete", id }, "삭제했습니다"); }
