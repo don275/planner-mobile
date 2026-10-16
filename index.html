@@ -295,7 +295,8 @@ let filter = "all", opened = null, token = null, picked = false, problem = "", q
 const words = () => query.toLowerCase().split(/\s+/).filter(Boolean);
 const hits = (...texts) => { const all = texts.join("\n").toLowerCase(); return words().every(w => all.includes(w)); };
 const mark = s => { let out = esc(s); for (const w of words()) out = out.replace(new RegExp(w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi"), m => "<mark>" + m + "</mark>"); return out; };
-let demo = (!CLIENT_ID && !native()) || new URLSearchParams(location.search).has("demo");   // ?demo 를 붙이면 견본 자료로만 돈다(시험용)
+let demo = (!CLIENT_ID && !native()) || new URLSearchParams(location.search).has("demo");
+const selftestOn = new URLSearchParams(location.search).has("selftest");     // 켜자마자 읽어 둔다(주소는 곧 정리된다)   // ?demo 를 붙이면 견본 자료로만 돈다(시험용)
 
 function sample() {
   const t = today(), plus = n => day(new Date(Date.parse(t) + n * 86400000));
@@ -1225,7 +1226,40 @@ setInterval(() => { if (!demo && token && !document.hidden) refresh(); }, 20000)
 if (!demo && !native()) { const s = document.createElement("script"); s.src = "https://accounts.google.com/gsi/client"; s.async = true; document.head.appendChild(s); }
 if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
 if (state) render();
-refresh().finally(() => { booting = false; render(); });
+refresh().finally(() => { booting = false; render(); if (demo && selftestOn) selfTest(); });
+
+// 폰 자체 시험(?demo&selftest): 탭마다 열어 보고(빠뜨리는 탭이 없게) 결과를 화면 맨 위 #selftest 에 적는다. 견본 자료만 쓴다.
+async function selfTest() {
+  const W = ms => new Promise(r => setTimeout(r, ms));
+  const tab = name => { const b = [...document.querySelectorAll("button")].find(x => x.textContent.trim() === name); if (b) b.click(); return !!b; };
+  const out = [], errs = [];
+  window.addEventListener("error", e => errs.push(e.message));
+  const check = (name, ok, more) => out.push((ok ? "OK  " : "FAIL ") + name + (more ? " · " + more : ""));
+  try {
+    tab("전체"); await W(300);
+    check("전체: 할 일 카드", document.querySelectorAll("section .proj").length > 0 && document.querySelectorAll(".item").length > 0, document.querySelectorAll(".item").length + "개");
+    check("전체: 진행 원", document.querySelectorAll(".box.part").length > 0);
+    tab("오늘"); await W(300);
+    check("오늘: 열림", !!document.querySelector("#list"));
+    tab("일정"); await W(300);
+    const evFoot = (document.querySelector(".lfoot") || {}).textContent || "";
+    check("일정: 날짜 카드 · 파란 띠", document.querySelectorAll(".lday .lhead").length > 0);
+    check("일정: 안내가 일정용", evFoot.includes("일정") && !evFoot.includes("기록"), evFoot);
+    tab("기록"); await W(300);
+    const logFoot = (document.querySelector(".lfoot") || {}).textContent || "";
+    check("기록: 날짜 카드", document.querySelectorAll(".lday .lrow").length > 0);
+    check("기록: 안내가 기록용", logFoot.includes("기록"), logFoot);
+    tab("전체"); await W(300);
+    const setBtn = document.querySelectorAll("header button")[1]; if (setBtn) setBtn.click(); await W(500);
+    check("설정 시트 열림", !!document.querySelector(".sheet"));
+    closeSheet();
+  } catch (e) { errs.push(e.message); }
+  check("자바스크립트 오류 없음", errs.length === 0, errs.join(" / "));
+  const box = document.createElement("pre"); box.id = "selftest";
+  box.style.cssText = "position:fixed;left:0;right:0;top:0;z-index:99;margin:0;padding:8px;font-size:11px;background:#fff;color:#000;white-space:pre-wrap";
+  box.textContent = out.join("\n"); document.body.appendChild(box);
+  document.title = out.some(x => x.startsWith("FAIL")) ? "SELFTEST FAIL" : "SELFTEST OK";
+}
 </script>
 </body>
 </html>
