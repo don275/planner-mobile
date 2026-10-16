@@ -267,6 +267,7 @@ function view() {
     if (op.op === "moveSection") continue;
     if (op.op === "dueMany") {
       for (const it of todos.filter(x => op.ids.split(",").includes(x.id))) {
+        if (it.due && it.due < today() && !it.lateFrom && op.due >= today()) it.lateFrom = it.due;     // n일 밀림
         if (it.stepDues.some(Boolean)) { it.stepDues[Math.min(it.step, it.stepDues.length - 1)] = op.due; sync(it); } else it.due = op.due;
       }
       continue;
@@ -338,7 +339,8 @@ function dueLabel(item) {
   const left = Math.round((Date.parse(item.due) - Date.parse(today())) / 86400000);
   // 반복 업무는 지난 날을 따지지 않는다(다음 차례에 또 생긴다)
   if (item.repeat) return left === 0 ? { text: "반복 · 오늘", cls: "late" } : { text: "반복", cls: "far" };
-  const when = left === 0 ? "오늘" : left > 0 ? "D-" + left : (-left) + "일 지남";
+  const carried = item.lateFrom && left >= 0 ? Math.round((Date.parse(today()) - Date.parse(item.lateFrom)) / 86400000) : 0;
+  const when = (left === 0 ? "오늘" : left > 0 ? "D-" + left : (-left) + "일 지남") + (carried > 0 ? " · " + carried + "일 밀림" : "");
   return { text: md(item.due) + " (" + when + ")", cls: left <= 0 ? "late" : left <= 3 ? "soon" : "far" };
 }
 
