@@ -444,7 +444,7 @@ function carriedDays(x) { return x.lateFrom && x.due && x.due >= today() ? Math.
 function briefMatch(kind) {
   const d = today();
   const wk = new Date(); wk.setDate(wk.getDate() + 6); const w = wk.getFullYear() + "-" + String(wk.getMonth() + 1).padStart(2, "0") + "-" + String(wk.getDate()).padStart(2, "0");
-  return view().filter(x => kind === "stuck" ? carriedDays(x) >= 3 : kind === "late" ? x.due && x.due < d && !x.repeat : kind === "today" ? x.due === d : kind === "week" ? x.due && x.due > d && x.due <= w : carriedDays(x) > 0 && x.due === d);
+  return view().filter(x => kind === "stuck" ? carriedDays(x) >= 3 : kind === "late" ? x.due && x.due < d && !x.repeat : kind === "today" ? x.due === d : kind === "week" ? x.due && x.due > d && x.due <= w && !x.repeat : carriedDays(x) > 0 && x.due === d);
 }
 function briefHtml() {
   const n = k => briefMatch(k).length, chips = [];
