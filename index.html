@@ -200,7 +200,7 @@
   section { margin-top: 16px; }
   /* 시안 C(Microsoft To Do 식): 프로젝트마다 카드 한 장. 맨 위는 프로젝트 색 옅은 머리 띠, 그 아래 할 일이 가는 선으로 나뉜다 */
   section { margin-top: 14px; background: var(--card); border-radius: 14px; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,.06); }
-  section .proj { border-radius: 0; padding: 11px 14px; background: color-mix(in srgb, var(--sc, var(--accent)) 15%, var(--card)); color: color-mix(in srgb, var(--sc, var(--accent)) 55%, var(--text)); }
+  section .proj { border-radius: 0; padding: 11px 14px; background: color-mix(in srgb, var(--sc, var(--accent)) 15%, var(--card)); color: var(--sci, color-mix(in srgb, var(--sc, var(--accent)) 55%, var(--text))); }
   section .proj i { display: none; }
   section .proj b { font-size: 17px; flex: 0 1 auto; }
   section .proj small { margin-left: 2px; font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 999px; background: var(--card); color: inherit; }
@@ -211,7 +211,7 @@
   .board .item.open { box-shadow: inset 4px 0 0 var(--accent); background: color-mix(in srgb, var(--accent) 6%, var(--card)); }
   .board .subh { margin: 0; padding: 12px 14px 4px; border-top: 1px solid var(--line, rgba(127,127,127,.15)); }
   .board .subh::after { display: none; }
-  .board .subh span { color: color-mix(in srgb, var(--sc, var(--accent)) 55%, var(--text)); }
+  .board .subh span { color: var(--sci, color-mix(in srgb, var(--sc, var(--accent)) 55%, var(--text))); }
   .board .subh span::before { display: none; }
   /* 마감은 카드 오른쪽 위 */
   .board .item { position: relative; }
@@ -553,7 +553,7 @@ function render() {
     const items = inSec.map((x, i) => [x, i]).sort((a, b) => subs.indexOf(a[0].sub || "") - subs.indexOf(b[0].sub || "") || (b[0].star ? 1 : 0) - (a[0].star ? 1 : 0) || a[1] - b[1]).map(p => p[0]);
     let lastSub = "";
     if (!items.length) continue;
-    html += `<section style="${colors[name] ? "--sc:" + esc(colors[name]) : ""}"><div class="proj" data-sec="${esc(name)}"><i style="${colors[name] ? "background:" + esc(colors[name]) : ""}"></i><b data-project="${esc(name)}">${esc(name || "기타")}</b>`
+    html += `<section style="${colors[name] ? "--sc:" + esc(colors[name]) + ";--sci:" + headInk(colors[name]) : ""}"><div class="proj" data-sec="${esc(name)}"><i style="${colors[name] ? "background:" + esc(colors[name]) : ""}"></i><b data-project="${esc(name)}">${esc(name || "기타")}</b>`
       + (pinned.includes(name) ? `<small>고정</small>` : "") + `<small>${items.length}</small></div><div class="board">`;
     for (const item of items) {
       const due = dueLabel(item), many = item.steps.length > 1;
@@ -750,6 +750,17 @@ function relLum([r, g, b]) { return [r, g, b].map(v => { v /= 255; return v <= 0
 function contrast(a, b) { const x = relLum(a), y = relLum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); }
 // 대표색 위 글씨: 흰 글씨와 어두운 글씨 중 대비가 큰 쪽(주황 · 청록 위에 흰 글씨가 흐리던 것)
 function onAccent(hex) { const c = hexRgb(hex); return contrast([255, 255, 255], c) >= contrast([32, 33, 36], c) ? "#ffffff" : "#202124"; }
+// 프로젝트 이름 글씨: 프로젝트 색은 아무 색이나 고를 수 있으므로(아주 옅은 노랑 등) 띠 위에서 대비 4.5 가 될 때까지 진하게(어두우면 밝게). PC 의 HeadInk 와 같다
+function isDark() { const r = document.documentElement; return r.dataset.theme === "dark" || (!r.dataset.theme && matchMedia("(prefers-color-scheme: dark)").matches); }
+function headInk(hex, dark = isDark()) {
+  if (!/^#[0-9a-f]{6}$/i.test(hex || "")) return "";
+  const sc = hexRgb(hex), card = dark ? [41, 42, 45] : [255, 255, 255], text = dark ? [232, 234, 237] : [32, 33, 36], to = dark ? [255, 255, 255] : [0, 0, 0];
+  const mix = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
+  const band = mix(card, sc, 0.15);
+  let ink = mix(sc, text, 0.45);
+  for (let i = 0; i < 10 && contrast(ink, band) < 4.5; i++) ink = mix(ink, to, 0.15);
+  return "rgb(" + ink.join(",") + ")";
+}
 // 바탕과 구분이 안 되는 대표색은 조금씩 진하게(어두운 화면은 밝게): 바탕과 3 · 위 글씨 4.5 가 될 때까지
 function visibleAccent(hex, dark) {
   let c = hexRgb(hex); const card = dark ? [41, 42, 45] : [246, 247, 249], to = dark ? [255, 255, 255] : [0, 0, 0];
@@ -1316,6 +1327,14 @@ async function selfTest() {
     }
     save("look", lookBefore); applyLook();
     check("대표색 8가지 × 밝게 · 어둡게", badAcc.length === 0, badAcc.join(" · "));
+    // 프로젝트 이름 글씨: 아주 옅은 색까지 띠 위 4.5
+    const badProj = [];
+    for (const dk of [false, true]) for (const pc of [...COLORS, "#FFEB3B", "#81D4FA", "#F8BBD0", "#FFFFFF"]) {
+      const card = dk ? [41, 42, 45] : [255, 255, 255], band = card.map((v, i) => Math.round(v + (hexRgb(pc)[i] - v) * 0.15));
+      const ink = rgb(headInk(pc, dk)), r = contrast(ink, band);
+      if (r < 4.5) badProj.push((dk ? "어둡게 " : "밝게 ") + pc + " " + r.toFixed(1));
+    }
+    check("프로젝트 이름 글씨(옅은 색 포함)", badProj.length === 0, badProj.join(" · "));
     if (before) document.documentElement.dataset.theme = before; else delete document.documentElement.dataset.theme;
     tab("전체");
   } catch (e) { errs.push(e.message); }
