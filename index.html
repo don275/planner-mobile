@@ -189,9 +189,14 @@
   section .proj b { font-size: 17px; flex: 0 1 auto; }
   section .proj small { margin-left: 2px; font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 999px; background: color-mix(in srgb, var(--sub) 18%, transparent); }
   section .proj::after { content: ""; flex: 1; }
-  .board { background: var(--card); border-radius: 12px; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,.06); }
-  .board .item { padding: 12px 14px; border-bottom: 1px solid color-mix(in srgb, var(--line) 55%, var(--card)); }
-  .board .item:last-child { border-bottom: 0; }
+  /* 시안 B: 할 일마다 카드 하나, 왼쪽에 프로젝트 색 막대, 카드 사이 띄우기 */
+  .board { background: none; border-radius: 0; overflow: visible; box-shadow: none; }
+  .board .item { padding: 12px 14px 12px 18px; margin-bottom: 8px; border-bottom: 0; background: var(--card); border-radius: 14px; box-shadow: inset 4px 0 0 var(--sc, var(--accent)), 0 1px 2px rgba(0,0,0,.06); }
+  .board .item:last-child { margin-bottom: 0; }
+  .board .item.open { box-shadow: inset 5px 0 0 var(--accent), 0 1px 3px rgba(0,0,0,.10); }
+  .board .subh { margin: 14px 4px 8px; }
+  .prog { display: inline-block; width: 46px; height: 5px; border-radius: 3px; background: color-mix(in srgb, var(--sub) 22%, transparent); vertical-align: middle; overflow: hidden; }
+  .prog i { display: block; height: 100%; border-radius: 3px; background: var(--sc, var(--accent)); }
   .meta .due { padding: 1px 8px; border-radius: 999px; background: var(--tint); }
   .meta .due.late { background: color-mix(in srgb, var(--red) 16%, var(--card)); }
   .meta .due.soon { background: color-mix(in srgb, var(--orange) 16%, var(--card)); }
@@ -528,7 +533,7 @@ function render() {
       if ((item.sub || "") !== lastSub) { lastSub = item.sub || ""; if (lastSub) html += `<div class="subh" data-subhead="${esc(lastSub)}" data-subsec="${esc(name)}"><span>${esc(lastSub)}<b>${items.filter(x => (x.sub || "") === lastSub).length}</b></span></div>`; }
       html += `<div class="item${opened === item.id ? " open" : ""}" data-id="${esc(item.id)}" data-sec="${esc(item.section || "")}" data-sub="${esc(item.sub || "")}"><button class="box${item.step > 0 ? " part" : ""}" data-check="${esc(item.id)}" aria-label="완료"></button><div class="body">`
         + `${many && item.step > 0 ? `<div class="past">✓ ${esc((item.step > 3 ? "… › " : "") + item.steps.slice(Math.max(0, item.step - 3), item.step).join(" › "))}</div>` : ""}<div class="text" data-open="${esc(item.id)}">${item.star ? `<span class="star">★</span> ` : ""}${mark(many ? item.steps[item.step] : item.text)}</div><div class="meta" data-open="${esc(item.id)}">`
-        + (many ? `<span>${item.step + 1}/${item.steps.length}</span>` + (item.step < item.steps.length - 1 ? `<span>다음: ${esc(item.steps[item.step + 1])}</span>` : "") : "")
+        + (many ? `<span class="prog"><i style="width:${Math.round((item.step + 1) * 100 / item.steps.length)}%"></i></span><span>${item.step + 1}/${item.steps.length}</span>` + (item.step < item.steps.length - 1 ? `<span>다음: ${esc(item.steps[item.step + 1])}</span>` : "") : "")
         + (due ? `<span class="due ${due.cls}">${due.text}</span>` : "") + (item.remind ? `<span>알림 ${remindLabel(item.remind)}</span>` : "")
         + (item.files ? `<span>첨부 ${item.files}</span>` : "") + (item.notes && opened !== item.id ? `<span>메모</span>` : "") + `</div>`;
       if (opened === item.id) {
