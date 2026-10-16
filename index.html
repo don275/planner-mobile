@@ -149,7 +149,7 @@
   .ltoday { color: inherit; }
   .lday > .ev, .lday > .lrow { padding-left: 14px; padding-right: 14px; }
   .lday > .lhead + .ev, .lday > .lhead + .lrow { border-top: 0; }
-  .lchip { display: inline-block; margin-top: 5px; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; background: color-mix(in srgb, var(--pc, var(--sub)) 16%, var(--card)); color: color-mix(in srgb, var(--pc, var(--sub)) 85%, var(--text)); }
+  .lchip { display: inline-block; margin-top: 5px; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; background: color-mix(in srgb, var(--pc, var(--sub)) 16%, var(--card)); color: var(--pci, color-mix(in srgb, var(--pc, var(--sub)) 85%, var(--text))); }     /* --pci: 옅은 프로젝트 색이어도 대비 4.5 (headInk) */
   .logbar { display: flex; gap: 8px; margin: 4px 12px 10px; }
   .logbar button { flex: 1; padding: 10px; border-radius: 12px; border: 1px solid var(--line, rgba(127,127,127,.25)); background: var(--card); color: var(--text); font-weight: 600; }
   .sheet label { display: block; font-size: 13px; color: var(--sub); margin: 10px 0 4px; }
@@ -512,7 +512,7 @@ function logsHtml() {
   const colors = (state && state.colors) || {};
   return logBar() + Object.keys(days).sort().reverse().map(d => `<div class="lday"><div class="lhead"><b>${dayTitle(d).replace(" · 오늘", "")}</b>${d === today() ? `<span class="ltoday">오늘</span>` : ""}<span class="lcnt">${days[d].length}건</span></div>` + days[d].map(log => {
     const c = colors[log.section || ""] || "", where = (log.section || "기타") + (log.sub ? " › " + log.sub : "");
-    return `<div class="lrow"><div class="ltitle">${mark(log.title)}</div><span class="lchip" style="${c ? "--pc:" + esc(c) : ""}">${esc(where)}</span></div>`;
+    return `<div class="lrow"><div class="ltitle">${mark(log.title)}</div><span class="lchip" style="${c ? "--pc:" + esc(c) + ";--pci:" + headInk(c, isDark(), 0.16) : ""}">${esc(where)}</span></div>`;
   }).join("") + `</div>`).join("")
     // 폰에는 최근 2주만 온다: 더 지난 기록이 안 보여도 없어진 게 아님을 알려 준다
     + `<div class="lfoot">폰에는 최근 2주 기록만 보입니다 · 지난 기록은 PC 업무 기록 탭에 모두 있습니다</div>`;
@@ -752,11 +752,11 @@ function contrast(a, b) { const x = relLum(a), y = relLum(b); return (Math.max(x
 function onAccent(hex) { const c = hexRgb(hex); return contrast([255, 255, 255], c) >= contrast([32, 33, 36], c) ? "#ffffff" : "#202124"; }
 // 프로젝트 이름 글씨: 프로젝트 색은 아무 색이나 고를 수 있으므로(아주 옅은 노랑 등) 띠 위에서 대비 4.5 가 될 때까지 진하게(어두우면 밝게). PC 의 HeadInk 와 같다
 function isDark() { const r = document.documentElement; return r.dataset.theme === "dark" || (!r.dataset.theme && matchMedia("(prefers-color-scheme: dark)").matches); }
-function headInk(hex, dark = isDark()) {
+function headInk(hex, dark = isDark(), amount = 0.15) {
   if (!/^#[0-9a-f]{6}$/i.test(hex || "")) return "";
   const sc = hexRgb(hex), card = dark ? [41, 42, 45] : [255, 255, 255], text = dark ? [232, 234, 237] : [32, 33, 36], to = dark ? [255, 255, 255] : [0, 0, 0];
   const mix = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
-  const band = mix(card, sc, 0.15);
+  const band = mix(card, sc, amount);
   let ink = mix(sc, text, 0.45);
   for (let i = 0; i < 10 && contrast(ink, band) < 4.5; i++) ink = mix(ink, to, 0.15);
   return "rgb(" + ink.join(",") + ")";
@@ -1337,6 +1337,14 @@ async function selfTest() {
       if (r < 4.5) badProj.push((dk ? "어둡게 " : "밝게 ") + pc + " " + r.toFixed(1));
     }
     check("프로젝트 이름 글씨(옅은 색 포함)", badProj.length === 0, badProj.join(" · "));
+    // 기록 탭 프로젝트 알약(작은 굵은 글씨, 바탕은 프로젝트 색 16%)
+    const badChip = [];
+    for (const dk of [false, true]) for (const pc of [...COLORS, "#FFEB3B", "#81D4FA", "#F8BBD0", "#FFFFFF"]) {
+      const card = dk ? [41, 42, 45] : [255, 255, 255], band = card.map((v, i) => Math.round(v + (hexRgb(pc)[i] - v) * 0.16));
+      const r = contrast(rgb(headInk(pc, dk, 0.16)), band);
+      if (r < 4.5) badChip.push((dk ? "어둡게 " : "밝게 ") + pc + " " + r.toFixed(1));
+    }
+    check("기록 알약 글씨(옅은 색 포함)", badChip.length === 0, badChip.join(" · "));
     if (before) document.documentElement.dataset.theme = before; else delete document.documentElement.dataset.theme;
     tab("전체");
   } catch (e) { errs.push(e.message); }
