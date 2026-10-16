@@ -848,10 +848,28 @@ function subMenu(section, sub) {
   });
 }
 
-function showPhrases() {
+// 남은 일 글(PC [목록 복사] 와 같은 모양): [프로젝트/부제] 아래 □ 할 일 → 다음 단계, • 메모. 끝낸 단계가 둘 이상이면 (끝낸 n단계)
+function shareText() {
+  const d = new Date(), groups = {}, order = [];
+  // 화면에 놓인 차례대로(고정 프로젝트가 위): 그려진 할 일 순서를 따르고, 화면에 없는 것은 뒤에
+  const shown = [...document.querySelectorAll(".item[data-id]")].map(e => e.dataset.id), rank = x => { const i = shown.indexOf(x.id); return i < 0 ? 1e9 : i; };
+  for (const x of view().slice().sort((a, b) => rank(a) - rank(b))) { const k = (x.section || "기타") + (x.sub ? "/" + x.sub : ""); if (!groups[k]) { groups[k] = []; order.push(k); } groups[k].push(x); }
+  let out = (d.getMonth() + 1) + "월 " + d.getDate() + "일 남은 업무";
+  for (const k of order) {
+    out += "\n\n[" + k + "]\n";
+    for (const x of groups[k]) {
+      const st = x.steps && x.steps.length ? x.steps : [x.text || ""], at = Math.min(x.step || 0, st.length - 1);
+      const head = at >= 2 ? "(끝낸 " + at + "단계) " : at === 1 ? "✓" + st[0] + " → " : "";
+      out += "\n□ " + head + st.slice(at).join(" → ") + (x.due ? " (~" + Number(x.due.slice(5, 7)) + "/" + Number(x.due.slice(8, 10)) + ")" : "");
+      for (const n of (x.notes || "").split("\n").map(s => s.trim()).filter(Boolean)) out += "\n• " + n.replace(/^•\s*/, "");
+    }
+  }
+  return out;
+}function showPhrases() {
   const list = (state && state.phrases) || [];
-  const links = `<button class="phrase" id="linksOpen">링크 모음 만들기<small>주소나 받은 링크 글을 붙여 넣으면 보낼 글로 정리해 줍니다</small></button>`;
-  const ready = s => { s.querySelector("#linksOpen").onclick = () => storeLinks(); };
+  const links = `<button class="phrase" id="shareOpen">남은 일 목록 복사<small>카톡 · 메일에 붙일 글로 복사합니다(PC [목록 복사] 와 같음, 끝낸 단계는 줄임)</small></button>`
+    + `<button class="phrase" id="linksOpen">링크 모음 만들기<small>주소나 받은 링크 글을 붙여 넣으면 보낼 글로 정리해 줍니다</small></button>`;
+  const ready = s => { s.querySelector("#linksOpen").onclick = () => storeLinks(); s.querySelector("#shareOpen").onclick = async () => { closeSheet(); toast(await copy(shareText()) ? "남은 일을 복사했습니다 · 카톡 · 메일에 붙여 넣으세요" : "복사하지 못했습니다"); }; };
   if (!list.length) { sheet(`<h2>문구</h2>` + links + `<div class="empty">저장한 문구가 없습니다. PC 앱의 [문구 ▾ › 문구 관리]에서 만들면 여기 보입니다.</div><div class="end"><button data-close>닫기</button></div>`, ready); return; }
   sheet(`<h2>문구</h2>` + links + list.map((p, i) => `<button class="phrase" data-phrase="${i}">${esc(p.name)}<small>${esc(p.text.replace(/\n+/g, " "))}</small></button>`).join("")
     + `<div class="end"><button data-close>닫기</button></div>`, ready);
@@ -1271,6 +1289,7 @@ async function selfTest() {
     check("전체: 진행 원", document.querySelectorAll(".box.part").length > 0);
     const wkChip = document.querySelector('[data-brief="week"]');
     check("오늘 카드: 이번 주 디데이", !!wkChip && briefMatch("week").every(x => x.due > today()), wkChip ? wkChip.textContent : "없음");
+    { const sh = shareText(); check("남은 일 목록 복사 글", /남은 업무/.test(sh) && /\n□ /.test(sh) && /\n\[/.test(sh), sh.split("\n").length + "줄"); }
     // [오늘] 탭이 비면 이번 주 디데이 알약 → 누르면 [전체] 로 바꿔 그 일로(오늘 마감을 잠깐 비우고 되돌린다)
     { const keep = (state.todos || []).map(x => [x, x.due]); for (const [x] of keep) if (x.due && x.due <= today()) x.due = "";
       tab("오늘"); await W(300);
