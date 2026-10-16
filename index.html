@@ -1363,6 +1363,10 @@ async function selfTest() {
     check("설정 시트 열림", !!sh);
     // 시트 스크롤: 화면보다 길어지면 시트 안에서 스크롤되는지(높이 제한 + 넘치면 스크롤)
     if (sh) { const cs = getComputedStyle(sh); check("흐름: 시트 스크롤", (cs.overflowY === "auto" || cs.overflowY === "scroll") && sh.getBoundingClientRect().height <= innerHeight, cs.overflowY + " · " + Math.round(sh.getBoundingClientRect().height) + "/" + innerHeight); }
+    closeSheet(); await W(300);
+    // 문구 시트: 기능 단추 설명이 "…" 로 잘리지 않는지
+    $("phrases").click(); await W(500);
+    { const cut = [...document.querySelectorAll("#shareOpen small, #linksOpen small")].filter(e => e.scrollWidth > e.clientWidth + 1).length; check("문구 시트 설명 안 잘림", document.querySelectorAll("#shareOpen small, #linksOpen small").length === 2 && cut === 0, cut + "개 잘림"); }
     closeSheet();
     // 글씨 대비(WCAG): 밝은 · 어두운 화면 모두 할 일 글씨 4.5 이상, 굵은 머리 글씨 3 이상
     const rgb = s => { const m = s.match(/[\d.]+/g) || []; const n = m.map(Number); if (s.startsWith("color(")) return n.slice(0, 3).map(v => v * 255); return n.slice(0, 3); };
