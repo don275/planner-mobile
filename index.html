@@ -472,6 +472,8 @@ function pickBrief(kind) {
   const i = ((briefAt[kind] ?? -1) + 1) % els.length; briefAt[kind] = i;
   els[i].scrollIntoView({ behavior: "smooth", block: "center" });
   els[i].classList.add("flash"); setTimeout(() => els[i].classList.remove("flash"), 1200);
+  // 몇 번째인지 · 무슨 일인지(폰은 마우스 풍선이 없어서). 한 번 더 누르면 다음 것
+  if (els.length > 1) toast((i + 1) + " / " + els.length + " · " + ((els[i].querySelector(".text") || {}).textContent || "").slice(0, 30) + " · 한 번 더 누르면 다음");
 }
 
 // 기록 탭 위의 두 단추: 목록에 없던 일도 바로 기록 · 오늘 한 일을 보고 글로 복사
