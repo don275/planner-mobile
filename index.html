@@ -142,6 +142,13 @@
   .lday .ev .what small { font-weight: 400; }
   .lrow { padding: 9px 0; border-top: 1px solid var(--line, rgba(127,127,127,.15)); }
   .ltitle { font-weight: 700; font-size: 14.5px; word-break: break-word; }
+  /* 시안 A(PC 업무 기록 · 일정과 같게): 날짜마다 카드, 머리는 옅은 파란 띠, 줄 사이 가는 선 */
+  .lday { padding: 0; overflow: hidden; }
+  .lhead { padding: 10px 14px; background: color-mix(in srgb, #1a73e8 11%, var(--card)); color: color-mix(in srgb, #1a73e8 72%, var(--text)); }
+  .lhead b::before { display: none; }
+  .ltoday { color: inherit; }
+  .lday > .ev, .lday > .lrow { padding-left: 14px; padding-right: 14px; }
+  .lday > .lhead + .ev, .lday > .lhead + .lrow { border-top: 0; }
   .lchip { display: inline-block; margin-top: 5px; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; background: color-mix(in srgb, var(--pc, var(--sub)) 16%, var(--card)); color: color-mix(in srgb, var(--pc, var(--sub)) 85%, var(--text)); }
   .logbar { display: flex; gap: 8px; margin: 4px 12px 10px; }
   .logbar button { flex: 1; padding: 10px; border-radius: 12px; border: 1px solid var(--line, rgba(127,127,127,.25)); background: var(--card); color: var(--text); font-weight: 600; }
@@ -425,8 +432,8 @@ function eventsHtml() {
     return `<div class="ev"><span class="when">${when}</span><span class="bar" style="${ev.color ? "background:" + esc(ev.color) : ""}"></span>`
       + `<span class="what">${mark(ev.title || "(제목 없음)")}<small>${esc(ev.calendar || "")}${until}</small></span></div>`;
   }).join("") + `</div>`).join("")
-    // 폰에는 최근 2주만 온다: 더 지난 기록이 안 보여도 없어진 게 아님을 알려 준다
-    + `<div class="lfoot">폰에는 최근 2주 기록만 보입니다 · 지난 기록은 PC 업무 기록 탭에 모두 있습니다</div>`;
+    // 폰에는 오늘부터 2주 일정만 온다
+    + `<div class="lfoot">폰에는 오늘부터 2주 일정이 보입니다 · 더 먼 일정은 PC 일정 탭에서</div>`;
 }
 
 // 최근 2주 동안 끝낸 일
