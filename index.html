@@ -193,7 +193,7 @@
   </div>
 </footer>
 <input id="picker" type="date" aria-hidden="true" tabindex="-1">
-<div class="toast" id="toast" hidden><span id="toastText"></span><button id="undo">되돌리기</button></div>
+<div class="toast" id="toast" hidden><span id="toastText"></span><button id="noteLog" hidden>한 줄 남기기</button><button id="undo">되돌리기</button></div>
 <div class="shade" id="shade" hidden><div class="sheet" id="sheet"></div></div>
 
 <script>
@@ -455,7 +455,9 @@ let toastTimer = null, lastOp = null;
 function toast(text, op) {
   lastOp = op || null;
   $("toastText").textContent = text; $("undo").hidden = !op; $("toast").hidden = false;
-  clearTimeout(toastTimer); toastTimer = setTimeout(() => $("toast").hidden = true, 4000);
+  // 끝낸 직후에는 결과를 한 줄 남길 수 있게(PC 업무 기록 내용으로)
+  const canNote = !!(op && op.op === "check"); $("noteLog").hidden = !canNote;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => $("toast").hidden = true, canNote ? 9000 : 4000);
 }
 
 function push(op, said) { op.key = op.key || newKey(); op.at = new Date().toISOString(); inbox.push(op); save("inbox", inbox); render(); send(); if (said) toast(said, op); }
@@ -1055,6 +1057,11 @@ $("newSection").addEventListener("change", () => { picked = true; fillSubs(); })
   foot.addEventListener("focusout", () => setTimeout(() => { if (!foot.contains(document.activeElement) && !$("newText").value.trim()) foot.classList.remove("open"); }, 200));
 }
 $("connect").addEventListener("click", connect);
+$("noteLog").addEventListener("click", () => {
+  const op = lastOp; if (!op || op.op !== "check") return;
+  $("toast").hidden = true;
+  ask("한 줄 남기기", "결과 · 내용 (업무 기록에 들어갑니다)", v => push({ op: "logNote", id: op.id, text: v }, "업무 기록에 남겼습니다"));
+});
 $("undo").addEventListener("click", () => {
   if (!lastOp) return;
   inbox = inbox.filter(op => op.key !== lastOp.key); save("inbox", inbox);
