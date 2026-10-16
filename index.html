@@ -99,6 +99,9 @@
   .have li.new { color: var(--text); font-weight: 700; }
   .sheet h2 { font-size: 16px; margin: 0 0 12px; }
   .sheet textarea, .sheet input { width: 100%; }
+  .sheet select { width: 100%; margin-bottom: 8px; }
+  .logbar { display: flex; gap: 8px; margin: 4px 12px 10px; }
+  .logbar button { flex: 1; padding: 10px; border-radius: 12px; border: 1px solid var(--line, rgba(127,127,127,.25)); background: var(--card); color: var(--text); font-weight: 600; }
   .sheet label { display: block; font-size: 13px; color: var(--sub); margin: 10px 0 4px; }
   .sheet .end { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
   .lkrows { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
@@ -369,12 +372,53 @@ function eventsHtml() {
 }
 
 // 최근 2주 동안 끝낸 일
+// 기록 탭 위의 두 단추: 목록에 없던 일도 바로 기록 · 오늘 한 일을 보고 글로 복사
+function logBar() { return `<div class="logbar"><button id="logAdd">＋ 한 일 적기</button><button id="logCopy">오늘 한 일 복사</button></div>`; }
+// PC 에 아직 안 넘어간 기록(폰에서 적은 것 · 끝낸 것)까지 합쳐 보여 준다
+function allLogs() {
+  const mine = inbox.filter(o => o.op === "addLog").map(o => ({ date: o.date, section: o.section, sub: o.sub, title: o.title }));
+  return [...((state && state.logs) || []), ...mine];
+}
+function dayReport() {
+  const d = today(), logs = allLogs().filter(x => x.date === d), groups = {};
+  for (const x of logs) (groups[x.section || "기타"] = groups[x.section || "기타"] || []).push(x);
+  let out = dayTitle(d).replace(" · 오늘", "") + " 한 일 " + logs.length + "건";
+  for (const g of Object.keys(groups).sort((a, b) => groups[b].length - groups[a].length)) {
+    out += "\n\n[" + g + "]";
+    const items = groups[g], subs = [...new Set(items.map(x => x.sub || ""))].sort((a, b) => (a ? 1 : 0) - (b ? 1 : 0));
+    for (const s of subs) {
+      if (s) out += "\n  › " + s;
+      for (const x of items.filter(y => (y.sub || "") === s)) out += "\n" + (s ? "    " : "") + "- " + x.title;
+    }
+  }
+  const left = view().filter(x => x.due && x.due <= d && !x.repeat);
+  if (left.length) out += "\n\n아직 남은 일 " + left.length + "건" + left.map(x => "\n- " + (x.section ? "[" + x.section + (x.sub ? " › " + x.sub : "") + "] " : "") + x.steps[Math.min(x.step, x.steps.length - 1)]).join("");
+  return out;
+}
+function addLogSheet() {
+  const names = [...new Set([...sectionOrder(), ...view().map(x => x.section || "")])].filter(Boolean);
+  const opts = [];
+  for (const n of names) { opts.push(n); for (const s of [...new Set(view().filter(x => (x.section || "") === n && x.sub).map(x => x.sub))]) opts.push(n + " › " + s); }
+  const last = load("lastSection", "") + (load("lastSub", "") ? " › " + load("lastSub", "") : "");
+  sheet(`<h2>한 일 적기</h2><select id="lgWhere">` + opts.map(o => `<option${o === last ? " selected" : ""}>${esc(o)}</option>`).join("") + `<option value="">기타</option></select>
+    <textarea id="lgText" rows="2" placeholder="한 일 (예: 견적서 회신 받음)"></textarea>
+    <div class="end"><button data-close>취소</button><button class="primary" id="lgOk">기록</button></div>`, s => {
+    const box = s.querySelector("#lgText"); setTimeout(() => box.focus(), 50);
+    s.querySelector("#lgOk").onclick = () => {
+      const v = box.value.replace(/　/g, " ").trim(); if (!v) { box.focus(); return; }
+      const w = s.querySelector("#lgWhere").value, at = w.indexOf(" › ");
+      closeSheet();
+      push({ op: "addLog", id: "m" + newKey(), date: today(), section: at < 0 ? w : w.slice(0, at), sub: at < 0 ? "" : w.slice(at + 3), title: v }, "업무 기록에 남겼습니다");
+    };
+  });
+}
+
 function logsHtml() {
-  const list = ((state && state.logs) || []).filter(log => !query || hits(log.title || "", (log.section || "") + " " + (log.sub || "")));
-  if (!list.length) return `<div class="empty">${query ? "찾는 기록이 없습니다" : "최근 2주 동안 끝낸 일이 없습니다"}</div>`;
+  const list = allLogs().filter(log => !query || hits(log.title || "", (log.section || "") + " " + (log.sub || "")));
+  if (!list.length) return logBar() + `<div class="empty">${query ? "찾는 기록이 없습니다" : "최근 2주 동안 끝낸 일이 없습니다"}</div>`;
   const days = {};
   for (const log of list) (days[log.date] = days[log.date] || []).push(log);
-  return Object.keys(days).sort().reverse().map(d => `<div class="day">${dayTitle(d)} · ${days[d].length}건</div>` + days[d].map(log =>
+  return logBar() + Object.keys(days).sort().reverse().map(d => `<div class="day">${dayTitle(d)} · ${days[d].length}건</div>` + days[d].map(log =>
     `<div class="ev"><span class="what">${mark(log.title)}<small>${esc((log.section || "") + (log.sub ? " › " + log.sub : ""))}</small></span></div>`).join("")).join("");
 }
 
@@ -1000,6 +1044,8 @@ $("list").addEventListener("click", e => {
     if (ids.length) push({ op: "dueMany", ids: ids.join(","), due: to }, "지난 마감 " + ids.length + "건을 " + (lateBtn.dataset.late === "0" ? "오늘" : "내일") + "로 옮겼습니다");
     return;
   }
+  if (e.target.closest("#logAdd")) { addLogSheet(); return; }
+  if (e.target.closest("#logCopy")) { copy(dayReport()).then(ok => toast(ok ? "오늘 한 일을 복사했습니다 · 카톡 · 메일에 붙여 넣으세요" : "복사하지 못했습니다")); return; }
   const subHead = e.target.closest("[data-subhead]");
   if (subHead) { subMenu(subHead.dataset.subsec, subHead.dataset.subhead); return; }
   const id = opened, item = id && view().find(x => x.id === id);
