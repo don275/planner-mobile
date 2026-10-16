@@ -200,6 +200,8 @@
   .board .item.open { box-shadow: inset 4px 0 0 var(--accent); background: color-mix(in srgb, var(--accent) 6%, var(--card)); }
   .board .subh { margin: 0; padding: 12px 14px 4px; border-top: 1px solid var(--line, rgba(127,127,127,.15)); }
   .board .subh::after { display: none; }
+  .board .subh span { color: color-mix(in srgb, var(--sc, var(--accent)) 55%, var(--text)); }
+  .board .subh span::before { display: none; }
   /* 마감은 카드 오른쪽 위 */
   .board .item { position: relative; }
   .board .item .meta .due { position: absolute; top: 12px; right: 12px; }
