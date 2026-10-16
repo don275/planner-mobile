@@ -372,8 +372,17 @@ function logsHtml() {
     `<div class="ev"><span class="what">${mark(log.title)}<small>${esc(log.section || "")}</small></span></div>`).join("")).join("");
 }
 
+// 마감 지난 할 일(반복 업무 빼고)을 하루 한 번 오늘로. 처음엔 PC 설정을 따르고, 폰 설정에서 따로 켜고 끌 수 있다.
+function rollOn() { const r = load("roll", ""); return r ? r === "on" : !!(state && state.rollOverdue); }
+function rollLate() {
+  if (demo || !state || !rollOn() || load("lastRoll", "") === today()) return;
+  save("lastRoll", today());
+  const ids = view().filter(x => x.due && x.due < today() && !x.repeat).map(x => x.id);
+  if (ids.length) push({ op: "dueMany", ids: ids.join(","), due: today() }, "전날까지 마감이었던 " + ids.length + "건을 오늘로 옮겼습니다");
+}
 function render() {
   if (drag) return;     // 끄는 중에는 다시 그리지 않는다(놓은 뒤 그린다)
+  rollLate();
   document.body.classList.toggle("plain", filter === "events" || filter === "logs");
   if (filter === "events" || filter === "logs") {
     $("list").innerHTML = filter === "events" ? eventsHtml() : logsHtml();
@@ -597,12 +606,18 @@ function showSettings() {
     <label>대표색</label><div class="swatches">` + COLORS.map(c => `<button data-look="accent" data-value="${c}" class="${(look.accent || "#212121") === c ? "on" : ""}" style="background:${c}" aria-label="${c}"></button>`).join("") + `</div>
     <label>화면</label>` + seg("theme", [["", "기기 설정"], ["light", "밝게"], ["dark", "어둡게"]]) + `
     <label>글자 크기</label>` + seg("size", [["small", "작게"], ["", "보통"], ["large", "크게"]]) + `
+    <label>마감 지난 할 일</label><div class="seg"><button data-roll="on" class="${rollOn() ? "on" : ""}">매일 오늘로 옮기기</button><button data-roll="off" class="${rollOn() ? "" : "on"}">그대로 두기</button></div>
     <label>구글</label><div class="seg">` + (token ? `<button id="signOut">연결 해제</button>` : `<button id="signIn">구글 연결</button>`) + `</div>
     <label><a href="about.html">앱 소개</a> · <a href="privacy.html">개인정보처리방침</a></label>
     <div class="end"><button class="primary" data-close>닫기</button></div>`, s => {
     s.querySelectorAll("[data-look]").forEach(b => b.onclick = () => {
       const now = load("look", {}); now[b.dataset.look] = b.dataset.value; if (!b.dataset.value) delete now[b.dataset.look];
       save("look", now); applyLook(); showSettings();
+    });
+    s.querySelectorAll("[data-roll]").forEach(b => b.onclick = () => {
+      const was = rollOn(); save("roll", b.dataset.roll);
+      if (!was && rollOn()) save("lastRoll", "");     // 켜자마자 오늘 한 번 옮긴다
+      showSettings(); render();
     });
     const out = s.querySelector("#signOut");
     if (out) out.onclick = () => { try { if (window.google && token) google.accounts.oauth2.revoke(token, () => {}); } catch {} token = null; save("connected", false); closeSheet(); render(); };
