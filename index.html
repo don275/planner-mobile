@@ -86,7 +86,7 @@
   .latebar { display: flex; align-items: center; gap: 8px; margin: 10px 2px 2px; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, #D93025 12%, transparent); }
   .latebar span { flex: 1; font-weight: 600; color: #D93025; }
   .latebar button { font-size: 13px; padding: 5px 11px; border-radius: 999px; }
-  .empty { text-align: center; color: var(--faint); padding: 48px 0; }
+  .empty { text-align: center; color: var(--sub); padding: 48px 0; }
   footer { flex: none; background: var(--back); border-top: 1px solid var(--line); padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); }
   .row { display: flex; gap: 8px; }
   .row + .row { margin-top: 8px; }
@@ -169,7 +169,7 @@
   .ev .when { flex: none; width: 46px; font-size: 13px; color: var(--sub); padding-top: 1px; }
   .ev .bar { flex: none; width: 4px; align-self: stretch; border-radius: 2px; background: var(--accent); }
   .ev .what { flex: 1; min-width: 0; word-break: keep-all; overflow-wrap: anywhere; }
-  .ev small { display: block; color: var(--faint); font-size: 12px; margin-top: 2px; }
+  .ev small { display: block; color: var(--sub); font-size: 12px; margin-top: 2px; }
   body.plain main { padding-bottom: calc(20px + env(safe-area-inset-bottom)); }
   body.plain footer { display: none; }
   .swatches { display: flex; flex-wrap: wrap; gap: 10px; }
@@ -225,7 +225,7 @@
   .meta .due.soon { background: color-mix(in srgb, var(--orange) 16%, var(--card)); }
   /* 3일 넘게 밀린 일: 진한 빨강 바탕 + 흰 글씨로 오늘 마감과 구별 */
   .meta .due.stuck { background: color-mix(in srgb, var(--red) 72%, #000); color: #fff; }
-  .past { color: var(--faint); font-size: 12px; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .past { color: var(--sub); font-size: 12px; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   [hidden] { display: none !important; }
 </style>
 </head>
