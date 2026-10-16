@@ -183,19 +183,20 @@
   /* 깔끔한 목록: 회색 바탕 위에 프로젝트 이름 줄(색 점), 그 아래 할 일들을 흰 판 한 장에 */
   main { background: var(--canvas); }
   section { margin-top: 16px; }
-  /* 프로젝트가 가장 먼저 보이게: 색 막대 + 큰 굵은 이름 + 개수 알약 */
-  section .proj { background: none; border-radius: 0; padding: 8px 4px 9px; }
-  section .proj i { width: 5px; height: 20px; border-radius: 3px; background: var(--sc, var(--accent)); }
+  /* 시안 C(Microsoft To Do 식): 프로젝트마다 카드 한 장. 맨 위는 프로젝트 색 옅은 머리 띠, 그 아래 할 일이 가는 선으로 나뉜다 */
+  section { margin-top: 14px; background: var(--card); border-radius: 14px; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+  section .proj { border-radius: 0; padding: 11px 14px; background: color-mix(in srgb, var(--sc, var(--accent)) 15%, var(--card)); color: color-mix(in srgb, var(--sc, var(--accent)) 55%, var(--text)); }
+  section .proj i { display: none; }
   section .proj b { font-size: 17px; flex: 0 1 auto; }
-  section .proj small { margin-left: 2px; font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 999px; background: color-mix(in srgb, var(--sub) 18%, transparent); }
+  section .proj small { margin-left: 2px; font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 999px; background: var(--card); color: inherit; }
   section .proj::after { content: ""; flex: 1; }
-  /* 시안 B: 할 일마다 카드 하나, 왼쪽에 프로젝트 색 막대, 카드 사이 띄우기 */
   .board { background: none; border-radius: 0; overflow: visible; box-shadow: none; }
-  .board .item { padding: 12px 14px 12px 18px; margin-bottom: 8px; border-bottom: 0; background: var(--card); border-radius: 14px; box-shadow: inset 4px 0 0 var(--sc, var(--accent)), 0 1px 2px rgba(0,0,0,.06); }
-  .board .item:last-child { margin-bottom: 0; }
-  .board .item.open { box-shadow: inset 5px 0 0 var(--accent), 0 1px 3px rgba(0,0,0,.10); }
-  .board .subh { margin: 14px 4px 8px; }
-  /* 시안 B: 마감은 카드 오른쪽 위 */
+  .board .item { padding: 12px 14px 12px 14px; margin: 0; border-bottom: 0; border-top: 1px solid var(--line, rgba(127,127,127,.15)); background: var(--card); border-radius: 0; box-shadow: none; }
+  .board > .item:first-child, .board .subh + .item { border-top: 0; }
+  .board .item.open { box-shadow: inset 4px 0 0 var(--accent); background: color-mix(in srgb, var(--accent) 6%, var(--card)); }
+  .board .subh { margin: 0; padding: 12px 14px 4px; border-top: 1px solid var(--line, rgba(127,127,127,.15)); }
+  .board .subh::after { display: none; }
+  /* 마감은 카드 오른쪽 위 */
   .board .item { position: relative; }
   .board .item .meta .due { position: absolute; top: 12px; right: 12px; }
   .board .item:has(.meta .due) .text { padding-right: 104px; }
