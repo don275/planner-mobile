@@ -55,6 +55,8 @@
 .bx, .bchip, .chip { position: relative; }
 .bx::before { content: ""; position: absolute; inset: -10px -8px; }
 .bchip::before, .chip::before { content: ""; position: absolute; inset: -7px -3px; }
+/* 기능 단추 설명은 잘리지 않게 줄바꿈(문구 미리보기는 한 줄로 자른 채 둔다) */
+#shareOpen small, #linksOpen small, #projShare small, #projShareBare small { white-space: normal; overflow: visible; text-overflow: clip; }
   .board .box.part::after { content: ""; position: absolute; inset: 3px; border-radius: 50%; background: conic-gradient(color-mix(in srgb, var(--sc, var(--accent)) 75%, var(--card)) var(--p, 30%), transparent 0); }
   .board .prog { display: none; }
   .body { flex: 1; min-width: 0; }
