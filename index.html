@@ -396,7 +396,7 @@ function render() {
     $("connect").hidden = demo;
     return;
   }
-  const todos = view().filter(x => (filter === "all" || (x.due && x.due <= today())) && (!query || hits(x.section || "", x.steps.join(" "), x.notes || "")));
+  const todos = view().filter(x => (filter === "all" || (x.due && x.due <= today())) && (!query || hits(x.section || "", x.sub || "", x.steps.join(" "), x.notes || "")));
   const order = [...new Set([...sectionOrder(), ...todos.map(x => x.section || "")])];
   const colors = (state && state.colors) || {}, pinned = (state && state.pinned) || [];
   let html = "";
