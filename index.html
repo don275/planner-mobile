@@ -64,7 +64,7 @@
   .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 5px; font-size: 12.5px; color: var(--sub); }
   .due { font-weight: 700; }
   .star { color: var(--orange); }
-  .due.late { color: var(--red); } .due.soon { color: var(--orange); } .due.far { color: var(--sub); font-weight: 400; }
+  .due.late { color: color-mix(in srgb, var(--red) 72%, var(--text)); } .due.soon { color: color-mix(in srgb, var(--orange) 58%, var(--text)); }     /* 옅은 바탕 위 작은 글씨 대비 4.5 */ .due.far { color: var(--sub); font-weight: 400; }
   .more { margin-top: 8px; padding: 10px; border-radius: 10px; background: var(--tint); font-size: 13.5px; color: var(--sub); }
   .steps { margin: 0; padding: 0; list-style: none; }
   .steps li { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
@@ -1380,7 +1380,7 @@ async function selfTest() {
     for (const mode of ["light", "dark"]) {
       document.documentElement.dataset.theme = mode; tab("전체"); await W(300);
       const t1 = ratio(document.querySelector(".item .text")), t2 = ratio(document.querySelector("section .proj b"));
-      const t8 = Math.min(99, ...[...document.querySelectorAll(".bchip")].map(ratio));     // 오늘 카드 알약들(지난 · 오늘 · 이번 주 등)
+      const t8 = Math.min(99, ...[...document.querySelectorAll(".bchip, .meta .due")].map(ratio));     // 오늘 카드 알약 · 할 일 줄 마감 알약     // 오늘 카드 알약들(지난 · 오늘 · 이번 주 등)
       tab("기록"); await W(300);
       const t3 = ratio(document.querySelector(".lhead b")), t4 = ratio(document.querySelector(".ldetail")), t5 = ratio(document.querySelector(".lfoot"));     // 기록 내용(회색) · 아래 안내 글
       tab("일정"); await W(300); const t7 = ratio(document.querySelector(".ev small") || document.querySelector(".lfoot"));     // 일정 캘린더 이름(작은 글씨)
