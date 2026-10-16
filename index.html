@@ -1267,6 +1267,8 @@ async function selfTest() {
     tab("전체"); await W(300);
     check("전체: 할 일 카드", document.querySelectorAll("section .proj").length > 0 && document.querySelectorAll(".item").length > 0, document.querySelectorAll(".item").length + "개");
     check("전체: 진행 원", document.querySelectorAll(".box.part").length > 0);
+    const wkChip = document.querySelector('[data-brief="week"]');
+    check("오늘 카드: 이번 주 디데이", !!wkChip && briefMatch("week").every(x => x.due > today()), wkChip ? wkChip.textContent : "없음");
     tab("오늘"); await W(300);
     check("오늘: 열림", !!document.querySelector("#list"));
     tab("일정"); await W(300);
