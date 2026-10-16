@@ -1271,7 +1271,12 @@ async function selfTest() {
     check("전체: 진행 원", document.querySelectorAll(".box.part").length > 0);
     const wkChip = document.querySelector('[data-brief="week"]');
     check("오늘 카드: 이번 주 디데이", !!wkChip && briefMatch("week").every(x => x.due > today()), wkChip ? wkChip.textContent : "없음");
-    tab("오늘"); await W(300);
+    // [오늘] 탭이 비면 이번 주 디데이 알약 → 누르면 [전체] 로 바꿔 그 일로(오늘 마감을 잠깐 비우고 되돌린다)
+    { const keep = (state.todos || []).map(x => [x, x.due]); for (const [x] of keep) if (x.due && x.due <= today()) x.due = "";
+      tab("오늘"); await W(300);
+      const eb = document.querySelector(".empty [data-brief='week']"); if (eb) eb.click(); await W(400);
+      check("오늘 탭 비면 이번 주 디데이 → 전체", !!eb && filter === "all" && !!document.querySelector(".item.flash"), eb ? filter : "알약 없음");
+      for (const [x, d] of keep) x.due = d; tab("전체"); await W(300); }    tab("오늘"); await W(300);
     check("오늘: 열림", !!document.querySelector("#list"));
     tab("일정"); await W(300);
     const evFoot = (document.querySelector(".lfoot") || {}).textContent || "";
