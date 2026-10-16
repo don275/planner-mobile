@@ -872,7 +872,7 @@ function shareText(only) {
   return out;
 }function showPhrases() {
   const list = (state && state.phrases) || [];
-  const links = `<button class="phrase" id="shareOpen">남은 일 목록 복사<small>카톡 · 메일에 붙일 글로 복사합니다(PC [목록 복사] 와 같음, 끝낸 단계는 줄임)</small></button>`
+  const links = `<button class="phrase" id="shareOpen">남은 일 목록 복사<small>카톡 · 메일에 붙일 글로 복사합니다(끝낸 단계는 줄임). 한 프로젝트만은 목록에서 프로젝트 이름을 누르세요</small></button>`
     + `<button class="phrase" id="linksOpen">링크 모음 만들기<small>주소나 받은 링크 글을 붙여 넣으면 보낼 글로 정리해 줍니다</small></button>`;
   const ready = s => { s.querySelector("#linksOpen").onclick = () => storeLinks(); s.querySelector("#shareOpen").onclick = async () => { closeSheet(); toast(await copy(shareText()) ? "남은 일을 복사했습니다 · 카톡 · 메일에 붙여 넣으세요" : "복사하지 못했습니다"); }; };
   if (!list.length) { sheet(`<h2>문구</h2>` + links + `<div class="empty">저장한 문구가 없습니다. PC 앱의 [문구 ▾ › 문구 관리]에서 만들면 여기 보입니다.</div><div class="end"><button data-close>닫기</button></div>`, ready); return; }
