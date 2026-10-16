@@ -1250,8 +1250,35 @@ async function selfTest() {
     check("기록: 날짜 카드", document.querySelectorAll(".lday .lrow").length > 0);
     check("기록: 안내가 기록용", logFoot.includes("기록"), logFoot);
     tab("전체"); await W(300);
+    // 다섯 흐름: 추가 · 체크 · 끌기(순서 바꾸기) · 시트 스크롤(열기는 위에서)
+    const input = document.querySelector('input[placeholder^="할 일"]');
+    input.value = "자체 시험 할 일"; input.dispatchEvent(new Event("input", { bubbles: true }));
+    tab("추가"); await W(400);
+    const mine = () => [...document.querySelectorAll(".item")].find(x => x.textContent.includes("자체 시험 할 일"));
+    check("흐름: 추가", !!mine());
+    if (mine()) { mine().querySelector("[data-check]").click(); await W(2500); }
+    check("흐름: 체크(완료)", !mine());
+    // 같은 프로젝트 · 같은 부제에서 이웃한 두 할 일(★ 중요 표시는 늘 위로 정렬되므로 뺀다)
+    const items = [...document.querySelectorAll(".item")].filter(x => !x.querySelector(".star"));
+    let a = null, b = null;
+    for (let k = 1; k < items.length; k++)
+      if (items[k].dataset.sec === items[k - 1].dataset.sec && items[k].dataset.sub === items[k - 1].dataset.sub) { a = items[k]; b = items[k - 1]; break; }
+    if (a && b) {
+      a.scrollIntoView({ block: "center" }); await W(200);
+      const ra = a.querySelector(".text").getBoundingClientRect(), rb = b.querySelector(".text").getBoundingClientRect();
+      const before = [...document.querySelectorAll(".item .text")].map(x => x.textContent).join("|");
+      const x = ra.left + ra.width / 2, y0 = ra.top + ra.height / 2, y1 = rb.top - 20, el = document.elementFromPoint(x, y0);
+      const fire = (t, yy) => el.dispatchEvent(new PointerEvent(t, { bubbles: true, cancelable: true, clientX: x, clientY: yy, pointerId: 1, pointerType: "touch", isPrimary: true, button: 0, buttons: t === "pointerup" ? 0 : 1 }));
+      fire("pointerdown", y0); await W(700);
+      for (let yy = y0; yy >= y1; yy -= 7) { fire("pointermove", yy); await W(30); }
+      fire("pointerup", y1); await W(700);
+      check("흐름: 끌어서 순서 바꾸기", [...document.querySelectorAll(".item .text")].map(x => x.textContent).join("|") !== before);
+    } else check("흐름: 끌어서 순서 바꾸기", false, "할 일이 2개 미만");
     const setBtn = document.querySelectorAll("header button")[1]; if (setBtn) setBtn.click(); await W(500);
-    check("설정 시트 열림", !!document.querySelector(".sheet"));
+    const sh = document.querySelector(".sheet");
+    check("설정 시트 열림", !!sh);
+    // 시트 스크롤: 화면보다 길어지면 시트 안에서 스크롤되는지(높이 제한 + 넘치면 스크롤)
+    if (sh) { const cs = getComputedStyle(sh); check("흐름: 시트 스크롤", (cs.overflowY === "auto" || cs.overflowY === "scroll") && sh.getBoundingClientRect().height <= innerHeight, cs.overflowY + " · " + Math.round(sh.getBoundingClientRect().height) + "/" + innerHeight); }
     closeSheet();
   } catch (e) { errs.push(e.message); }
   check("자바스크립트 오류 없음", errs.length === 0, errs.join(" / "));
