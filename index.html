@@ -1280,6 +1280,21 @@ async function selfTest() {
     // 시트 스크롤: 화면보다 길어지면 시트 안에서 스크롤되는지(높이 제한 + 넘치면 스크롤)
     if (sh) { const cs = getComputedStyle(sh); check("흐름: 시트 스크롤", (cs.overflowY === "auto" || cs.overflowY === "scroll") && sh.getBoundingClientRect().height <= innerHeight, cs.overflowY + " · " + Math.round(sh.getBoundingClientRect().height) + "/" + innerHeight); }
     closeSheet();
+    // 글씨 대비(WCAG): 밝은 · 어두운 화면 모두 할 일 글씨 4.5 이상, 굵은 머리 글씨 3 이상
+    const rgb = s => { const m = s.match(/[\d.]+/g) || []; const n = m.map(Number); if (s.startsWith("color(")) return n.slice(0, 3).map(v => v * 255); return n.slice(0, 3); };
+    const lum = c => { const [r, g, b] = c.map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+    const bgOf = el => { for (let e = el; e; e = e.parentElement) { const c = getComputedStyle(e).backgroundColor; if (c && !/rgba\(0, 0, 0, 0\)|transparent/.test(c)) return rgb(c); } return [255, 255, 255]; };
+    const ratio = el => { if (!el) return 0; const a = lum(rgb(getComputedStyle(el).color)), b = lum(bgOf(el)); return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05); };
+    const before = document.documentElement.dataset.theme;
+    for (const mode of ["light", "dark"]) {
+      document.documentElement.dataset.theme = mode; tab("전체"); await W(300);
+      const t1 = ratio(document.querySelector(".item .text")), t2 = ratio(document.querySelector("section .proj b"));
+      tab("기록"); await W(300);
+      const t3 = ratio(document.querySelector(".lhead b"));
+      check("대비(" + (mode === "light" ? "밝게" : "어둡게") + ")", t1 >= 4.5 && t2 >= 3 && t3 >= 3, "할 일 " + t1.toFixed(1) + " · 프로젝트 " + t2.toFixed(1) + " · 날짜 띠 " + t3.toFixed(1));
+    }
+    if (before) document.documentElement.dataset.theme = before; else delete document.documentElement.dataset.theme;
+    tab("전체");
   } catch (e) { errs.push(e.message); }
   check("자바스크립트 오류 없음", errs.length === 0, errs.join(" / "));
   const box = document.createElement("pre"); box.id = "selftest";
