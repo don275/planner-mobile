@@ -195,6 +195,10 @@
   .board .item:last-child { margin-bottom: 0; }
   .board .item.open { box-shadow: inset 5px 0 0 var(--accent), 0 1px 3px rgba(0,0,0,.10); }
   .board .subh { margin: 14px 4px 8px; }
+  /* 시안 B: 마감은 카드 오른쪽 위 */
+  .board .item { position: relative; }
+  .board .item .meta .due { position: absolute; top: 12px; right: 12px; }
+  .board .item:has(.meta .due) .text { padding-right: 104px; }
   .prog { display: inline-block; width: 46px; height: 5px; border-radius: 3px; background: color-mix(in srgb, var(--sub) 22%, transparent); vertical-align: middle; overflow: hidden; }
   .prog i { display: block; height: 100%; border-radius: 3px; background: var(--sc, var(--accent)); }
   .meta .due { padding: 1px 8px; border-radius: 999px; background: var(--tint); }
