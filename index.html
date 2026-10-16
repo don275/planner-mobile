@@ -109,6 +109,20 @@
   .sheet .end button.primary { background: var(--accent); color: var(--on-accent); border: 0; }
   .sheet textarea, .sheet input { width: 100%; }
   .sheet select { width: 100%; margin-bottom: 8px; }
+  .brief { margin: 10px 2px 4px; padding: 12px 14px; border-radius: 16px; background: var(--card); box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+  .bhead { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .bhead b { flex: 1; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+  .bhead b::before { content: ""; width: 4px; height: 16px; border-radius: 2px; background: var(--accent); }
+  .bx { background: none; border: 0; color: var(--sub); font-size: 14px; padding: 2px 6px; }
+  .bchips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .bchip { border: 0; border-radius: 999px; padding: 6px 12px; font-size: 13px; font-weight: 700; }
+  .bchip.stuck { background: color-mix(in srgb, var(--red) 72%, #000); color: #fff; }
+  .bchip.late { background: color-mix(in srgb, var(--red) 16%, var(--card)); color: var(--red); }
+  .bchip.today { background: color-mix(in srgb, var(--orange) 16%, var(--card)); color: var(--orange); }
+  .bchip.rolled { background: var(--tint); color: var(--sub); }
+  .bchip.calm { background: color-mix(in srgb, #1E8E3E 14%, var(--card)); color: #1E8E3E; }
+  .item.flash { animation: flash 1.2s ease-out; }
+  @keyframes flash { 0%, 40% { background: color-mix(in srgb, var(--accent) 18%, var(--card)); } 100% { background: transparent; } }
   .logbar { display: flex; gap: 8px; margin: 4px 12px 10px; }
   .logbar button { flex: 1; padding: 10px; border-radius: 12px; border: 1px solid var(--line, rgba(127,127,127,.25)); background: var(--card); color: var(--text); font-weight: 600; }
   .sheet label { display: block; font-size: 13px; color: var(--sub); margin: 10px 0 4px; }
@@ -381,6 +395,30 @@ function eventsHtml() {
 }
 
 // 최근 2주 동안 끝낸 일
+// ───── 목록 맨 위 '오늘' 카드(PC 와 같게): 오래 밀린 일 · 지난 마감 · 오늘 마감 · 옮겨 온 일. 알약을 누르면 그 할 일로 ─────
+function carriedDays(x) { return x.lateFrom && x.due && x.due >= today() ? Math.round((Date.parse(today()) - Date.parse(x.lateFrom)) / 86400000) : 0; }
+function briefMatch(kind) {
+  const d = today();
+  return view().filter(x => kind === "stuck" ? carriedDays(x) >= 3 : kind === "late" ? x.due && x.due < d && !x.repeat : kind === "today" ? x.due === d : carriedDays(x) > 0 && x.due === d);
+}
+function briefHtml() {
+  const n = k => briefMatch(k).length, chips = [];
+  if (n("stuck")) chips.push(`<button class="bchip stuck" data-brief="stuck">오래 밀린 일 ${n("stuck")}</button>`);
+  if (n("late")) chips.push(`<button class="bchip late" data-brief="late">지난 마감 ${n("late")}</button>`);
+  if (n("today")) chips.push(`<button class="bchip today" data-brief="today">오늘 마감 ${n("today")}</button>`);
+  if (n("rolled")) chips.push(`<button class="bchip rolled" data-brief="rolled">옮겨 온 일 ${n("rolled")}</button>`);
+  if (!chips.length) chips.push(`<span class="bchip calm">오늘 마감인 일이 없습니다</span>`);
+  return `<div class="brief"><div class="bhead"><b>오늘 ${dayTitle(today()).replace(" · 오늘", "")}</b><button class="bx" data-briefx aria-label="오늘은 숨기기">✕</button></div><div class="bchips">${chips.join("")}</div></div>`;
+}
+let briefAt = {};
+function pickBrief(kind) {
+  const ids = briefMatch(kind).map(x => x.id), els = ids.map(id => document.querySelector(`.item[data-id="${CSS.escape(id)}"]`)).filter(Boolean);
+  if (!els.length) { toast("보이는 목록에 없습니다(검색 · 걸러 보기를 풀어 보세요)"); return; }
+  const i = ((briefAt[kind] ?? -1) + 1) % els.length; briefAt[kind] = i;
+  els[i].scrollIntoView({ behavior: "smooth", block: "center" });
+  els[i].classList.add("flash"); setTimeout(() => els[i].classList.remove("flash"), 1200);
+}
+
 // 기록 탭 위의 두 단추: 목록에 없던 일도 바로 기록 · 오늘 한 일을 보고 글로 복사
 function logBar() { return `<div class="logbar"><button id="logAdd">＋ 한 일 적기</button><button id="logCopy">오늘 한 일 복사</button></div>`; }
 // PC 에 아직 안 넘어간 기록(폰에서 적은 것 · 끝낸 것)까지 합쳐 보여 준다
@@ -456,6 +494,7 @@ function render() {
   const colors = (state && state.colors) || {}, pinned = (state && state.pinned) || [];
   let html = "";
   const late = filter === "today" && !query ? todos.filter(x => x.due && x.due < today() && !x.repeat) : [];
+  if (!query && filter !== "today" && load("briefHidden", "") !== today()) html += briefHtml();
   if (late.length) html += `<div class="latebar"><span>지난 마감 ${late.length}건</span><button data-late="0">모두 오늘로</button><button data-late="1">내일로</button></div>`;
   for (const name of order) {
     // 프로젝트 안에서는 PC 처럼 중요 표시한 일이 먼저
@@ -1053,6 +1092,9 @@ $("list").addEventListener("click", e => {
     if (ids.length) push({ op: "dueMany", ids: ids.join(","), due: to }, "지난 마감 " + ids.length + "건을 " + (lateBtn.dataset.late === "0" ? "오늘" : "내일") + "로 옮겼습니다");
     return;
   }
+  const chip = e.target.closest("[data-brief]");
+  if (chip) { pickBrief(chip.dataset.brief); return; }
+  if (e.target.closest("[data-briefx]")) { save("briefHidden", today()); render(); return; }
   if (e.target.closest("#logAdd")) { addLogSheet(); return; }
   if (e.target.closest("#logCopy")) { copy(dayReport()).then(ok => toast(ok ? "오늘 한 일을 복사했습니다 · 카톡 · 메일에 붙여 넣으세요" : "복사하지 못했습니다")); return; }
   const subHead = e.target.closest("[data-subhead]");
