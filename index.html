@@ -157,6 +157,8 @@
   .meta .due { padding: 1px 8px; border-radius: 999px; background: var(--tint); }
   .meta .due.late { background: color-mix(in srgb, var(--red) 16%, var(--card)); }
   .meta .due.soon { background: color-mix(in srgb, var(--orange) 16%, var(--card)); }
+  /* 3일 넘게 밀린 일: 진한 빨강 바탕 + 흰 글씨로 오늘 마감과 구별 */
+  .meta .due.stuck { background: color-mix(in srgb, var(--red) 72%, #000); color: #fff; }
   .past { color: var(--faint); font-size: 12px; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   [hidden] { display: none !important; }
 </style>
@@ -343,7 +345,7 @@ function dueLabel(item) {
   if (item.repeat) return left === 0 ? { text: "반복 · 오늘", cls: "late" } : { text: "반복", cls: "far" };
   const carried = item.lateFrom && left >= 0 ? Math.round((Date.parse(today()) - Date.parse(item.lateFrom)) / 86400000) : 0;
   const when = (left === 0 ? "오늘" : left > 0 ? "D-" + left : (-left) + "일 지남") + (carried > 0 ? " · " + carried + "일 밀림" : "");
-  return { text: md(item.due) + " (" + when + ")", cls: left <= 0 ? "late" : left <= 3 ? "soon" : "far" };
+  return { text: md(item.due) + " (" + when + ")", cls: carried >= 3 ? "late stuck" : left <= 0 ? "late" : left <= 3 ? "soon" : "far" };
 }
 
 const WEEK = ["일", "월", "화", "수", "목", "금", "토"];
