@@ -1293,6 +1293,10 @@ async function selfTest() {
     // [오늘] 탭이 비면 이번 주 디데이 알약 → 누르면 [전체] 로 바꿔 그 일로(오늘 마감을 잠깐 비우고 되돌린다)
     { const keep = (state.todos || []).map(x => [x, x.due]); for (const [x] of keep) if (x.due && x.due <= today()) x.due = "";
       tab("오늘"); await W(300);
+      { const em = document.querySelector(".empty"), cs = em && getComputedStyle(em), lumOf = s => { const n = (s.match(/[\d.]+/g) || []).slice(0, 3).map(Number).map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * n[0] + 0.7152 * n[1] + 0.0722 * n[2]; };
+        let bgEl = em; while (bgEl && getComputedStyle(bgEl).backgroundColor.replace(/\s/g, "").match(/rgba\(0,0,0,0\)|transparent/)) bgEl = bgEl.parentElement;
+        const a = cs ? lumOf(cs.color) : 0, b = bgEl ? lumOf(getComputedStyle(bgEl).backgroundColor) : 1, cr = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+        check("빈 화면 안내 글 대비", cr >= 4.5, cr.toFixed(1)); }
       const eb = document.querySelector(".empty [data-brief='week']"); if (eb) eb.click(); await W(400);
       check("오늘 탭 비면 이번 주 디데이 → 전체", !!eb && filter === "all" && !!document.querySelector(".item.flash"), eb ? filter : "알약 없음");
       for (const [x, d] of keep) x.due = d; tab("전체"); await W(300); }    tab("오늘"); await W(300);
