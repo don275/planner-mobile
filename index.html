@@ -99,6 +99,7 @@
   .toast { max-width: calc(100vw - 24px); box-sizing: border-box; }
   .toast #toastText { white-space: normal; line-height: 1.35; }
   .toast button { flex: none; white-space: nowrap; }
+  .lfoot { margin: 18px 12px 8px; text-align: center; font-size: 12px; color: var(--faint); line-height: 1.5; }
   .toast #toastText::before { content: "✓"; display: inline-block; width: 18px; height: 18px; line-height: 18px; text-align: center; margin-right: 8px; border-radius: 50%; background: color-mix(in srgb, var(--on-accent) 22%, transparent); font-size: 11px; font-weight: 800; }
   @keyframes toastIn { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
   .shade { position: fixed; left: 0; right: 0; top: 0; height: 100%; z-index: 20; background: var(--shade); display: flex; align-items: flex-end; overscroll-behavior: contain; }
@@ -423,7 +424,9 @@ function eventsHtml() {
     const until = ev.last > d ? " · ~" + md(ev.last) : "";
     return `<div class="ev"><span class="when">${when}</span><span class="bar" style="${ev.color ? "background:" + esc(ev.color) : ""}"></span>`
       + `<span class="what">${mark(ev.title || "(제목 없음)")}<small>${esc(ev.calendar || "")}${until}</small></span></div>`;
-  }).join("") + `</div>`).join("");
+  }).join("") + `</div>`).join("")
+    // 폰에는 최근 2주만 온다: 더 지난 기록이 안 보여도 없어진 게 아님을 알려 준다
+    + `<div class="lfoot">폰에는 최근 2주 기록만 보입니다 · 지난 기록은 PC 업무 기록 탭에 모두 있습니다</div>`;
 }
 
 // 최근 2주 동안 끝낸 일
@@ -502,7 +505,9 @@ function logsHtml() {
   return logBar() + Object.keys(days).sort().reverse().map(d => `<div class="lday"><div class="lhead"><b>${dayTitle(d).replace(" · 오늘", "")}</b>${d === today() ? `<span class="ltoday">오늘</span>` : ""}<span class="lcnt">${days[d].length}건</span></div>` + days[d].map(log => {
     const c = colors[log.section || ""] || "", where = (log.section || "기타") + (log.sub ? " › " + log.sub : "");
     return `<div class="lrow"><div class="ltitle">${mark(log.title)}</div><span class="lchip" style="${c ? "--pc:" + esc(c) : ""}">${esc(where)}</span></div>`;
-  }).join("") + `</div>`).join("");
+  }).join("") + `</div>`).join("")
+    // 폰에는 최근 2주만 온다: 더 지난 기록이 안 보여도 없어진 게 아님을 알려 준다
+    + `<div class="lfoot">폰에는 최근 2주 기록만 보입니다 · 지난 기록은 PC 업무 기록 탭에 모두 있습니다</div>`;
 }
 
 // 마감 지난 할 일(반복 업무 빼고)을 하루 한 번 오늘로. 처음엔 PC 설정을 따르고, 폰 설정에서 따로 켜고 끌 수 있다.
