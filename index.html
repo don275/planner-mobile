@@ -854,7 +854,7 @@ function subMenu(section, sub) {
 }
 
 // 남은 일 글(PC [목록 복사] 와 같은 모양): [프로젝트/부제] 아래 □ 할 일 → 다음 단계, • 메모. 끝낸 단계가 둘 이상이면 (끝낸 n단계)
-function shareText(only) {
+function shareText(only, bare) {
   const d = new Date(), groups = {}, order = [];
   // 화면에 놓인 차례대로(고정 프로젝트가 위): 그려진 할 일 순서를 따르고, 화면에 없는 것은 뒤에
   const shown = [...document.querySelectorAll(".item[data-id]")].map(e => e.dataset.id), rank = x => { const i = shown.indexOf(x.id); return i < 0 ? 1e9 : i; };
@@ -866,7 +866,7 @@ function shareText(only) {
       const st = x.steps && x.steps.length ? x.steps : [x.text || ""], at = Math.min(x.step || 0, st.length - 1);
       const head = at >= 2 ? "(끝낸 " + at + "단계) " : at === 1 ? "✓" + st[0] + " → " : "";
       out += "\n□ " + head + st.slice(at).join(" → ") + (x.due ? " (~" + Number(x.due.slice(5, 7)) + "/" + Number(x.due.slice(8, 10)) + ")" : "");
-      for (const n of (x.notes || "").split("\n").map(s => s.trim()).filter(Boolean)) out += "\n• " + n.replace(/^•\s*/, "");
+      if (!bare) for (const n of (x.notes || "").split("\n").map(s => s.trim()).filter(Boolean)) out += "\n• " + n.replace(/^•\s*/, "");     // bare: 메모 빼고(거래처 · 소속사에 보낼 때)
     }
   }
   return out;
@@ -1191,7 +1191,7 @@ $("list").addEventListener("click", e => {
   if (box) { check(box.dataset.check); return; }
   // 프로젝트 머리를 누르면: 이 프로젝트 남은 일만 복사(PC 오른쪽 클릭과 같게). 꾹 눌러 끌기는 그대로
   const ph = e.target.closest(".proj");
-  if (ph) { const nm = ph.dataset.sec || ""; sheet(`<h2>${esc(nm || "프로젝트 없음")}</h2><button class="phrase" id="projShare">이 프로젝트 남은 일 복사<small>카톡 · 메일에 붙일 글(끝낸 단계는 줄임)</small></button><div class="end"><button data-close>닫기</button></div>`, s => { s.querySelector("#projShare").onclick = async () => { closeSheet(); toast(await copy(shareText(nm)) ? "'" + (nm || "프로젝트 없음") + "' 남은 일을 복사했습니다" : "복사하지 못했습니다"); }; }); return; }
+  if (ph) { const nm = ph.dataset.sec || ""; sheet(`<h2>${esc(nm || "프로젝트 없음")}</h2><button class="phrase" id="projShare">이 프로젝트 남은 일 복사<small>카톡 · 메일에 붙일 글(끝낸 단계는 줄임)</small></button><button class="phrase" id="projShareBare">이 프로젝트 남은 일 복사 (메모 빼고)<small>거래처 · 소속사에 보낼 때: 할 일과 단계만, 안쪽 메모는 빼고</small></button><div class="end"><button data-close>닫기</button></div>`, s => { s.querySelector("#projShareBare").onclick = async () => { closeSheet(); toast(await copy(shareText(nm, true)) ? "'" + (nm || "프로젝트 없음") + "' 남은 일을 메모 빼고 복사했습니다" : "복사하지 못했습니다"); }; s.querySelector("#projShare").onclick = async () => { closeSheet(); toast(await copy(shareText(nm)) ? "'" + (nm || "프로젝트 없음") + "' 남은 일을 복사했습니다" : "복사하지 못했습니다"); }; }); return; }
   const lateBtn = e.target.closest("[data-late]");
   if (lateBtn) {
     const ids = view().filter(x => x.due && x.due < today() && !x.repeat).map(x => x.id), to = quickDues()[Number(lateBtn.dataset.late)][1];
@@ -1300,7 +1300,7 @@ async function selfTest() {
       check("동그라미 누르는 자리 넓음(제목은 안 건드림)", !!h0 && (h0 === bx0 || bx0.contains(h0)) && !!h1 && !h1.closest(".box"), r0 ? Math.round(r0.width) + "px + 둘레" : "없음"); }
     const wkChip = document.querySelector('[data-brief="week"]');
     check("오늘 카드: 이번 주 디데이", !!wkChip && briefMatch("week").every(x => x.due > today()), wkChip ? wkChip.textContent : "없음");
-    { const p0 = document.querySelector(".proj")?.dataset.sec || "", one = shareText(p0); check("프로젝트만 복사 글", one.split("\n").filter(l => l.startsWith("[")).every(l => l.startsWith("[" + p0)), p0); }
+    { const p0 = document.querySelector(".proj")?.dataset.sec || "", one = shareText(p0); check("프로젝트만 복사 글(메모 빼고 포함)", one.split("\n").filter(l => l.startsWith("[")).every(l => l.startsWith("[" + p0)) && !shareText("", true).includes("\n• ") && shareText().includes("\n• "), p0); }
     { const sh = shareText(); check("남은 일 목록 복사 글", /남은 업무/.test(sh) && /\n□ /.test(sh) && /\n\[/.test(sh), sh.split("\n").length + "줄"); }
     // [오늘] 탭이 비면 이번 주 디데이 알약 → 누르면 [전체] 로 바꿔 그 일로(오늘 마감을 잠깐 비우고 되돌린다)
     { const keep = (state.todos || []).map(x => [x, x.due]); for (const [x] of keep) if (x.due && x.due <= today()) x.due = "";
