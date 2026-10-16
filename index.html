@@ -1280,6 +1280,10 @@ async function selfTest() {
     const found = document.querySelectorAll(".lday .lrow").length;
     fb.value = ""; fb.dispatchEvent(new Event("input", { bubbles: true })); await W(200);
     check("기록: 내용으로도 찾기", found === 1, found + "건");
+    // 탭마다 옆으로 넘치는 것(좁은 폰에서 가로 스크롤) 없는지
+    const wideTabs = [];
+    for (const nm of ["전체", "오늘", "일정", "기록"]) { tab(nm); await W(250); if (document.documentElement.scrollWidth > window.innerWidth + 1) wideTabs.push(nm + " " + document.documentElement.scrollWidth); }
+    check("옆으로 넘침 없음", wideTabs.length === 0, wideTabs.join(", ") || window.innerWidth + "px");
     tab("전체"); await W(300);
     // 다섯 흐름: 추가 · 체크 · 끌기(순서 바꾸기) · 시트 스크롤(열기는 위에서)
     const input = document.querySelector('input[placeholder^="할 일"]');
@@ -1298,10 +1302,11 @@ async function selfTest() {
       a.scrollIntoView({ block: "center" }); await W(200);
       const ra = a.querySelector(".text").getBoundingClientRect(), rb = b.querySelector(".text").getBoundingClientRect();
       const before = [...document.querySelectorAll(".item .text")].map(x => x.textContent).join("|");
-      const x = ra.left + ra.width / 2, y0 = ra.top + ra.height / 2, y1 = rb.top - 20, el = document.elementFromPoint(x, y0);
+      // 위의 것(b)을 아래 것(a) 밑으로 끌어내린다: 위로 끌면 키 작은 폰에서 놓는 자리가 위쪽 막대 밑이 될 수 있다
+      const x = rb.left + rb.width / 2, y0 = rb.top + rb.height / 2, y1 = ra.bottom + 20, el = document.elementFromPoint(x, y0);
       const fire = (t, yy) => el.dispatchEvent(new PointerEvent(t, { bubbles: true, cancelable: true, clientX: x, clientY: yy, pointerId: 1, pointerType: "touch", isPrimary: true, button: 0, buttons: t === "pointerup" ? 0 : 1 }));
       fire("pointerdown", y0); await W(700);
-      for (let yy = y0; yy >= y1; yy -= 7) { fire("pointermove", yy); await W(30); }
+      for (let yy = y0; yy <= y1; yy += 7) { fire("pointermove", yy); await W(30); }
       fire("pointerup", y1); await W(700);
       check("흐름: 끌어서 순서 바꾸기", [...document.querySelectorAll(".item .text")].map(x => x.textContent).join("|") !== before);
     } else check("흐름: 끌어서 순서 바꾸기", false, "할 일이 2개 미만");
