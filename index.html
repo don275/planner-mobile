@@ -443,7 +443,8 @@ function eventsHtml() {
 function carriedDays(x) { return x.lateFrom && x.due && x.due >= today() ? Math.round((Date.parse(today()) - Date.parse(x.lateFrom)) / 86400000) : 0; }
 function briefMatch(kind) {
   const d = today();
-  return view().filter(x => kind === "stuck" ? carriedDays(x) >= 3 : kind === "late" ? x.due && x.due < d && !x.repeat : kind === "today" ? x.due === d : carriedDays(x) > 0 && x.due === d);
+  const wk = new Date(); wk.setDate(wk.getDate() + 6); const w = wk.getFullYear() + "-" + String(wk.getMonth() + 1).padStart(2, "0") + "-" + String(wk.getDate()).padStart(2, "0");
+  return view().filter(x => kind === "stuck" ? carriedDays(x) >= 3 : kind === "late" ? x.due && x.due < d && !x.repeat : kind === "today" ? x.due === d : kind === "week" ? x.due && x.due > d && x.due <= w : carriedDays(x) > 0 && x.due === d);
 }
 function briefHtml() {
   const n = k => briefMatch(k).length, chips = [];
@@ -452,6 +453,7 @@ function briefHtml() {
   if (n("today")) chips.push(`<button class="bchip today" data-brief="today">오늘 마감 ${n("today")}</button>`);
   if (n("rolled")) chips.push(`<button class="bchip rolled" data-brief="rolled">옮겨 온 일 ${n("rolled")}</button>`);
   if (!chips.length) chips.push(`<span class="bchip calm">오늘 마감인 일이 없습니다</span>`);
+  if (n("week")) chips.push(`<button class="bchip rolled" data-brief="week">이번 주 디데이 ${n("week")}</button>`);     // 오늘 몫 다음에 볼 일
   return `<div class="brief"><div class="bhead"><b>오늘 ${dayTitle(today()).replace(" · 오늘", "")}</b><button class="bx" data-briefx aria-label="오늘은 숨기기">✕</button></div><div class="bchips">${chips.join("")}</div></div>`;
 }
 let briefAt = {};
