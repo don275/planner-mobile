@@ -65,8 +65,10 @@
   .acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
   /* 부제: 프로젝트 색 알약(이름 · 개수) + 옅은 줄 */
   .subh { margin: 12px 12px 4px; display: flex; align-items: center; gap: 10px; }
-  .subh span { padding: 3px 11px; border-radius: 999px; font-size: 13px; font-weight: 700; color: var(--sc, var(--accent)); background: color-mix(in srgb, var(--sc, var(--accent)) 14%, var(--card)); }
-  .subh span b { margin-left: 6px; font-weight: 700; opacity: .75; }
+  /* 부제: 프로젝트보다 작고 조용하게(작은 색 네모 + 회색 글씨 · 개수) */
+  .subh span { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 700; color: var(--sub); }
+  .subh span::before { content: ""; width: 7px; height: 7px; background: var(--sc, var(--accent)); flex: none; }
+  .subh span b { margin-left: 0; font-weight: 400; opacity: .8; }
   .subh::after { content: ""; flex: 1; height: 1px; background: var(--line, rgba(127,127,127,.18)); }
   /* 펼친(고른) 할 일: 왼쪽 막대 + 옅은 바탕 */
   .item.open { background: color-mix(in srgb, var(--accent) 6%, var(--card)); box-shadow: inset 4px 0 0 var(--accent); }
@@ -143,9 +145,12 @@
   /* 깔끔한 목록: 회색 바탕 위에 프로젝트 이름 줄(색 점), 그 아래 할 일들을 흰 판 한 장에 */
   main { background: var(--canvas); }
   section { margin-top: 16px; }
-  section .proj { background: none; border-radius: 0; padding: 4px 4px 8px; }
-  section .proj i { width: 9px; height: 9px; border-radius: 50%; background: var(--sc, var(--accent)); }
-  section .proj small { margin-left: 2px; }
+  /* 프로젝트가 가장 먼저 보이게: 색 막대 + 큰 굵은 이름 + 개수 알약 */
+  section .proj { background: none; border-radius: 0; padding: 8px 4px 9px; }
+  section .proj i { width: 5px; height: 20px; border-radius: 3px; background: var(--sc, var(--accent)); }
+  section .proj b { font-size: 17px; flex: 0 1 auto; }
+  section .proj small { margin-left: 2px; font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 999px; background: color-mix(in srgb, var(--sub) 18%, transparent); }
+  section .proj::after { content: ""; flex: 1; }
   .board { background: var(--card); border-radius: 12px; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,.06); }
   .board .item { padding: 12px 14px; border-bottom: 1px solid color-mix(in srgb, var(--line) 55%, var(--card)); }
   .board .item:last-child { border-bottom: 0; }
