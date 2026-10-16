@@ -459,6 +459,8 @@ function briefHtml() {
 let briefAt = {};
 function pickBrief(kind) {
   const ids = briefMatch(kind).map(x => x.id), els = ids.map(id => document.querySelector(`.item[data-id="${CSS.escape(id)}"]`)).filter(Boolean);
+  // [오늘] 탭에서 이번 주 디데이 등을 누르면 [전체] 로 바꿔 다시 찾는다(PC 와 같게)
+  if (!els.length && filter === "today" && !query) { document.querySelector('[data-filter="all"]').click(); setTimeout(() => pickBrief(kind), 50); return; }
   if (!els.length) { toast("보이는 목록에 없습니다(검색 · 걸러 보기를 풀어 보세요)"); return; }
   const i = ((briefAt[kind] ?? -1) + 1) % els.length; briefAt[kind] = i;
   els[i].scrollIntoView({ behavior: "smooth", block: "center" });
@@ -582,7 +584,7 @@ function render() {
     }
     html += `</div></section>`;
   }
-  $("list").innerHTML = html || `<div class="empty">${query ? "찾는 할 일이 없습니다" : filter === "today" ? "오늘 마감인 일이 없습니다" : "남은 일이 없습니다"}</div>`;
+  $("list").innerHTML = html || `<div class="empty">${query ? "찾는 할 일이 없습니다" : filter === "today" ? "오늘 마감인 일이 없습니다" + (briefMatch("week").length ? `<br><button class="bchip rolled" data-brief="week" style="margin-top:12px">이번 주 디데이 ${briefMatch("week").length}</button>` : "") : "남은 일이 없습니다"}</div>`;
   const names = order.filter(Boolean), sel = $("newSection"), keep = sel.value;
   sel.innerHTML = names.map(n => `<option>${esc(n)}</option>`).join("") + `<option value="">기타</option>`;
   // 고른 곳을 기억: 이번에 고른 것, 아니면 지난번에 넣은 프로젝트(다음에 켜도)
