@@ -366,12 +366,12 @@ function eventsHtml() {
 
 // 최근 2주 동안 끝낸 일
 function logsHtml() {
-  const list = ((state && state.logs) || []).filter(log => !query || hits(log.title || "", log.section || ""));
+  const list = ((state && state.logs) || []).filter(log => !query || hits(log.title || "", (log.section || "") + " " + (log.sub || "")));
   if (!list.length) return `<div class="empty">${query ? "찾는 기록이 없습니다" : "최근 2주 동안 끝낸 일이 없습니다"}</div>`;
   const days = {};
   for (const log of list) (days[log.date] = days[log.date] || []).push(log);
   return Object.keys(days).sort().reverse().map(d => `<div class="day">${dayTitle(d)} · ${days[d].length}건</div>` + days[d].map(log =>
-    `<div class="ev"><span class="what">${mark(log.title)}<small>${esc(log.section || "")}</small></span></div>`).join("")).join("");
+    `<div class="ev"><span class="what">${mark(log.title)}<small>${esc((log.section || "") + (log.sub ? " › " + log.sub : ""))}</small></span></div>`).join("")).join("");
 }
 
 // 마감 지난 할 일(반복 업무 빼고)을 하루 한 번 오늘로. 처음엔 PC 설정을 따르고, 폰 설정에서 따로 켜고 끌 수 있다.
