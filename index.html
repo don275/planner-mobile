@@ -142,6 +142,7 @@
   .lday .ev .what small { font-weight: 400; }
   .lrow { padding: 9px 0; border-top: 1px solid var(--line, rgba(127,127,127,.15)); }
   .ltitle { font-weight: 700; font-size: 14.5px; word-break: break-word; }
+.ldetail { margin-top: 3px; font-size: 13px; color: var(--sub); word-break: break-word; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }     /* 내용 · 성과: PC 카드처럼 제목 아래 회색 두 줄까지 */
   /* 시안 A(PC 업무 기록 · 일정과 같게): 날짜마다 카드, 머리는 옅은 파란 띠, 줄 사이 가는 선 */
   .lday { padding: 0; overflow: hidden; }
   .lhead { padding: 10px 14px; background: color-mix(in srgb, #1a73e8 11%, var(--card)); color: color-mix(in srgb, #1a73e8 72%, var(--text)); }
@@ -305,7 +306,7 @@ function sample() {
     events: [{ title: "주간 회의", allDay: false, start: t + "T10:30", end: t + "T11:30", last: t, calendar: "업무", color: "#1A73E8" },
              { title: "가을 행사 준비 기간", allDay: true, start: plus(1) + "T00:00", end: plus(4) + "T00:00", last: plus(3), calendar: "행사", color: "#8E24AA" },
              { title: "거래처 미팅", allDay: false, start: plus(2) + "T15:00", end: plus(2) + "T16:00", last: plus(2), calendar: "", color: "" }],
-    logs: [{ date: t, section: "매일 하는 일", title: "주문 확인" }, { date: plus(-1), section: "가을 행사", title: "장소 확정" }, { date: plus(-1), section: "거래처", title: "견적서 발송" }],
+    logs: [{ date: t, section: "매일 하는 일", title: "주문 확인" }, { date: plus(-1), section: "가을 행사", title: "장소 확정" }, { date: plus(-1), section: "거래처", title: "견적서 발송", detail: "단가표 2종 첨부 · 회신은 다음 주 화요일까지 받기로" }],
     phrases: [{ name: "입고지 안내", text: "입고지 정보 전달드립니다!\n\n입고지: (주소)\n담당자: (이름)\n연락처: (번호)" },
               { name: "출고일 안내", text: "{업체명} 담당자님, 안녕하세요.\n{상품명} 출고일은 {출고일}입니다." }],
     todos: [
@@ -504,7 +505,7 @@ function addLogSheet() {
 }
 
 function logsHtml() {
-  const list = allLogs().filter(log => !query || hits(log.title || "", (log.section || "") + " " + (log.sub || "")));
+  const list = allLogs().filter(log => !query || hits(log.title || "", (log.section || "") + " " + (log.sub || ""), log.detail || ""));
   if (!list.length) return logBar() + `<div class="empty">${query ? "찾는 기록이 없습니다" : "최근 2주 동안 끝낸 일이 없습니다"}</div>`;
   const days = {};
   for (const log of list) (days[log.date] = days[log.date] || []).push(log);
@@ -512,7 +513,7 @@ function logsHtml() {
   const colors = (state && state.colors) || {};
   return logBar() + Object.keys(days).sort().reverse().map(d => `<div class="lday"><div class="lhead"><b>${dayTitle(d).replace(" · 오늘", "")}</b>${d === today() ? `<span class="ltoday">오늘</span>` : ""}<span class="lcnt">${days[d].length}건</span></div>` + days[d].map(log => {
     const c = colors[log.section || ""] || "", where = (log.section || "기타") + (log.sub ? " › " + log.sub : "");
-    return `<div class="lrow"><div class="ltitle">${mark(log.title)}</div><span class="lchip" style="${c ? "--pc:" + esc(c) + ";--pci:" + headInk(c, isDark(), 0.16) : ""}">${esc(where)}</span></div>`;
+    return `<div class="lrow"><div class="ltitle">${mark(log.title)}</div>${log.detail ? `<div class="ldetail">${mark(log.detail)}</div>` : ""}<span class="lchip" style="${c ? "--pc:" + esc(c) + ";--pci:" + headInk(c, isDark(), 0.16) : ""}">${esc(where)}</span></div>`;
   }).join("") + `</div>`).join("")
     // 폰에는 최근 2주만 온다: 더 지난 기록이 안 보여도 없어진 게 아님을 알려 준다
     + `<div class="lfoot">폰에는 최근 2주 기록만 보입니다 · 지난 기록은 PC 업무 기록 탭에 모두 있습니다</div>`;
@@ -1274,6 +1275,11 @@ async function selfTest() {
     const logFoot = (document.querySelector(".lfoot") || {}).textContent || "";
     check("기록: 날짜 카드", document.querySelectorAll(".lday .lrow").length > 0);
     check("기록: 안내가 기록용", logFoot.includes("기록"), logFoot);
+    check("기록: 내용 · 성과 한 줄", !!document.querySelector(".lrow .ldetail"));
+    const fb = $("findText"); fb.value = "단가표"; fb.dispatchEvent(new Event("input", { bubbles: true })); await W(300);
+    const found = document.querySelectorAll(".lday .lrow").length;
+    fb.value = ""; fb.dispatchEvent(new Event("input", { bubbles: true })); await W(200);
+    check("기록: 내용으로도 찾기", found === 1, found + "건");
     tab("전체"); await W(300);
     // 다섯 흐름: 추가 · 체크 · 끌기(순서 바꾸기) · 시트 스크롤(열기는 위에서)
     const input = document.querySelector('input[placeholder^="할 일"]');
