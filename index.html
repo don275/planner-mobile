@@ -858,7 +858,7 @@ function shareText(only, bare) {
   const d = new Date(), groups = {}, order = [];
   // 화면에 놓인 차례대로(고정 프로젝트가 위): 그려진 할 일 순서를 따르고, 화면에 없는 것은 뒤에
   const shown = [...document.querySelectorAll(".item[data-id]")].map(e => e.dataset.id), rank = x => { const i = shown.indexOf(x.id); return i < 0 ? 1e9 : i; };
-  for (const x of view().filter(x => !only || (x.section || "") === only).slice().sort((a, b) => rank(a) - rank(b))) { const k = (x.section || "기타") + (x.sub ? "/" + x.sub : ""); if (!groups[k]) { groups[k] = []; order.push(k); } groups[k].push(x); }
+  for (const x of view().filter(x => only == null || (x.section || "") === only)     /* 빈 이름("프로젝트 없음")도 그 묶음만 */.slice().sort((a, b) => rank(a) - rank(b))) { const k = (x.section || "기타") + (x.sub ? "/" + x.sub : ""); if (!groups[k]) { groups[k] = []; order.push(k); } groups[k].push(x); }
   let out = (d.getMonth() + 1) + "월 " + d.getDate() + "일 남은 업무";
   for (const k of order) {
     out += "\n\n[" + k + "]\n";
@@ -1300,7 +1300,7 @@ async function selfTest() {
       check("동그라미 누르는 자리 넓음(제목은 안 건드림)", !!h0 && (h0 === bx0 || bx0.contains(h0)) && !!h1 && !h1.closest(".box"), r0 ? Math.round(r0.width) + "px + 둘레" : "없음"); }
     const wkChip = document.querySelector('[data-brief="week"]');
     check("오늘 카드: 이번 주 디데이", !!wkChip && briefMatch("week").every(x => x.due > today()), wkChip ? wkChip.textContent : "없음");
-    { const p0 = document.querySelector(".proj")?.dataset.sec || "", one = shareText(p0); check("프로젝트만 복사 글(메모 빼고 포함)", one.split("\n").filter(l => l.startsWith("[")).every(l => l.startsWith("[" + p0)) && !shareText("", true).includes("\n• ") && shareText().includes("\n• "), p0); }
+    { const p0 = document.querySelector(".proj")?.dataset.sec || "", one = shareText(p0); check("프로젝트만 복사 글(메모 빼고 포함)", one.split("\n").filter(l => l.startsWith("[")).every(l => l.startsWith("[" + p0)) && !shareText(null, true).includes("\n• ") && shareText().includes("\n• "), p0); }
     { const sh = shareText(); check("남은 일 목록 복사 글", /남은 업무/.test(sh) && /\n□ /.test(sh) && /\n\[/.test(sh), sh.split("\n").length + "줄"); }
     // [오늘] 탭이 비면 이번 주 디데이 알약 → 누르면 [전체] 로 바꿔 그 일로(오늘 마감을 잠깐 비우고 되돌린다)
     { const keep = (state.todos || []).map(x => [x, x.due]); for (const [x] of keep) if (x.due && x.due <= today()) x.due = "";
