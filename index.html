@@ -99,7 +99,7 @@
   .toast { max-width: calc(100vw - 24px); box-sizing: border-box; }
   .toast #toastText { white-space: normal; line-height: 1.35; }
   .toast button { flex: none; white-space: nowrap; }
-  .lfoot { margin: 18px 12px 8px; text-align: center; font-size: 12px; color: var(--faint); line-height: 1.5; }
+  .lfoot { margin: 18px 12px 8px; text-align: center; font-size: 12px; color: var(--sub); line-height: 1.5; }     /* 작은 글씨라 대비 4.5(옅은 --faint 는 3.2 였다) */
   .toast #toastText::before { content: "✓"; display: inline-block; width: 18px; height: 18px; line-height: 18px; text-align: center; margin-right: 8px; border-radius: 50%; background: color-mix(in srgb, var(--on-accent) 22%, transparent); font-size: 11px; font-weight: 800; }
   @keyframes toastIn { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
   .shade { position: fixed; left: 0; right: 0; top: 0; height: 100%; z-index: 20; background: var(--shade); display: flex; align-items: flex-end; overscroll-behavior: contain; }
@@ -1356,8 +1356,8 @@ async function selfTest() {
       document.documentElement.dataset.theme = mode; tab("전체"); await W(300);
       const t1 = ratio(document.querySelector(".item .text")), t2 = ratio(document.querySelector("section .proj b"));
       tab("기록"); await W(300);
-      const t3 = ratio(document.querySelector(".lhead b"));
-      check("대비(" + (mode === "light" ? "밝게" : "어둡게") + ")", t1 >= 4.5 && t2 >= 3 && t3 >= 3, "할 일 " + t1.toFixed(1) + " · 프로젝트 " + t2.toFixed(1) + " · 날짜 띠 " + t3.toFixed(1));
+      const t3 = ratio(document.querySelector(".lhead b")), t4 = ratio(document.querySelector(".ldetail")), t5 = ratio(document.querySelector(".lfoot"));     // 기록 내용(회색) · 아래 안내 글
+      check("대비(" + (mode === "light" ? "밝게" : "어둡게") + ")", t1 >= 4.5 && t2 >= 3 && t3 >= 3 && t4 >= 4.5 && t5 >= 4.5, "할 일 " + t1.toFixed(1) + " · 프로젝트 " + t2.toFixed(1) + " · 날짜 띠 " + t3.toFixed(1) + " · 기록 내용 " + t4.toFixed(1) + " · 안내 " + t5.toFixed(1));
     }
     // 대표색 8가지 × 밝게 · 어둡게: 대표색 위 글씨 4.5 · 바탕과 대표색 3
     tab("전체"); await W(300);
