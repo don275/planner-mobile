@@ -265,6 +265,8 @@ function view() {
       todos.splice(at, 0, it); continue;
     }
     if (op.op === "moveSection") continue;
+    if (op.op === "renameSub") { todos.forEach(x => { if ((x.section || "") === op.section && x.sub === op.from) x.sub = op.to; }); continue; }
+    if (op.op === "dropSub") { todos.forEach(x => { if ((x.section || "") === op.section && x.sub === op.sub) x.sub = ""; }); continue; }
     if (op.op === "dueMany") {
       for (const it of todos.filter(x => op.ids.split(",").includes(x.id))) {
         if (it.due && it.due < today() && !it.lateFrom && op.due >= today()) it.lateFrom = it.due;     // n일 밀림
@@ -412,7 +414,7 @@ function render() {
       + (pinned.includes(name) ? `<small>고정</small>` : "") + `<small>${items.length}</small></div><div class="board">`;
     for (const item of items) {
       const due = dueLabel(item), many = item.steps.length > 1;
-      if ((item.sub || "") !== lastSub) { lastSub = item.sub || ""; if (lastSub) html += `<div class="subh"><span>${esc(lastSub)}<b>${items.filter(x => (x.sub || "") === lastSub).length}</b></span></div>`; }
+      if ((item.sub || "") !== lastSub) { lastSub = item.sub || ""; if (lastSub) html += `<div class="subh" data-subhead="${esc(lastSub)}" data-subsec="${esc(name)}"><span>${esc(lastSub)}<b>${items.filter(x => (x.sub || "") === lastSub).length}</b></span></div>`; }
       html += `<div class="item${opened === item.id ? " open" : ""}" data-id="${esc(item.id)}" data-sec="${esc(item.section || "")}" data-sub="${esc(item.sub || "")}"><button class="box${item.step > 0 ? " part" : ""}" data-check="${esc(item.id)}" aria-label="완료"></button><div class="body">`
         + `${many && item.step > 0 ? `<div class="past">✓ ${esc((item.step > 3 ? "… › " : "") + item.steps.slice(Math.max(0, item.step - 3), item.step).join(" › "))}</div>` : ""}<div class="text" data-open="${esc(item.id)}">${item.star ? `<span class="star">★</span> ` : ""}${mark(many ? item.steps[item.step] : item.text)}</div><div class="meta" data-open="${esc(item.id)}">`
         + (many ? `<span>${item.step + 1}/${item.steps.length}</span>` + (item.step < item.steps.length - 1 ? `<span>다음: ${esc(item.steps[item.step + 1])}</span>` : "") : "")
@@ -654,6 +656,15 @@ function moveTo(item) {
       closeSheet();
       push({ op: "move", id: item.id, section: g.section, before: "", sub: g.sub }, "'" + (g.section || "기타") + (g.sub ? " › " + g.sub : "") + "'(으)로 옮겼습니다");
     }));
+  });
+}
+
+// 부제 줄을 누르면: 이름 바꾸기 · 없애기(할 일은 프로젝트에 그대로)
+function subMenu(section, sub) {
+  sheet(`<h2>${esc(sub)}</h2><button class="phrase" id="subRen">이름 바꾸기<small>${esc((section || "기타") + " › " + sub)}</small></button>`
+    + `<button class="phrase" id="subDrop">부제 없애기<small>할 일은 그대로 프로젝트에 남습니다</small></button><div class="end"><button data-close>닫기</button></div>`, s => {
+    s.querySelector("#subRen").onclick = () => { closeSheet(); ask("부제 이름 바꾸기", "부제 이름", v => { v = v.replace(/[\[\]\/]/g, " ").trim(); if (v && v !== sub) push({ op: "renameSub", section, from: sub, to: v }, "부제 이름을 바꿨습니다"); }, sub); };
+    s.querySelector("#subDrop").onclick = () => { closeSheet(); if (confirm("'" + sub + "' 부제를 없앨까요? 할 일은 그대로 남습니다.")) push({ op: "dropSub", section, sub }, "'" + sub + "' 부제를 없앴습니다"); };
   });
 }
 
@@ -981,6 +992,8 @@ $("list").addEventListener("click", e => {
     if (ids.length) push({ op: "dueMany", ids: ids.join(","), due: to }, "지난 마감 " + ids.length + "건을 " + (lateBtn.dataset.late === "0" ? "오늘" : "내일") + "로 옮겼습니다");
     return;
   }
+  const subHead = e.target.closest("[data-subhead]");
+  if (subHead) { subMenu(subHead.dataset.subsec, subHead.dataset.subhead); return; }
   const id = opened, item = id && view().find(x => x.id === id);
   const project = e.target.closest("[data-project]");
   if (project && project.dataset.project) {
