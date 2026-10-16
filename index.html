@@ -791,7 +791,7 @@ function showSettings() {
     <div class="end"><button class="primary" data-close>닫기</button></div>`, s => {
     s.querySelectorAll("[data-look]").forEach(b => b.onclick = () => {
       const now = load("look", {}); now[b.dataset.look] = b.dataset.value; if (!b.dataset.value) delete now[b.dataset.look];
-      save("look", now); applyLook(); showSettings();
+      save("look", now); applyLook(); render(); showSettings();     // 목록도 다시 그려 프로젝트 글씨색(--sci)을 새 화면에 맞춘다
     });
     s.querySelectorAll("[data-roll]").forEach(b => b.onclick = () => {
       const was = rollOn(); save("roll", b.dataset.roll);
@@ -1244,6 +1244,8 @@ $("undo").addEventListener("click", () => {
   $("toast").hidden = true; render(); send();
 });
 document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
+// 폰이 밝게 · 어둡게로 바뀌면(밤 자동 전환 등) 색을 다시 계산해 그린다
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { applyLook(); render(); });
 // 화면을 보고 있는 동안에는 알아서 맞춘다.
 setInterval(() => { if (!demo && token && !document.hidden) refresh(); }, 20000);
 if (!demo && !native()) { const s = document.createElement("script"); s.src = "https://accounts.google.com/gsi/client"; s.async = true; document.head.appendChild(s); }
