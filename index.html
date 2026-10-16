@@ -50,6 +50,11 @@
   .box.part { border-color: var(--faint); background: var(--card); }
   /* 동그란 체크(To Do · Todoist 식). 단계 진행 중이면 안을 진행한 만큼 부채꼴로(Things 의 진행 원) */
   .board .box { border-radius: 50%; }
+/* 누르는 자리 넓히기(보이는 크기는 그대로): 동그라미 · ✕ · 알약이 손가락에 작던 것(애플 권장 44px) */
+.box::before { content: ""; position: absolute; inset: -10px; }
+.bx, .bchip, .chip { position: relative; }
+.bx::before { content: ""; position: absolute; inset: -10px -8px; }
+.bchip::before, .chip::before { content: ""; position: absolute; inset: -7px -3px; }
   .board .box.part::after { content: ""; position: absolute; inset: 3px; border-radius: 50%; background: conic-gradient(color-mix(in srgb, var(--sc, var(--accent)) 75%, var(--card)) var(--p, 30%), transparent 0); }
   .board .prog { display: none; }
   .body { flex: 1; min-width: 0; }
@@ -1287,6 +1292,8 @@ async function selfTest() {
     tab("전체"); await W(300);
     check("전체: 할 일 카드", document.querySelectorAll("section .proj").length > 0 && document.querySelectorAll(".item").length > 0, document.querySelectorAll(".item").length + "개");
     check("전체: 진행 원", document.querySelectorAll(".box.part").length > 0);
+    { const bx0 = document.querySelector(".item .box"), r0 = bx0 && bx0.getBoundingClientRect(), h0 = r0 && document.elementFromPoint(r0.left - 7, r0.top + r0.height / 2);
+      check("동그라미 누르는 자리 넓음", !!h0 && (h0 === bx0 || bx0.contains(h0)), r0 ? Math.round(r0.width) + "px + 둘레 10px" : "없음"); }
     const wkChip = document.querySelector('[data-brief="week"]');
     check("오늘 카드: 이번 주 디데이", !!wkChip && briefMatch("week").every(x => x.due > today()), wkChip ? wkChip.textContent : "없음");
     { const sh = shareText(); check("남은 일 목록 복사 글", /남은 업무/.test(sh) && /\n□ /.test(sh) && /\n\[/.test(sh), sh.split("\n").length + "줄"); }
