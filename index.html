@@ -47,7 +47,11 @@
   .item:last-child { border-bottom: 0; }
   .box { flex: none; width: 24px; height: 24px; margin-top: 1px; border: 1.6px solid var(--faint); border-radius: 7px; background: var(--card); padding: 0; position: relative; }
   /* 단계가 진행 중: 옅은 색 바탕 + 색 테두리(눌러 둔 것처럼 보이지 않게) */
-  .box.part { border-color: var(--sc, var(--accent)); background: color-mix(in srgb, var(--sc, var(--accent)) 14%, var(--card)); }
+  .box.part { border-color: var(--faint); background: var(--card); }
+  /* 동그란 체크(To Do · Todoist 식). 단계 진행 중이면 안을 진행한 만큼 부채꼴로(Things 의 진행 원) */
+  .board .box { border-radius: 50%; }
+  .board .box.part::after { content: ""; position: absolute; inset: 3px; border-radius: 50%; background: conic-gradient(color-mix(in srgb, var(--sc, var(--accent)) 75%, var(--card)) var(--p, 30%), transparent 0); }
+  .board .prog { display: none; }
   .body { flex: 1; min-width: 0; }
   .text { word-break: break-word; }
   .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 5px; font-size: 12.5px; color: var(--sub); }
@@ -536,8 +540,8 @@ function render() {
     for (const item of items) {
       const due = dueLabel(item), many = item.steps.length > 1;
       if ((item.sub || "") !== lastSub) { lastSub = item.sub || ""; if (lastSub) html += `<div class="subh" data-subhead="${esc(lastSub)}" data-subsec="${esc(name)}"><span>${esc(lastSub)}<b>${items.filter(x => (x.sub || "") === lastSub).length}</b></span></div>`; }
-      html += `<div class="item${opened === item.id ? " open" : ""}" data-id="${esc(item.id)}" data-sec="${esc(item.section || "")}" data-sub="${esc(item.sub || "")}"><button class="box${item.step > 0 ? " part" : ""}" data-check="${esc(item.id)}" aria-label="완료"></button><div class="body">`
-        + `${many && item.step > 0 ? `<div class="past">✓ ${esc((item.step > 3 ? "… › " : "") + item.steps.slice(Math.max(0, item.step - 3), item.step).join(" › "))}</div>` : ""}<div class="text" data-open="${esc(item.id)}">${item.star ? `<span class="star">★</span> ` : ""}${mark(many ? item.steps[item.step] : item.text)}</div><div class="meta" data-open="${esc(item.id)}">`
+      html += `<div class="item${opened === item.id ? " open" : ""}" data-id="${esc(item.id)}" data-sec="${esc(item.section || "")}" data-sub="${esc(item.sub || "")}"><button class="box${item.step > 0 ? " part" : ""}"${item.step > 0 ? ` style="--p:${Math.round(item.step * 100 / item.steps.length)}%"` : ""} data-check="${esc(item.id)}" aria-label="완료"></button><div class="body">`
+        + `${false && many && item.step > 0 ? `<div class="past">✓ ${esc((item.step > 3 ? "… › " : "") + item.steps.slice(Math.max(0, item.step - 3), item.step).join(" › "))}</div>` : ""}<div class="text" data-open="${esc(item.id)}">${item.star ? `<span class="star">★</span> ` : ""}${mark(many ? item.steps[item.step] : item.text)}</div><div class="meta" data-open="${esc(item.id)}">`
         + (many ? `<span class="prog"><i style="width:${Math.round((item.step + 1) * 100 / item.steps.length)}%"></i></span><span>${item.step + 1}/${item.steps.length}</span>` + (item.step < item.steps.length - 1 ? `<span>다음: ${esc(item.steps[item.step + 1])}</span>` : "") : "")
         + (due ? `<span class="due ${due.cls}">${due.text}</span>` : "") + (item.remind ? `<span>알림 ${remindLabel(item.remind)}</span>` : "")
         + (item.files ? `<span>첨부 ${item.files}</span>` : "") + (item.notes && opened !== item.id ? `<span>메모</span>` : "") + `</div>`;
