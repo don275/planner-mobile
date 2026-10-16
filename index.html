@@ -123,6 +123,15 @@
   .bchip.calm { background: color-mix(in srgb, #1E8E3E 14%, var(--card)); color: #1E8E3E; }
   .item.flash { animation: flash 1.2s ease-out; }
   @keyframes flash { 0%, 40% { background: color-mix(in srgb, var(--accent) 18%, var(--card)); } 100% { background: transparent; } }
+  .lday { margin: 10px 2px 12px; background: var(--card); border-radius: 16px; padding: 4px 14px 6px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+  .lhead { display: flex; align-items: center; gap: 8px; padding: 10px 0 6px; }
+  .lhead b { font-size: 15px; display: flex; align-items: center; gap: 8px; }
+  .lhead b::before { content: ""; width: 4px; height: 16px; border-radius: 2px; background: var(--accent); }
+  .ltoday { font-size: 12px; font-weight: 700; color: var(--accent); }
+  .lcnt { margin-left: auto; font-size: 12px; color: var(--sub); }
+  .lrow { padding: 9px 0; border-top: 1px solid var(--line, rgba(127,127,127,.15)); }
+  .ltitle { font-weight: 700; font-size: 14.5px; word-break: break-word; }
+  .lchip { display: inline-block; margin-top: 5px; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; background: color-mix(in srgb, var(--pc, var(--sub)) 16%, var(--card)); color: color-mix(in srgb, var(--pc, var(--sub)) 85%, var(--text)); }
   .logbar { display: flex; gap: 8px; margin: 4px 12px 10px; }
   .logbar button { flex: 1; padding: 10px; border-radius: 12px; border: 1px solid var(--line, rgba(127,127,127,.25)); background: var(--card); color: var(--text); font-weight: 600; }
   .sheet label { display: block; font-size: 13px; color: var(--sub); margin: 10px 0 4px; }
@@ -465,8 +474,12 @@ function logsHtml() {
   if (!list.length) return logBar() + `<div class="empty">${query ? "찾는 기록이 없습니다" : "최근 2주 동안 끝낸 일이 없습니다"}</div>`;
   const days = {};
   for (const log of list) (days[log.date] = days[log.date] || []).push(log);
-  return logBar() + Object.keys(days).sort().reverse().map(d => `<div class="day">${dayTitle(d)} · ${days[d].length}건</div>` + days[d].map(log =>
-    `<div class="ev"><span class="what">${mark(log.title)}<small>${esc((log.section || "") + (log.sub ? " › " + log.sub : ""))}</small></span></div>`).join("")).join("");
+  // 날짜마다 카드 하나: 머리(날짜 · 오늘 · 건수), 줄마다 한 일(굵게) + 프로젝트 색 알약(› 부제)
+  const colors = (state && state.colors) || {};
+  return logBar() + Object.keys(days).sort().reverse().map(d => `<div class="lday"><div class="lhead"><b>${dayTitle(d).replace(" · 오늘", "")}</b>${d === today() ? `<span class="ltoday">오늘</span>` : ""}<span class="lcnt">${days[d].length}건</span></div>` + days[d].map(log => {
+    const c = colors[log.section || ""] || "", where = (log.section || "기타") + (log.sub ? " › " + log.sub : "");
+    return `<div class="lrow"><div class="ltitle">${mark(log.title)}</div><span class="lchip" style="${c ? "--pc:" + esc(c) : ""}">${esc(where)}</span></div>`;
+  }).join("") + `</div>`).join("");
 }
 
 // 마감 지난 할 일(반복 업무 빼고)을 하루 한 번 오늘로. 처음엔 PC 설정을 따르고, 폰 설정에서 따로 켜고 끌 수 있다.
