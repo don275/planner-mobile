@@ -53,7 +53,7 @@
   .board .box.part::after { content: ""; position: absolute; inset: 3px; border-radius: 50%; background: conic-gradient(color-mix(in srgb, var(--sc, var(--accent)) 75%, var(--card)) var(--p, 30%), transparent 0); }
   .board .prog { display: none; }
   .body { flex: 1; min-width: 0; }
-  .text { word-break: break-word; }
+  .text { word-break: keep-all; overflow-wrap: anywhere; }     /* 한글을 낱말 가운데서 끊지 않는다(띄어쓰기에서만, 너무 긴 낱말만 끊음) */
   .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 5px; font-size: 12.5px; color: var(--sub); }
   .due { font-weight: 700; }
   .star { color: var(--orange); }
@@ -61,7 +61,7 @@
   .more { margin-top: 8px; padding: 10px; border-radius: 10px; background: var(--tint); font-size: 13.5px; color: var(--sub); }
   .steps { margin: 0; padding: 0; list-style: none; }
   .steps li { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
-  .steps li span { flex: 1; min-width: 0; word-break: break-word; }
+  .steps li span { flex: 1; min-width: 0; word-break: keep-all; overflow-wrap: anywhere; }
   .steps li.done span { text-decoration: line-through; color: var(--faint); }
   .steps li.now span { color: var(--text); font-weight: 700; }
   .steps li button, .acts button { font-size: 12.5px; padding: 3px 9px; border-radius: 999px; }
@@ -141,8 +141,8 @@
   .lday .ev .what { font-weight: 700; }
   .lday .ev .what small { font-weight: 400; }
   .lrow { padding: 9px 0; border-top: 1px solid var(--line, rgba(127,127,127,.15)); }
-  .ltitle { font-weight: 700; font-size: 14.5px; word-break: break-word; }
-.ldetail { margin-top: 3px; font-size: 13px; color: var(--sub); word-break: break-word; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }     /* 내용 · 성과: PC 카드처럼 제목 아래 회색 두 줄까지 */
+  .ltitle { font-weight: 700; font-size: 14.5px; word-break: keep-all; overflow-wrap: anywhere; }
+.ldetail { margin-top: 3px; font-size: 13px; color: var(--sub); word-break: keep-all; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }     /* 내용 · 성과: PC 카드처럼 제목 아래 회색 두 줄까지 */
   /* 시안 A(PC 업무 기록 · 일정과 같게): 날짜마다 카드, 머리는 옅은 파란 띠, 줄 사이 가는 선 */
   .lday { padding: 0; overflow: hidden; }
   .lhead { padding: 10px 14px; background: color-mix(in srgb, #1a73e8 11%, var(--card)); color: color-mix(in srgb, #1a73e8 72%, var(--text)); }
@@ -168,7 +168,7 @@
   .ev { display: flex; gap: 10px; align-items: flex-start; padding: 9px 0; border-bottom: 1px solid var(--line); }
   .ev .when { flex: none; width: 46px; font-size: 13px; color: var(--sub); padding-top: 1px; }
   .ev .bar { flex: none; width: 4px; align-self: stretch; border-radius: 2px; background: var(--accent); }
-  .ev .what { flex: 1; min-width: 0; word-break: break-word; }
+  .ev .what { flex: 1; min-width: 0; word-break: keep-all; overflow-wrap: anywhere; }
   .ev small { display: block; color: var(--faint); font-size: 12px; margin-top: 2px; }
   body.plain main { padding-bottom: calc(20px + env(safe-area-inset-bottom)); }
   body.plain footer { display: none; }
