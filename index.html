@@ -129,6 +129,9 @@
   .lhead b::before { content: ""; width: 4px; height: 16px; border-radius: 2px; background: var(--accent); }
   .ltoday { font-size: 12px; font-weight: 700; color: var(--accent); }
   .lcnt { margin-left: auto; font-size: 12px; color: var(--sub); }
+  .lday .ev { border-bottom: 0; border-top: 1px solid var(--line, rgba(127,127,127,.15)); padding: 10px 0; }
+  .lday .ev .what { font-weight: 700; }
+  .lday .ev .what small { font-weight: 400; }
   .lrow { padding: 9px 0; border-top: 1px solid var(--line, rgba(127,127,127,.15)); }
   .ltitle { font-weight: 700; font-size: 14.5px; word-break: break-word; }
   .lchip { display: inline-block; margin-top: 5px; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; background: color-mix(in srgb, var(--pc, var(--sub)) 16%, var(--card)); color: color-mix(in srgb, var(--pc, var(--sub)) 85%, var(--text)); }
@@ -395,12 +398,13 @@ function eventsHtml() {
     const first = ev.start.slice(0, 10) < today() ? today() : ev.start.slice(0, 10);
     (days[first] = days[first] || []).push(ev);
   }
-  return Object.keys(days).sort().map(d => `<div class="day">${dayTitle(d)}</div>` + days[d].map(ev => {
+  // 기록 탭과 같게 날짜마다 카드 하나
+  return Object.keys(days).sort().map(d => `<div class="lday"><div class="lhead"><b>${dayTitle(d).replace(" · 오늘", "")}</b>${d === today() ? `<span class="ltoday">오늘</span>` : ""}<span class="lcnt">${days[d].length}건</span></div>` + days[d].map(ev => {
     const when = ev.allDay || ev.start.slice(0, 10) < d ? "종일" : ev.start.slice(11, 16);
     const until = ev.last > d ? " · ~" + md(ev.last) : "";
     return `<div class="ev"><span class="when">${when}</span><span class="bar" style="${ev.color ? "background:" + esc(ev.color) : ""}"></span>`
       + `<span class="what">${mark(ev.title || "(제목 없음)")}<small>${esc(ev.calendar || "")}${until}</small></span></div>`;
-  }).join("")).join("");
+  }).join("") + `</div>`).join("");
 }
 
 // 최근 2주 동안 끝낸 일
