@@ -49,7 +49,7 @@ section.b0 { --sc: var(--red); } section.b1 { --sc: var(--orange); } section.b2,
 .text .av { float: right; margin: 1px 0 0 8px; }     /* 남에게 맡긴 일: 제목 줄 오른쪽(PC 처럼) */
 .text .av, .meta .av, .sheet .av, #sheet .av { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--accent, #202124); color: #fff; font-size: 11px; font-weight: 700; flex: none; vertical-align: middle; }
 .meta .from { color: var(--text); font-weight: 600; }
-.bchip.team { background: color-mix(in srgb, #1A73E8 16%, transparent); color: color-mix(in srgb, #1A73E8 55%, var(--text)); }     /* 새로 받은 일: 팀 파랑(대비 밝게 6.7 · 어둡게 5.1) */
+.bchip.team { background: color-mix(in srgb, #1A73E8 16%, var(--card)); color: color-mix(in srgb, #1A73E8 55%, var(--text)); }     /* 새로 받은 일: 팀 파랑(대비 밝게 6.7 · 어둡게 5.1) */
 .psec { font-size: 12px; font-weight: 600; color: var(--sub);     /* 프로젝트 색이 있으면 headInk 로 카드 위 4.5 맞춘 색(보라 · 옅은 노랑이 4.2 · 4.3 이었다, 2.2.91) */ margin-right: 2px; }
   .item { display: flex; gap: 10px; padding: 11px 4px 10px; border-bottom: 1px solid var(--line); }
   .item:last-child { border-bottom: 0; }
@@ -442,7 +442,7 @@ const WEEK = ["일", "월", "화", "수", "목", "금", "토"];
 // 할 일 · 메모 · 일정 제목 같은 사용자 자료는 바꾸지 않는다(표에 있는 UI 말과 똑같은 글만 바뀜).
 const isEn = () => { const l = load("look", {}).lang; return l === "en" || (!l && !!state && state.lang === "en"); };
 const EN = {
-  "전체": "All", "내 일": "Mine", "새로 받은 일": "New from team", "누구에게 맡길까요?": "Assign to whom?", "맡기기": "Assign", "맡기지 않음": "Unassign", "맡기기를 풀었습니다": "Unassigned", "날짜순": "By date", "날짜순 ↑": "By date ↑", "일정": "Calendar", "기록": "Log", "검색": "Search", "문구": "Phrases", "설정": "Settings",
+  "전체": "All", "내 일": "Mine", "오늘 일정": "Today's events", "새로 받은 일": "New from team", "누구에게 맡길까요?": "Assign to whom?", "맡기기": "Assign", "맡기지 않음": "Unassign", "맡기기를 풀었습니다": "Unassigned", "날짜순": "By date", "날짜순 ↑": "By date ↑", "일정": "Calendar", "기록": "Log", "검색": "Search", "문구": "Phrases", "설정": "Settings",
   "견본 자료입니다": "Sample data", "구글 연결": "Connect Google", "구글에 연결하면 내 할 일이 보입니다": "Connect Google to see your to-dos",
   "지난 마감": "Overdue", "오늘 마감": "Due today", "이번 주 디데이": "D-days this week", "오래 밀린 일": "Long overdue", "오늘로 옮겨 온 일": "Moved to today",
   "오늘은 숨기기": "Hide for today", "고정": "Pinned", "반복": "Repeats", "반복 · 오늘": "Repeats · today", "마감일": "Due date", "단계 나누기": "Split steps",
@@ -571,10 +571,17 @@ function briefHtml() {
   if (n("team")) chips.unshift(`<button class="bchip team" data-brief="team">새로 받은 일 ${n("team")}</button>`);     // 팀: 어제 · 오늘 남이 맡긴 일(PC 와 같음)
   if (n("week")) chips.push(`<button class="bchip rolled" data-brief="week">이번 주 디데이 ${n("week")}</button>`);     // 오늘 몫 다음에 볼 일
   if (n("nodate")) chips.push(`<button class="bchip rolled" data-brief="nodate">날짜 없음 ${n("nodate")}</button>`);     // 날짜 없는 일(시간 나면 챙길 일, PC 와 같음)
+  const evs = todayEvents();     // 오늘 구글 캘린더 일정(PC 와 같음): 누르면 일정 탭
+  if (evs.length) chips.push(`<button class="bchip team" data-brief="events">오늘 일정 ${evs.length}</button>`);
   return `<div class="brief"><div class="bhead"><b>오늘 ${dayTitle(today()).replace(" · 오늘", "")}</b><button class="bx" data-briefx aria-label="오늘은 숨기기">✕</button></div><div class="bchips">${chips.join("")}</div></div>`;
+}
+function todayEvents() {
+  const d = today();
+  return ((state && state.events) || []).filter(e => (e.start || "").slice(0, 10) <= d && (e.last || (e.start || "").slice(0, 10)) >= d);
 }
 let briefAt = {};
 function pickBrief(kind) {
+  if (kind === "events") { document.querySelector('[data-filter="events"]').click(); return; }
   const ids = (kind === "nodate" ? briefMatch(kind).sort((a, b) => ageDays(b) - ageDays(a)) : briefMatch(kind)).map(x => x.id), els =     /* 날짜 없음은 오래 묵은 것부터(PC 와 같음) */ ids.map(id => document.querySelector(`.item[data-id="${CSS.escape(id)}"]`)).filter(Boolean);
   // [오늘] 탭에서 이번 주 디데이 등을 누르면 [전체] 로 바꿔 다시 찾는다(PC 와 같게)
   if (!els.length && filter === "today" && !query) { document.querySelector('[data-filter="all"]').click(); setTimeout(() => pickBrief(kind), 50); return; }
@@ -1546,6 +1553,13 @@ async function selfTest() {
       opened = null; delete state.team; state.todos.splice(t0); render(); await W(150);
       const gone = $("mineChip").hidden;
       check("팀: 내 일 칩 · 받은 일만 · 맡김 · 동그라미 · 맡기기 단추 · 알약 대비 · 새 일 알림 한 번", freshToast && toastOnce && teamRatio >= 4.5 && chipOk && avOk && shown.length === 1 && shown[0] === "tm-in" && fromTxt.includes("최지원") && !!btn && btn.textContent.includes("최지원") && gone, [chipOk, avOk, shown.join("|"), fromTxt, btn && btn.textContent, gone, "대비 " + teamRatio.toFixed(1), "알림 " + freshToast + "/" + toastOnce].join(" "));
+    }
+    { // 오늘 카드 "오늘 일정 n": 견본의 오늘 일정(주간 회의) 수와 같고, 누르면 일정 탭
+      tab("전체"); await W(200);
+      const evChip = document.querySelector('[data-brief="events"]'), n = todayEvents().length;
+      const evText = evChip ? evChip.textContent : "";
+      if (evChip) { evChip.click(); await W(250); }
+      check("오늘 카드 오늘 일정 → 일정 탭", n >= 1 && evText.endsWith(" " + n) && filter === "events", evText + " / " + filter);
     }
     tab("일정"); await W(300);
     const evFoot = (document.querySelector(".lfoot") || {}).textContent || "";
