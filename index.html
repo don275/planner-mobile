@@ -740,6 +740,7 @@ function render() {
   }
   // [내 일] 이 비면 오늘 카드 아래에 안내(오늘 카드가 있어 html 이 빈 것으로 안 잡힌다)
   if (filter === "mine" && !query && !todos.length) html += `<div class="empty">나에게 맡겨진 일이 없습니다<br>누가 일을 맡기면 여기에 모입니다</div>`;
+  else if ((filter === "all" || filter === "next") && !query && !todos.length && html) html += `<div class="empty">남은 일이 없습니다</div>`;     // 오늘 카드만 덩그러니 남지 않게
   $("list").innerHTML = html || `<div class="empty">${query ? "찾는 할 일이 없습니다" : filter === "today" ? "오늘 마감인 일이 없습니다" + (briefMatch("week").length ? `<br><button class="bchip rolled" data-brief="week" style="margin-top:12px">이번 주 디데이 ${briefMatch("week").length}</button>` : "") : "남은 일이 없습니다"}</div>`;
   const names = order.filter(Boolean), sel = $("newSection"), keep = sel.value;
   sel.innerHTML = names.map(n => `<option>${esc(n)}</option>`).join("") + `<option value="">기타</option>`;
@@ -1661,6 +1662,12 @@ async function selfTest() {
       const evText = evChip ? evChip.textContent : "";
       if (evChip) { evChip.click(); await W(250); }
       check("오늘 카드 오늘 일정 → 일정 탭", n >= 1 && evText.endsWith(" " + n) && filter === "events", evText + " / " + filter);
+    }
+    { // 할 일이 하나도 없을 때 [전체]: 오늘 카드 아래 "남은 일이 없습니다"
+      const keepTodos = state.todos; state.todos = []; tab("전체"); render(); await W(150);
+      const allEmpty = ($("list").textContent || "").includes("남은 일이 없습니다");
+      state.todos = keepTodos; render(); await W(150);
+      check("할 일이 없을 때 [전체] 안내", allEmpty);
     }
     tab("일정"); await W(300);
     const evFoot = (document.querySelector(".lfoot") || {}).textContent || "";
