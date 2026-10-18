@@ -45,7 +45,7 @@
   .proj small { font-weight: 400; color: var(--sub); }
 /* 날짜순: 머리줄은 날짜 묶음(지남 · 오늘 빨강, 내일 주황, 나머지 회색), 줄 앞에 프로젝트 이름 */
 section.b0 { --sc: var(--red); } section.b1 { --sc: var(--orange); } section.b2, section.b3, section.b4 { --sc: var(--sub); }
-.psec { font-size: 12px; font-weight: 600; color: color-mix(in srgb, var(--sc, var(--accent)) 60%, var(--text)); margin-right: 2px; }
+.psec { font-size: 12px; font-weight: 600; color: var(--sub);     /* 프로젝트 색이 있으면 headInk 로 카드 위 4.5 맞춘 색(보라 · 옅은 노랑이 4.2 · 4.3 이었다, 2.2.91) */ margin-right: 2px; }
   .item { display: flex; gap: 10px; padding: 11px 4px 10px; border-bottom: 1px solid var(--line); }
   .item:last-child { border-bottom: 0; }
   .box { flex: none; width: 24px; height: 24px; margin-top: 1px; border: 1.6px solid var(--faint); border-radius: 7px; background: var(--card); padding: 0; position: relative; }
@@ -572,7 +572,7 @@ function render() {
       let html = "";
       const due = dueLabel(item), many = item.steps.length > 1;
       html += `<div class="item${opened === item.id ? " open" : ""}" data-id="${esc(item.id)}" data-sec="${esc(item.section || "")}" data-sub="${esc(item.sub || "")}"><button class="box${item.step > 0 ? " part" : ""}"${item.step > 0 ? ` style="--p:${Math.round(item.step * 100 / item.steps.length)}%"` : ""} data-check="${esc(item.id)}" aria-label="완료"></button><div class="body">`
-        + `<div class="text" data-open="${esc(item.id)}">${withSec ? `<span class="psec" style="${colors[item.section || ""] ? "--sc:" + esc(colors[item.section || ""]) : ""}">${esc(item.section || "기타")}</span> ` : ""}${item.star ? `<span class="star">★</span> ` : ""}${mark(many ? item.steps[item.step] : item.text)}</div><div class="meta" data-open="${esc(item.id)}">`
+        + `<div class="text" data-open="${esc(item.id)}">${withSec ? `<span class="psec" style="${colors[item.section || ""] && headInk(colors[item.section || ""], isDark(), 0) ? "color:" + headInk(colors[item.section || ""], isDark(), 0) : ""}">${esc(item.section || "기타")}</span> ` : ""}${item.star ? `<span class="star">★</span> ` : ""}${mark(many ? item.steps[item.step] : item.text)}</div><div class="meta" data-open="${esc(item.id)}">`
         + (many ? `<span class="prog"><i style="width:${Math.round((item.step + 1) * 100 / item.steps.length)}%"></i></span><span>${item.step + 1}/${item.steps.length}</span>` + (item.step < item.steps.length - 1 ? `<span>다음: ${esc(item.steps[item.step + 1])}</span>` : "") : "")
         + (due ? `<span class="due ${due.cls}">${due.text}</span>` : "") + (item.remind ? `<span>알림 ${remindLabel(item.remind)}</span>` : "")
         + (item.files ? `<span>첨부 ${item.files}</span>` : "") + (item.notes && opened !== item.id ? `<span>메모</span>` : "") + `</div>`;
@@ -1406,14 +1406,16 @@ async function selfTest() {
     const bgOf = el => { for (let e = el; e; e = e.parentElement) { const c = getComputedStyle(e).backgroundColor; if (c && !/rgba\(0, 0, 0, 0\)|transparent/.test(c)) return rgb(c); } return [255, 255, 255]; };
     const ratio = el => { if (!el) return 0; const a = lum(rgb(getComputedStyle(el).color)), b = lum(bgOf(el)); return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05); };
     const before = document.documentElement.dataset.theme;
+    const t9min = { v: 99, c: "" };     // 날짜순 줄 앞 프로젝트 이름: 여러 프로젝트 색 중 가장 낮은 대비
     for (const mode of ["light", "dark"]) {
       document.documentElement.dataset.theme = mode; tab("전체"); await W(300);
       const t1 = ratio(document.querySelector(".item .text")), t2 = ratio(document.querySelector("section .proj b"));
       const t8 = Math.min(99, ...[...document.querySelectorAll(".bchip, .meta .due")].map(ratio));     // 오늘 카드 알약 · 할 일 줄 마감 알약     // 오늘 카드 알약들(지난 · 오늘 · 이번 주 등)
+      tab("날짜순"); await W(300); const t9 = Math.min(99, ...[...document.querySelectorAll(".uphead b, .uphead small, .psec")].map(ratio)); { const host = document.querySelector(".item .text"); if (host) for (const c of [...COLORS, "#ffeb3b", "#81d4fa", "#f8bbd0", "#212121", "#9c27b0"]) { const s = document.createElement("span"); s.className = "psec"; s.style.color = headInk(c, isDark(), 0); s.textContent = "x"; host.prepend(s); const r = ratio(s); s.remove(); if (r < t9min.v) t9min.v = r, t9min.c = c; } } tab("전체"); await W(200);     // 날짜순 머리줄(오늘 빨강 · 내일 주황 · 회색) · 줄 앞 프로젝트 이름
       tab("기록"); await W(300);
       const t3 = ratio(document.querySelector(".lhead b")), t4 = ratio(document.querySelector(".ldetail")), t5 = ratio(document.querySelector(".lfoot"));     // 기록 내용(회색) · 아래 안내 글
       tab("일정"); await W(300); const t7 = ratio(document.querySelector(".ev small") || document.querySelector(".lfoot"));     // 일정 캘린더 이름(작은 글씨)
-      check("대비(" + (mode === "light" ? "밝게" : "어둡게") + ")", t8 >= 4.5 && t7 >= 4.5 && t1 >= 4.5 && t2 >= 3 && t3 >= 3 && t4 >= 4.5 && t5 >= 4.5, "할 일 " + t1.toFixed(1) + " · 프로젝트 " + t2.toFixed(1) + " · 날짜 띠 " + t3.toFixed(1) + " · 기록 내용 " + t4.toFixed(1) + " · 안내 " + t5.toFixed(1) + " · 캘린더 이름 " + t7.toFixed(1) + " · 알약 " + t8.toFixed(1));
+      check("대비(" + (mode === "light" ? "밝게" : "어둡게") + ")", t9 >= 4.5 && t9min.v >= 4.5 && t8 >= 4.5 && t7 >= 4.5 && t1 >= 4.5 && t2 >= 3 && t3 >= 3 && t4 >= 4.5 && t5 >= 4.5, "할 일 " + t1.toFixed(1) + " · 프로젝트 " + t2.toFixed(1) + " · 날짜 띠 " + t3.toFixed(1) + " · 기록 내용 " + t4.toFixed(1) + " · 안내 " + t5.toFixed(1) + " · 캘린더 이름 " + t7.toFixed(1) + " · 날짜순 " + t9.toFixed(1) + "/색 " + t9min.v.toFixed(1) + t9min.c + " · 알약 " + t8.toFixed(1));
     }
     // 대표색 8가지 × 밝게 · 어둡게: 대표색 위 글씨 4.5 · 바탕과 대표색 3
     tab("전체"); await W(300);
