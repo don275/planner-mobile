@@ -982,10 +982,17 @@ function showSettings() {
 }
 
 // 팀 현황(PC 와 같은 카드): 사람마다 진행 중 · 기한 지남 · 이번 주 끝냄 · 급한 일 · 내가 맡긴 일. 나 먼저, 그다음 지난 마감 많은 순
+// "yyyy-MM-dd HH:mm" → 방금 · n분 전 · n시간 전 · n일 전(PC 팀 현황과 같은 말)
+function agoText(at) {
+  const t = Date.parse(at.replace(" ", "T")); if (isNaN(t)) return "";
+  const m = Math.floor((Date.now() - t) / 60000);
+  if (isEn()) return m < 1 ? "just now" : m < 60 ? m + " min ago" : m < 1440 ? Math.floor(m / 60) + " h ago" : Math.floor(m / 1440) + " d ago";
+  return m < 1 ? "방금" : m < 60 ? m + "분 전" : m < 1440 ? Math.floor(m / 60) + "시간 전" : Math.floor(m / 1440) + "일 전";
+}
 function showTeamBoard() {
   const t = state && state.team; if (!t) return;
   const people = [...t.people].sort((a, b) => (a.id === t.me ? -1 : b.id === t.me ? 1 : 0) || (b.late || 0) - (a.late || 0));
-  const card = p => `<div class="tcard"><div class="thead">${avatarHtml(p.id)}<b>${esc(p.name)}${p.id === t.me ? (isEn() ? " (me)" : " (나)") : ""}</b><small>${p.at ? esc(p.at.slice(5)) : ""}</small></div>`
+  const card = p => `<div class="tcard"><div class="thead">${avatarHtml(p.id)}<b>${esc(p.name)}${p.id === t.me ? (isEn() ? " (me)" : " (나)") : ""}</b><small>${p.at ? esc(agoText(p.at)) : ""}</small></div>`
     + (p.open === undefined ? `<div class="tnone">${isEn() ? "No status yet" : "아직 현황이 없습니다"}</div>`
       : `<div class="tstats"><span class="st">${isEn() ? "Open" : "진행 중"} ${p.open}</span>` + (p.late ? `<span class="st r">${isEn() ? "Overdue" : "기한 지남"} ${p.late}</span>` : "") + `<span class="st g">${isEn() ? "Done this week" : "이번 주 끝냄"} ${p.doneWeek}</span></div>`
         + (p.top || []).map(s => `<div class="tline">· ${esc(s)}</div>`).join(""))
@@ -1573,9 +1580,9 @@ async function selfTest() {
       tab("전체"); await W(200); opened = "tm-out"; render(); await W(150);
       const btn = document.querySelector(`.item[data-id="tm-out"] [data-act="assign"]`);
       state.team.people[0].open = 4; state.team.people[0].late = 0; state.team.people[0].doneWeek = 12; state.team.people[0].top = ["계약서 검토 · 10/23 (D-4)"]; state.team.people[0].gave = ["샘플 발송 확인 · 10/21 (D-2)"];
-      state.team.people[1].open = 6; state.team.people[1].late = 1; state.team.people[1].doneWeek = 9;
+      state.team.people[1].open = 6; state.team.people[1].late = 1; state.team.people[1].doneWeek = 9; state.team.people[1].at = (() => { const d = new Date(Date.now() - 3 * 60000); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0") + " " + String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); })();
       $("settings").click(); await W(250); const tbBtn = document.querySelector("#teamBoard"); if (tbBtn) tbBtn.click(); await W(250);
-      const tcards = [...document.querySelectorAll("#sheet .tcard")], boardOk = tcards.length === 2 && tcards[0].textContent.includes("김대리") && tcards[1].textContent.includes("내가 맡긴 일") && !!document.querySelector("#sheet .st.r");
+      const tcards = [...document.querySelectorAll("#sheet .tcard")], boardOk = tcards.length === 2 && tcards[0].textContent.includes("김대리") && /[34]분 전/.test(tcards[0].textContent) && tcards[1].textContent.includes("내가 맡긴 일") && !!document.querySelector("#sheet .st.r");
       closeSheet();
       opened = null; delete state.team; state.todos.splice(t0); render(); await W(150);
       const gone = $("mineChip").hidden;
