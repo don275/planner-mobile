@@ -46,8 +46,10 @@
 /* 날짜순: 머리줄은 날짜 묶음(지남 · 오늘 빨강, 내일 주황, 나머지 회색), 줄 앞에 프로젝트 이름 */
 section.b0 { --sc: var(--red); } section.b1 { --sc: var(--orange); } section.b2, section.b3, section.b4 { --sc: var(--sub); }
 /* 팀: 맡은 사람 동그라미(줄 정보 끝), 받은 일 "OO님이 맡김" */
-.meta .av, .sheet .av, #sheet .av { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--accent, #202124); color: #fff; font-size: 11px; font-weight: 700; flex: none; vertical-align: middle; }
+.text .av { float: right; margin: 1px 0 0 8px; }     /* 남에게 맡긴 일: 제목 줄 오른쪽(PC 처럼) */
+.text .av, .meta .av, .sheet .av, #sheet .av { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--accent, #202124); color: #fff; font-size: 11px; font-weight: 700; flex: none; vertical-align: middle; }
 .meta .from { color: var(--text); font-weight: 600; }
+.bchip.team { background: color-mix(in srgb, #1A73E8 16%, transparent); color: color-mix(in srgb, #1A73E8 55%, var(--text)); }     /* 새로 받은 일: 팀 파랑(대비 밝게 6.7 · 어둡게 5.1) */
 .psec { font-size: 12px; font-weight: 600; color: var(--sub);     /* 프로젝트 색이 있으면 headInk 로 카드 위 4.5 맞춘 색(보라 · 옅은 노랑이 4.2 · 4.3 이었다, 2.2.91) */ margin-right: 2px; }
   .item { display: flex; gap: 10px; padding: 11px 4px 10px; border-bottom: 1px solid var(--line); }
   .item:last-child { border-bottom: 0; }
@@ -566,7 +568,7 @@ function briefHtml() {
   if (n("today")) chips.push(`<button class="bchip today" data-brief="today">오늘 마감 ${n("today")}</button>`);
   if (n("rolled")) chips.push(`<button class="bchip rolled" data-brief="rolled">옮겨 온 일 ${n("rolled")}</button>`);
   if (!chips.length) chips.push(`<span class="bchip calm">오늘 마감인 일이 없습니다</span>`);
-  if (n("team")) chips.unshift(`<button class="bchip rolled" data-brief="team">새로 받은 일 ${n("team")}</button>`);     // 팀: 어제 · 오늘 남이 맡긴 일(PC 와 같음)
+  if (n("team")) chips.unshift(`<button class="bchip team" data-brief="team">새로 받은 일 ${n("team")}</button>`);     // 팀: 어제 · 오늘 남이 맡긴 일(PC 와 같음)
   if (n("week")) chips.push(`<button class="bchip rolled" data-brief="week">이번 주 디데이 ${n("week")}</button>`);     // 오늘 몫 다음에 볼 일
   if (n("nodate")) chips.push(`<button class="bchip rolled" data-brief="nodate">날짜 없음 ${n("nodate")}</button>`);     // 날짜 없는 일(시간 나면 챙길 일, PC 와 같음)
   return `<div class="brief"><div class="bhead"><b>오늘 ${dayTitle(today()).replace(" · 오늘", "")}</b><button class="bx" data-briefx aria-label="오늘은 숨기기">✕</button></div><div class="bchips">${chips.join("")}</div></div>`;
@@ -674,11 +676,11 @@ function render() {
       let html = "";
       const due = dueLabel(item), many = item.steps.length > 1;
       html += `<div class="item${opened === item.id ? " open" : ""}" data-id="${esc(item.id)}" data-sec="${esc(item.section || "")}" data-sub="${esc(item.sub || "")}"><button class="box${item.step > 0 ? " part" : ""}"${item.step > 0 ? ` style="--p:${Math.round(item.step * 100 / item.steps.length)}%"` : ""} data-check="${esc(item.id)}" aria-label="완료"></button><div class="body">`
-        + `<div class="text" data-open="${esc(item.id)}">${withSec ? `<span class="psec" style="${colors[item.section || ""] && headInk(colors[item.section || ""], isDark(), 0) ? "color:" + headInk(colors[item.section || ""], isDark(), 0) : ""}">${esc(item.section || "기타")}</span> ` : ""}${item.star ? `<span class="star">★</span> ` : ""}${mark(many ? item.steps[item.step] : item.text)}</div><div class="meta" data-open="${esc(item.id)}">`
+        + `<div class="text" data-open="${esc(item.id)}">${withSec ? `<span class="psec" style="${colors[item.section || ""] && headInk(colors[item.section || ""], isDark(), 0) ? "color:" + headInk(colors[item.section || ""], isDark(), 0) : ""}">${esc(item.section || "기타")}</span> ` : ""}${item.star ? `<span class="star">★</span> ` : ""}${mark(many ? item.steps[item.step] : item.text)}${item.who ? avatarHtml(item.who) : ""}</div><div class="meta" data-open="${esc(item.id)}">`
         + (many ? `<span class="prog"><i style="width:${Math.round((item.step + 1) * 100 / item.steps.length)}%"></i></span><span>${item.step + 1}/${item.steps.length}</span>` + (item.step < item.steps.length - 1 ? `<span>다음: ${esc(item.steps[item.step + 1])}</span>` : "") : "")
         + (due ? `<span class="due ${due.cls}">${due.text}</span>` : withSec && ageDays(item) > 0 ? `<span class="due far age">${ageDays(item)}일째</span>` : "") + (item.remind ? `<span>알림 ${remindLabel(item.remind)}</span>` : "")
         + (item.files ? `<span>첨부 ${item.files}</span>` : "") + (item.notes && opened !== item.id ? `<span>메모</span>` : "")
-        + (item.from ? `<span class="from">${isEn() ? "From " + esc(item.from) : esc(item.from) + "님이 맡김"}</span>` : "") + (item.who ? avatarHtml(item.who) : "") + `</div>`;
+        + (item.from ? `<span class="from">${isEn() ? "From " + esc(item.from) : esc(item.from) + "님이 맡김"}</span>` : "") + `</div>`;
       if (opened === item.id) {
         html += `<div class="more">`;
         if (many) html += `<ul class="steps" data-steps="${esc(item.id)}">` + item.steps.map((s, i) => `<li class="${i < item.step ? "done" : i === item.step ? "now" : ""}"${i >= item.step ? ` data-stepi="${i}"` : ""}><span data-stepname="${i}">${i + 1}. ${esc(s)}</span>`
@@ -1516,7 +1518,7 @@ async function selfTest() {
       state.todos.find(x => x.id === "tm-in").fresh = true; render(); await W(150);
       const freshChip = !!document.querySelector(`[data-brief="team"]`) && briefMatch("team").length === 1;
       const chipOk = freshChip && !$("mineChip").hidden && $("mineChip").textContent.endsWith(" 1");
-      const avOk = !!document.querySelector(`.item[data-id="tm-out"] .av`);
+      const avOk = !!document.querySelector(`.item[data-id="tm-out"] .text .av`);
       $("mineChip").click(); await W(250);
       const shown = [...document.querySelectorAll(".item")].map(e => e.dataset.id);
       const fromTxt = (document.querySelector(`.item[data-id="tm-in"] .from`) || {}).textContent || "";
