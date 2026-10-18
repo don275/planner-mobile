@@ -735,6 +735,7 @@ function render() {
   $("banner").hidden = !demo && (!!token || (booting && !!state));
   $("bannerText").textContent = demo ? "견본 자료입니다" : "구글에 연결하면 내 할 일이 보입니다";
   $("connect").hidden = demo;
+  noticeFresh();
   // 앱으로 감쌌을 때: 앱이 마감일 알림을 걸 수 있게 지금 목록을 넘겨준다.
   try { window.PlannerNative?.onItems?.(view()); } catch {}
 }
@@ -973,6 +974,15 @@ async function copy(text) {
 function blanks(text) { return [...new Set([...(text || "").matchAll(/\{([^{}\n]{1,30})\}/g)].map(m => m[1].trim()).filter(Boolean))]; }
 // 다른 프로젝트로 옮기기: 그 프로젝트 맨 끝으로(PC 의 op "move" 가 받는다)
 // 팀(PC 에서 팀 기능을 켰을 때): 사람 동그라미 · 맡기기. 폰엔 공유 폴더가 없어서 PC 에 op "assign" 으로 부탁한다
+// 팀: 새로 받은 일이 처음 보이면 한 번 알림(PC 와 같은 말). 본 것은 기억해서 다시 알리지 않는다
+function noticeFresh() {
+  const fresh = view().filter(x => x.fresh), seen = load("seenFresh", []);
+  const added = fresh.filter(x => !seen.includes(x.id));
+  if (!added.length) return;
+  save("seenFresh", [...new Set([...seen, ...fresh.map(x => x.id)])].slice(-200));
+  const t = added[0].text.length > 20 ? added[0].text.slice(0, 20) + "…" : added[0].text;
+  toast(added.length > 1 ? (isEn() ? added.length + " new tasks from your team" : "새로 받은 일 " + added.length + "건") : isEn() ? added[0].from + " assigned '" + t + "' to you" : added[0].from + "님이 '" + t + "' 을(를) 맡겼습니다");
+}
 function personName(id) { const p = ((state && state.team && state.team.people) || []).find(x => x.id === id); return p ? p.name : id; }
 function avatarHtml(id) {
   const p = ((state && state.team && state.team.people) || []).find(x => x.id === id) || { name: id, color: "" };
@@ -1515,7 +1525,10 @@ async function selfTest() {
       state.todos.push({ id: "tm-in", section: "거래처", text: "받은 일", steps: ["받은 일"], step: 0, due: "", stepDues: [], notes: "", repeat: false, from: "최지원" },
                        { id: "tm-out", section: "거래처", text: "맡긴 일", steps: ["맡긴 일"], step: 0, due: "", stepDues: [], notes: "", repeat: false, who: "boss" });
       tab("전체"); render(); await W(200);
-      state.todos.find(x => x.id === "tm-in").fresh = true; render(); await W(150);
+      save("seenFresh", []); state.todos.find(x => x.id === "tm-in").fresh = true; render(); await W(150);
+      const freshToast = !$("toast").hidden && $("toast").textContent.includes("맡겼습니다");
+      $("toast").hidden = true; render(); await W(100);
+      const toastOnce = $("toast").hidden;     // 다시 그려도 또 알리지 않음
       const freshChip = !!document.querySelector(`[data-brief="team"]`) && briefMatch("team").length === 1;
       // 새로 받은 일 알약(팀 파랑) 글씨 대비 4.5 이상(반투명 바탕은 카드 색과 섞어서)
       const teamRatio = (() => { const el = document.querySelector(`[data-brief="team"]`); if (!el) return 0;
@@ -1532,7 +1545,7 @@ async function selfTest() {
       const btn = document.querySelector(`.item[data-id="tm-out"] [data-act="assign"]`);
       opened = null; delete state.team; state.todos.splice(t0); render(); await W(150);
       const gone = $("mineChip").hidden;
-      check("팀: 내 일 칩 · 받은 일만 · 맡김 · 동그라미 · 맡기기 단추 · 알약 대비", teamRatio >= 4.5 && chipOk && avOk && shown.length === 1 && shown[0] === "tm-in" && fromTxt.includes("최지원") && !!btn && btn.textContent.includes("최지원") && gone, [chipOk, avOk, shown.join("|"), fromTxt, btn && btn.textContent, gone, "대비 " + teamRatio.toFixed(1)].join(" "));
+      check("팀: 내 일 칩 · 받은 일만 · 맡김 · 동그라미 · 맡기기 단추 · 알약 대비 · 새 일 알림 한 번", freshToast && toastOnce && teamRatio >= 4.5 && chipOk && avOk && shown.length === 1 && shown[0] === "tm-in" && fromTxt.includes("최지원") && !!btn && btn.textContent.includes("최지원") && gone, [chipOk, avOk, shown.join("|"), fromTxt, btn && btn.textContent, gone, "대비 " + teamRatio.toFixed(1), "알림 " + freshToast + "/" + toastOnce].join(" "));
     }
     tab("일정"); await W(300);
     const evFoot = (document.querySelector(".lfoot") || {}).textContent || "";
