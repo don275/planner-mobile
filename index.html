@@ -552,7 +552,7 @@ function carriedDays(x) { return x.lateFrom && x.due && x.due >= today() ? Math.
 function briefMatch(kind) {
   const d = today();
   const wk = new Date(); wk.setDate(wk.getDate() + 6); const w = wk.getFullYear() + "-" + String(wk.getMonth() + 1).padStart(2, "0") + "-" + String(wk.getDate()).padStart(2, "0");
-  return view().filter(x => kind === "stuck" ? carriedDays(x) >= 3 : kind === "late" ? x.due && x.due < d && !x.repeat : kind === "today" ? x.due === d : kind === "week" ? x.due && x.due > d && x.due <= w && !x.repeat : carriedDays(x) > 0 && x.due === d);
+  return view().filter(x => kind === "stuck" ? carriedDays(x) >= 3 : kind === "late" ? x.due && x.due < d && !x.repeat : kind === "today" ? x.due === d : kind === "week" ? x.due && x.due > d && x.due <= w && !x.repeat : kind === "nodate" ? !x.due && !x.repeat : carriedDays(x) > 0 && x.due === d);
 }
 function briefHtml() {
   const n = k => briefMatch(k).length, chips = [];
@@ -562,6 +562,7 @@ function briefHtml() {
   if (n("rolled")) chips.push(`<button class="bchip rolled" data-brief="rolled">옮겨 온 일 ${n("rolled")}</button>`);
   if (!chips.length) chips.push(`<span class="bchip calm">오늘 마감인 일이 없습니다</span>`);
   if (n("week")) chips.push(`<button class="bchip rolled" data-brief="week">이번 주 디데이 ${n("week")}</button>`);     // 오늘 몫 다음에 볼 일
+  if (n("nodate")) chips.push(`<button class="bchip rolled" data-brief="nodate">날짜 없음 ${n("nodate")}</button>`);     // 날짜 없는 일(시간 나면 챙길 일, PC 와 같음)
   return `<div class="brief"><div class="bhead"><b>오늘 ${dayTitle(today()).replace(" · 오늘", "")}</b><button class="bx" data-briefx aria-label="오늘은 숨기기">✕</button></div><div class="bchips">${chips.join("")}</div></div>`;
 }
 let briefAt = {};
@@ -1451,6 +1452,7 @@ async function selfTest() {
       const hd = document.querySelector("section.bucket .uphead"); if (hd) hd.click(); await W(200); const noSheet = $("shade").hidden; if (!noSheet) closeSheet();
       const ageOk = [...document.querySelectorAll("section.b4 .due.age")].some(e => e.textContent === "12일째");     // 날짜 없음 줄: 며칠째
       check("날짜순: 날짜 없음 며칠째", ageOk);
+      check("오늘 카드 날짜 없음 알약", briefMatch("nodate").length > 0 && !!document.querySelector('[data-brief="nodate"]') || load("briefHidden", "") === today());
       check("날짜순 묶음", hs.length >= 2 && hs.every((v, i) => !i || hs[i - 1] < v) && psec && noSheet && filter === "next", hs.join(",") + " 디데이 없음 " + firstNoDue + " psec=" + psec + " noSheet=" + noSheet);
       tab("날짜순"); await W(300);     // 한 번 더 누르면 거꾸로(날짜 없음이 맨 위)
       { const rv = [...document.querySelectorAll("section.bucket")].map(s => +s.className.match(/b(\d)/)[1]), chipT = document.querySelector('[data-filter="next"]').textContent;
