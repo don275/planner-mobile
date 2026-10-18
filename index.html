@@ -93,8 +93,8 @@ section.b0 { --sc: var(--red); } section.b1 { --sc: var(--orange); } section.b2,
   .quick button { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 10px 12px; border-radius: 12px; text-align: left; font-weight: 600; }
   .quick button small { font-weight: 400; opacity: .65; font-size: 12px; }
   .quick button.on { outline: 2px solid var(--accent); }
-  .latebar { display: flex; align-items: center; gap: 8px; margin: 10px 2px 2px; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, #D93025 12%, transparent); }
-  .latebar span { flex: 1; font-weight: 600; color: #D93025; }
+  .latebar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px;     /* 좁은 폰 · 큰 글자 · 영어에서 단추가 화면 밖으로 나가지 않게 줄바꿈 */ margin: 10px 2px 2px; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, #D93025 12%, transparent); }
+  .latebar span { flex: 1 1 auto; min-width: 7em; font-weight: 600; color: #D93025; }
   .latebar button { font-size: 13px; padding: 5px 11px; border-radius: 999px; }
   .empty { text-align: center; color: var(--sub); padding: 48px 0; }
   footer { flex: none; background: var(--back); border-top: 1px solid var(--line); padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); }
@@ -1586,6 +1586,8 @@ async function selfTest() {
       // 제목 칸이 카드 폭의 60% 이상(마감 알약 때문에 한두 글자씩 줄바꿈되던 것)
       const narrow = [...document.querySelectorAll(".board .item .text")].filter(e => e.clientWidth - parseFloat(getComputedStyle(e).paddingRight) < e.closest(".item").clientWidth * 0.6).length;
       ratioOk = ratioOk && narrow === 0; info += " · 좁은 제목 " + narrow;
+      tab("날짜순"); await W(300); const overNext = [...document.querySelectorAll("body *")].filter(e => !e.closest("#selftest") && e.getBoundingClientRect().right > innerWidth + 1).length; tab("전체"); await W(300);     // 날짜순 맨 위 지난 마감 줄(모두 오늘로 · 내일로)이 밖으로 나가던 것
+      ratioOk = ratioOk && overNext === 0; info += " · 날짜순 넘침 " + overNext;
     }
     save("look", lookKeep); applyLook(); render(); await W(200);
     check("글자 아주 크게: 목록 확대 · 끌 때 빈자리 높이", zoomOk && ratioOk, info);
