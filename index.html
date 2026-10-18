@@ -301,7 +301,7 @@ const newKey = () => Date.now().toString(36) + Math.random().toString(36).slice(
 
 let state = load("state", null);          // PC 에서 받은 목록
 let inbox = load("inbox", []);            // 아직 PC 가 가져가지 않은 내 변경
-let filter = "all", opened = null, token = null, picked = false, problem = "", query = "", booting = true;
+let filter = load("view", "all") === "next" ? "next" : "all", opened = null,     /* 지난번 고른 보기(전체 · 날짜순)로 연다 */ token = null, picked = false, problem = "", query = "", booting = true;
 // 찾기: 띄어 쓴 말이 모두 들어 있는 것만 남긴다
 const words = () => query.toLowerCase().split(/\s+/).filter(Boolean);
 const hits = (...texts) => { const all = texts.join("\n").toLowerCase(); return words().every(w => all.includes(w)); };
@@ -430,7 +430,7 @@ const WEEK = ["일", "월", "화", "수", "목", "금", "토"];
 const later = n => day(new Date(Date.parse(today()) + n * 86400000));
 const upBucket = x => !x.due ? 4 : x.due <= today() ? 0 : x.due === later(1) ? 1 : x.due <= later(6) ? 2 : 3;
 const upName = k => ["오늘", "내일", "다음 7일", "나중에", "날짜 없음"][k];     // TickTick 처럼(사장님 선택)
-let upRev = false;     // [날짜순] 을 한 번 더 눌러 거꾸로
+let upRev = load("viewRev", false) === true;     // [날짜순] 을 한 번 더 눌러 거꾸로(다시 켜도 그대로)
 const dayTitle = s => { const d = new Date(s + "T00:00"); return (d.getMonth() + 1) + "/" + d.getDate() + " (" + WEEK[d.getDay()] + ")" + (s === today() ? " · 오늘" : ""); };
 
 // 오늘부터 2주 일정(PC 의 구글 캘린더에서 온 것)
@@ -1274,10 +1274,14 @@ document.querySelectorAll("[data-filter]").forEach(b => b.addEventListener("clic
   // 날짜순을 한 번 더 누르면 거꾸로(날짜 없음이 맨 위), PC 와 같음
   if (b.dataset.filter === "next" && filter === "next") upRev = !upRev;
   filter = b.dataset.filter;
+  if (filter === "all" || filter === "next") { save("view", filter); save("viewRev", upRev); }
   document.querySelector('[data-filter="next"]').textContent = filter === "next" && upRev ? "날짜순 ↑" : "날짜순";
   document.querySelectorAll("[data-filter]").forEach(x => x.classList.toggle("on", x === b));
   render();
 }));
+// 켤 때 고른 보기 칩을 켜 둔다
+document.querySelectorAll("[data-filter]").forEach(x => x.classList.toggle("on", x.dataset.filter === filter));
+if (filter === "next" && upRev) document.querySelector('[data-filter="next"]').textContent = "날짜순 ↑";
 $("phrases").addEventListener("click", showPhrases);
 $("findText").addEventListener("input", () => { query = $("findText").value.trim(); render(); });
 $("findText").addEventListener("keydown", e => { if (e.key === "Enter") $("findText").blur(); });
@@ -1341,7 +1345,8 @@ async function selfTest() {
       tab("날짜순"); await W(300);     // 한 번 더 누르면 거꾸로(날짜 없음이 맨 위)
       { const rv = [...document.querySelectorAll("section.bucket")].map(s => +s.className.match(/b(\d)/)[1]), chipT = document.querySelector('[data-filter="next"]').textContent;
         check("날짜순 거꾸로", rv.length >= 2 && rv.every((v, i) => !i || rv[i - 1] > v) && chipT.includes("↑"), rv.join(",") + " " + chipT); }
-      tab("날짜순 ↑"); await W(200); tab("전체"); await W(300); }
+      check("고른 보기 기억", load("view") === "next" && load("viewRev") === true, load("view") + "/" + load("viewRev"));
+      tab("날짜순 ↑"); await W(200); tab("전체"); await W(300); check("전체로 바꾸면 기억도 전체", load("view") === "all" && load("viewRev") === false); }
     tab("일정"); await W(300);
     const evFoot = (document.querySelector(".lfoot") || {}).textContent || "";
     check("일정: 날짜 카드 · 파란 띠", document.querySelectorAll(".lday .lhead").length > 0);
