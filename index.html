@@ -1845,6 +1845,25 @@ async function selfTest() {
     save("look", lookKeep); applyLook(); render(); await W(150);
     check("글자 대비 훑기(밝게 · 어둡게)", low.size === 0, [...low].slice(0, 4).join(" | "));
   } catch (e) { check("글자 대비 훑기(밝게 · 어둡게)", false, e.message); }
+  // 넘침 훑기: 한국어 · 영어 × 보통 · 아주 큰 글자, 탭 다섯 · 설정 · 프로젝트 시트에서 화면 오른쪽 밖으로 나간 것이 없음(옆으로 미는 줄 안은 빼고)
+  try {
+    const outs = new Set(), sweepOut = tag => { for (const el of document.querySelectorAll("body *")) {
+      if (!el.getClientRects().length || el.closest("#selftest, .toast, .chips")) continue;     // 탭 줄은 일부러 옆으로 미는 줄(아래에서 따로 봄)
+      const cs = getComputedStyle(el);
+      if (el.getBoundingClientRect().right > innerWidth + 1) outs.add(tag + " " + (el.className || el.tagName) + " '" + el.textContent.trim().slice(0, 12) + "'");
+      else if (/auto|scroll/.test(cs.overflowX) && el.scrollWidth > el.clientWidth + 1) outs.add(tag + " 옆으로 밀림 " + (el.id || el.className)); }     // 목록 · 시트가 옆으로 밀리게 된 것
+      const row = document.querySelector(".chips"); if (row && row.scrollWidth > row.clientWidth + 1) outs.add(tag + " 탭 줄"); };
+    const lookKeep = load("look", {});
+    for (const size of ["", "xl"]) for (const lang of ["ko", "en"]) {
+      const tag = (size || "보통") + "/" + lang; save("look", { ...lookKeep, size, lang }); applyLook(); render(); await W(200);
+      for (const f of ["all", "next", "mine", "events", "log"]) { const b = document.querySelector(`[data-filter="${f}"]`); if (b) { b.click(); await W(150); sweepOut(tag + "/" + f); } }
+      document.querySelector('[data-filter="all"]').click(); await W(150);
+      $("settings").click(); await W(250); sweepOut(tag + "/settings"); closeSheet();
+      document.querySelector(".proj")?.click(); await W(250); sweepOut(tag + "/proj"); closeSheet();
+    }
+    save("look", lookKeep); applyLook(); render(); await W(150);
+    check("넘침 훑기(한 · 영 × 보통 · 아주 크게) · 폭 " + innerWidth, outs.size === 0, [...outs].slice(0, 4).join(" | "));
+  } catch (e) { check("넘침 훑기", false, e.message); }
   // English 화면(맨 마지막: 한국어로 돌아가려면 다시 켜야 해서). 탭 · 오늘 카드 · 마감 알약 · 날짜순 · 설정 시트에 UI 한국어가 남지 않는지(사용자 자료 칸은 빼고)
   try {
     const lookKeep = load("look", {}); save("look", { ...lookKeep, lang: "en" }); applyLook(); render(); startTr(); await W(300);
