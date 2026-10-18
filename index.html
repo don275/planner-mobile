@@ -440,7 +440,7 @@ const WEEK = ["일", "월", "화", "수", "목", "금", "토"];
 // 할 일 · 메모 · 일정 제목 같은 사용자 자료는 바꾸지 않는다(표에 있는 UI 말과 똑같은 글만 바뀜).
 const isEn = () => { const l = load("look", {}).lang; return l === "en" || (!l && !!state && state.lang === "en"); };
 const EN = {
-  "전체": "All", "내 일": "Mine", "누구에게 맡길까요?": "Assign to whom?", "맡기기": "Assign", "맡기지 않음": "Unassign", "맡기기를 풀었습니다": "Unassigned", "날짜순": "By date", "날짜순 ↑": "By date ↑", "일정": "Calendar", "기록": "Log", "검색": "Search", "문구": "Phrases", "설정": "Settings",
+  "전체": "All", "내 일": "Mine", "새로 받은 일": "New from team", "누구에게 맡길까요?": "Assign to whom?", "맡기기": "Assign", "맡기지 않음": "Unassign", "맡기기를 풀었습니다": "Unassigned", "날짜순": "By date", "날짜순 ↑": "By date ↑", "일정": "Calendar", "기록": "Log", "검색": "Search", "문구": "Phrases", "설정": "Settings",
   "견본 자료입니다": "Sample data", "구글 연결": "Connect Google", "구글에 연결하면 내 할 일이 보입니다": "Connect Google to see your to-dos",
   "지난 마감": "Overdue", "오늘 마감": "Due today", "이번 주 디데이": "D-days this week", "오래 밀린 일": "Long overdue", "오늘로 옮겨 온 일": "Moved to today",
   "오늘은 숨기기": "Hide for today", "고정": "Pinned", "반복": "Repeats", "반복 · 오늘": "Repeats · today", "마감일": "Due date", "단계 나누기": "Split steps",
@@ -557,7 +557,7 @@ function carriedDays(x) { return x.lateFrom && x.due && x.due >= today() ? Math.
 function briefMatch(kind) {
   const d = today();
   const wk = new Date(); wk.setDate(wk.getDate() + 6); const w = wk.getFullYear() + "-" + String(wk.getMonth() + 1).padStart(2, "0") + "-" + String(wk.getDate()).padStart(2, "0");
-  return view().filter(x => kind === "stuck" ? carriedDays(x) >= 3 : kind === "late" ? x.due && x.due < d && !x.repeat : kind === "today" ? x.due === d : kind === "week" ? x.due && x.due > d && x.due <= w && !x.repeat : kind === "nodate" ? !x.due && !x.repeat : carriedDays(x) > 0 && x.due === d);
+  return view().filter(x => kind === "stuck" ? carriedDays(x) >= 3 : kind === "late" ? x.due && x.due < d && !x.repeat : kind === "today" ? x.due === d : kind === "week" ? x.due && x.due > d && x.due <= w && !x.repeat : kind === "nodate" ? !x.due && !x.repeat : kind === "team" ? !!x.fresh : carriedDays(x) > 0 && x.due === d);
 }
 function briefHtml() {
   const n = k => briefMatch(k).length, chips = [];
@@ -566,6 +566,7 @@ function briefHtml() {
   if (n("today")) chips.push(`<button class="bchip today" data-brief="today">오늘 마감 ${n("today")}</button>`);
   if (n("rolled")) chips.push(`<button class="bchip rolled" data-brief="rolled">옮겨 온 일 ${n("rolled")}</button>`);
   if (!chips.length) chips.push(`<span class="bchip calm">오늘 마감인 일이 없습니다</span>`);
+  if (n("team")) chips.unshift(`<button class="bchip rolled" data-brief="team">새로 받은 일 ${n("team")}</button>`);     // 팀: 어제 · 오늘 남이 맡긴 일(PC 와 같음)
   if (n("week")) chips.push(`<button class="bchip rolled" data-brief="week">이번 주 디데이 ${n("week")}</button>`);     // 오늘 몫 다음에 볼 일
   if (n("nodate")) chips.push(`<button class="bchip rolled" data-brief="nodate">날짜 없음 ${n("nodate")}</button>`);     // 날짜 없는 일(시간 나면 챙길 일, PC 와 같음)
   return `<div class="brief"><div class="bhead"><b>오늘 ${dayTitle(today()).replace(" · 오늘", "")}</b><button class="bx" data-briefx aria-label="오늘은 숨기기">✕</button></div><div class="bchips">${chips.join("")}</div></div>`;
@@ -1512,7 +1513,9 @@ async function selfTest() {
       state.todos.push({ id: "tm-in", section: "거래처", text: "받은 일", steps: ["받은 일"], step: 0, due: "", stepDues: [], notes: "", repeat: false, from: "최지원" },
                        { id: "tm-out", section: "거래처", text: "맡긴 일", steps: ["맡긴 일"], step: 0, due: "", stepDues: [], notes: "", repeat: false, who: "boss" });
       tab("전체"); render(); await W(200);
-      const chipOk = !$("mineChip").hidden && $("mineChip").textContent.endsWith(" 1");
+      state.todos.find(x => x.id === "tm-in").fresh = true; render(); await W(150);
+      const freshChip = !!document.querySelector(`[data-brief="team"]`) && briefMatch("team").length === 1;
+      const chipOk = freshChip && !$("mineChip").hidden && $("mineChip").textContent.endsWith(" 1");
       const avOk = !!document.querySelector(`.item[data-id="tm-out"] .av`);
       $("mineChip").click(); await W(250);
       const shown = [...document.querySelectorAll(".item")].map(e => e.dataset.id);
