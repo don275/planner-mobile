@@ -586,14 +586,14 @@ function todayEvents() {
   const d = today();
   return ((state && state.events) || []).filter(e => (e.start || "").slice(0, 10) <= d && (e.last || (e.start || "").slice(0, 10)) >= d);
 }
-let briefAt = {};
+let briefAt = {}, briefPicked = "";     // 시험: 알약이 마지막으로 고른 할 일(반짝임 표시는 다시 그리면 사라져서)
 function pickBrief(kind) {
   if (kind === "events") { document.querySelector('[data-filter="events"]').click(); return; }
   const ids = (kind === "nodate" ? briefMatch(kind).sort((a, b) => ageDays(b) - ageDays(a)) : briefMatch(kind)).map(x => x.id), els =     /* 날짜 없음은 오래 묵은 것부터(PC 와 같음) */ ids.map(id => document.querySelector(`.item[data-id="${CSS.escape(id)}"]`)).filter(Boolean);
   // [오늘] 탭에서 이번 주 디데이 등을 누르면 [전체] 로 바꿔 다시 찾는다(PC 와 같게)
   if (!els.length && filter === "today" && !query) { document.querySelector('[data-filter="all"]').click(); setTimeout(() => pickBrief(kind), 50); return; }
   if (!els.length) { toast("보이는 목록에 없습니다(검색 · 걸러 보기를 풀어 보세요)"); return; }
-  const i = ((briefAt[kind] ?? -1) + 1) % els.length; briefAt[kind] = i;
+  const i = ((briefAt[kind] ?? -1) + 1) % els.length; briefAt[kind] = i; briefPicked = els[i].dataset.id;
   els[i].scrollIntoView({ behavior: "smooth", block: "center" });
   els[i].classList.add("flash"); setTimeout(() => els[i].classList.remove("flash"), 1200);
   // 몇 번째인지 · 무슨 일인지(폰은 마우스 풍선이 없어서). 한 번 더 누르면 다음 것
@@ -1582,8 +1582,8 @@ async function selfTest() {
         state.todos.push({ id: "nd-old", section: "거래처", text: "아주 오래된 일", steps: ["아주 오래된 일"], step: 0, due: "", stepDues: [], notes: "", repeat: false, created: later(-4000) },
                          { id: "nd-mid", section: "거래처", text: "꽤 오래된 일", steps: ["꽤 오래된 일"], step: 0, due: "", stepDues: [], notes: "", repeat: false, created: later(-3000) });
         tab("전체"); render(); await W(200); briefAt = {};
-        document.querySelector('[data-brief="nodate"]').click(); await W(300); const first = (document.querySelector(".item.flash") || {}).dataset?.id;
-        document.querySelector('[data-brief="nodate"]').click(); await W(300); const second = [...document.querySelectorAll(".item.flash")].map(e => e.dataset.id).find(id => id !== first);
+        document.querySelector('[data-brief="nodate"]').click(); const first = briefPicked; await W(300);
+        document.querySelector('[data-brief="nodate"]').click(); const second = briefPicked; await W(300);
         state.todos.splice(t0); render(); await W(200);
         { const dup = []; for (let k = 0; k < 7; k++) { const base = day(new Date(Date.parse("2026-10-12") + k * 86400000)), q = quickDues(base); if (new Set(q.map(p => p[1])).size !== q.length) dup.push(base); }
         check("빠른 마감일 같은 날짜 두 번 없음(요일 7가지)", dup.length === 0, dup.join(",")); }
