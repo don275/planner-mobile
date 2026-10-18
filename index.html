@@ -45,6 +45,9 @@
   .proj small { font-weight: 400; color: var(--sub); }
 /* 날짜순: 머리줄은 날짜 묶음(지남 · 오늘 빨강, 내일 주황, 나머지 회색), 줄 앞에 프로젝트 이름 */
 section.b0 { --sc: var(--red); } section.b1 { --sc: var(--orange); } section.b2, section.b3, section.b4 { --sc: var(--sub); }
+/* 팀: 맡은 사람 동그라미(줄 정보 끝), 받은 일 "OO님이 맡김" */
+.meta .av, .sheet .av, #sheet .av { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--accent, #202124); color: #fff; font-size: 11px; font-weight: 700; flex: none; vertical-align: middle; }
+.meta .from { color: var(--text); font-weight: 600; }
 .psec { font-size: 12px; font-weight: 600; color: var(--sub);     /* 프로젝트 색이 있으면 headInk 로 카드 위 4.5 맞춘 색(보라 · 옅은 노랑이 4.2 · 4.3 이었다, 2.2.91) */ margin-right: 2px; }
   .item { display: flex; gap: 10px; padding: 11px 4px 10px; border-bottom: 1px solid var(--line); }
   .item:last-child { border-bottom: 0; }
@@ -255,6 +258,7 @@ body.big .board .item:has(.meta .due) .text { padding-right: 0; }
   <div class="chips">
     <button class="chip on" data-filter="all">전체</button>
     <button class="chip" data-filter="next">날짜순</button>
+    <button class="chip" data-filter="mine" id="mineChip" hidden>내 일</button>
     <button class="chip" data-filter="events">일정</button>
     <button class="chip" data-filter="logs">기록</button>
   </div>
@@ -366,6 +370,7 @@ function view() {
     if (op.op === "editStep" && op.step < item.steps.length) item.steps[op.step] = op.text;
     if (op.op === "delete") item.gone = true;
     if (op.op === "star") item.star = !!op.on;
+    if (op.op === "assign") { const t = state && state.team; item.who = op.to && (!t || op.to !== t.me) ? op.to : ""; }
     if (op.op === "dup") { const copy = { ...item, id: op.newId, step: 0, steps: [...item.steps], stepDues: [...item.stepDues], remind: "" }; sync(copy); todos.splice(todos.indexOf(item) + 1, 0, copy); }
     if (op.op === "extract" && op.step >= item.step && op.step < item.steps.length && item.steps.length - item.step >= 2) {
       const had = item.stepDues.some(Boolean), name = item.steps[op.step], due = had ? item.stepDues[op.step] || "" : "";
@@ -435,7 +440,7 @@ const WEEK = ["일", "월", "화", "수", "목", "금", "토"];
 // 할 일 · 메모 · 일정 제목 같은 사용자 자료는 바꾸지 않는다(표에 있는 UI 말과 똑같은 글만 바뀜).
 const isEn = () => { const l = load("look", {}).lang; return l === "en" || (!l && !!state && state.lang === "en"); };
 const EN = {
-  "전체": "All", "날짜순": "By date", "날짜순 ↑": "By date ↑", "일정": "Calendar", "기록": "Log", "검색": "Search", "문구": "Phrases", "설정": "Settings",
+  "전체": "All", "내 일": "Mine", "누구에게 맡길까요?": "Assign to whom?", "맡기기": "Assign", "맡기지 않음": "Unassign", "맡기기를 풀었습니다": "Unassigned", "날짜순": "By date", "날짜순 ↑": "By date ↑", "일정": "Calendar", "기록": "Log", "검색": "Search", "문구": "Phrases", "설정": "Settings",
   "견본 자료입니다": "Sample data", "구글 연결": "Connect Google", "구글에 연결하면 내 할 일이 보입니다": "Connect Google to see your to-dos",
   "지난 마감": "Overdue", "오늘 마감": "Due today", "이번 주 디데이": "D-days this week", "오래 밀린 일": "Long overdue", "오늘로 옮겨 온 일": "Moved to today",
   "오늘은 숨기기": "Hide for today", "고정": "Pinned", "반복": "Repeats", "반복 · 오늘": "Repeats · today", "마감일": "Due date", "단계 나누기": "Split steps",
@@ -656,7 +661,7 @@ function render() {
     $("connect").hidden = demo;
     return;
   }
-  const todos = view().filter(x => (filter === "all" || filter === "next" || (x.due && x.due <= today())) && (!query || hits(x.section || "", x.sub || "", x.steps.join(" "), x.notes || "")));
+  const todos = view().filter(x => (filter === "mine" ? !!x.from : filter === "all" || filter === "next" || (x.due && x.due <= today())) && (!query || hits(x.section || "", x.sub || "", x.steps.join(" "), x.notes || "")));
   const order = [...new Set([...sectionOrder(), ...todos.map(x => x.section || "")])];
   const colors = (state && state.colors) || {}, pinned = (state && state.pinned) || [];
   let html = "";
@@ -671,7 +676,8 @@ function render() {
         + `<div class="text" data-open="${esc(item.id)}">${withSec ? `<span class="psec" style="${colors[item.section || ""] && headInk(colors[item.section || ""], isDark(), 0) ? "color:" + headInk(colors[item.section || ""], isDark(), 0) : ""}">${esc(item.section || "기타")}</span> ` : ""}${item.star ? `<span class="star">★</span> ` : ""}${mark(many ? item.steps[item.step] : item.text)}</div><div class="meta" data-open="${esc(item.id)}">`
         + (many ? `<span class="prog"><i style="width:${Math.round((item.step + 1) * 100 / item.steps.length)}%"></i></span><span>${item.step + 1}/${item.steps.length}</span>` + (item.step < item.steps.length - 1 ? `<span>다음: ${esc(item.steps[item.step + 1])}</span>` : "") : "")
         + (due ? `<span class="due ${due.cls}">${due.text}</span>` : withSec && ageDays(item) > 0 ? `<span class="due far age">${ageDays(item)}일째</span>` : "") + (item.remind ? `<span>알림 ${remindLabel(item.remind)}</span>` : "")
-        + (item.files ? `<span>첨부 ${item.files}</span>` : "") + (item.notes && opened !== item.id ? `<span>메모</span>` : "") + `</div>`;
+        + (item.files ? `<span>첨부 ${item.files}</span>` : "") + (item.notes && opened !== item.id ? `<span>메모</span>` : "")
+        + (item.from ? `<span class="from">${isEn() ? "From " + esc(item.from) : esc(item.from) + "님이 맡김"}</span>` : "") + (item.who ? avatarHtml(item.who) : "") + `</div>`;
       if (opened === item.id) {
         html += `<div class="more">`;
         if (many) html += `<ul class="steps" data-steps="${esc(item.id)}">` + item.steps.map((s, i) => `<li class="${i < item.step ? "done" : i === item.step ? "now" : ""}"${i >= item.step ? ` data-stepi="${i}"` : ""}><span data-stepname="${i}">${i + 1}. ${esc(s)}</span>`
@@ -679,6 +685,7 @@ function render() {
         if (item.notes) html += `<div class="note">${linkify(item.notes)}</div>`;
         html += `<div class="acts">` + (item.step > 0 ? `<button data-act="back">이전 단계</button>` : "")
           + (many && item.steps.length - item.step >= 2 ? `<button data-act="split">단계 나누기</button>` : "")
+          + (state && state.team ? `<button data-act="assign">${item.who ? (isEn() ? "Assigned: " : "맡김: ") + esc(personName(item.who)) : T("맡기기")}</button>` : "")
           + `<button data-act="star">${item.star ? "중요 해제" : "★ 중요"}</button><button data-act="step">단계 추가</button><button data-act="note">메모 추가</button>`
           + `<button data-act="dup">복제</button><button data-act="moveto">옮기기</button>`
           + (many ? "" : `<button data-act="edit">수정</button>`) + `<button data-act="delete">삭제</button>`
@@ -687,10 +694,13 @@ function render() {
       return html + `</div></div>`;
   };
   // 다가오는 일(PC 와 같음): 프로젝트 대신 날짜로 묶는다. 머리줄은 누르거나 끌 수 없는 이름표
-  if (filter === "next") {
+  const team = state && state.team, people = (team && team.people) || [];
+  $("mineChip").hidden = !team; $("mineChip").textContent = T("내 일") + " " + view().filter(x => x.from).length;
+  if (!team && filter === "mine") filter = "all";
+  if (filter === "next" || filter === "mine") {
     const sorted = todos.map((x, i) => [x, i]).sort((a, b) => upBucket(a[0]) - upBucket(b[0]) || (a[0].due || "").localeCompare(b[0].due || "")
       || (b[0].star ? 1 : 0) - (a[0].star ? 1 : 0) || (upBucket(a[0]) === 4 ? (a[0].created || "9999").localeCompare(b[0].created || "9999") : 0) || a[1] - b[1]).map(p => p[0]);     // 날짜 없음: ★ 먼저, 그다음 오래 묵은 순
-    for (const k of upRev ? [4, 3, 2, 1, 0] : [0, 1, 2, 3, 4]) {
+    for (const k of upRev && filter === "next" ? [4, 3, 2, 1, 0] : [0, 1, 2, 3, 4]) {
       const its = sorted.filter(x => upBucket(x) === k);
       if (its.length) html += `<section class="bucket b${k}"><div class="proj uphead"><b>${esc(upName(k))}</b><small>${its.length}</small></div><div class="board">` + its.map(x => itemHtml(x, true)).join("") + `</div></section>`;
     }
@@ -959,6 +969,23 @@ async function copy(text) {
 }
 function blanks(text) { return [...new Set([...(text || "").matchAll(/\{([^{}\n]{1,30})\}/g)].map(m => m[1].trim()).filter(Boolean))]; }
 // 다른 프로젝트로 옮기기: 그 프로젝트 맨 끝으로(PC 의 op "move" 가 받는다)
+// 팀(PC 에서 팀 기능을 켰을 때): 사람 동그라미 · 맡기기. 폰엔 공유 폴더가 없어서 PC 에 op "assign" 으로 부탁한다
+function personName(id) { const p = ((state && state.team && state.team.people) || []).find(x => x.id === id); return p ? p.name : id; }
+function avatarHtml(id) {
+  const p = ((state && state.team && state.team.people) || []).find(x => x.id === id) || { name: id, color: "" };
+  return `<span class="av" style="${p.color ? "background:" + esc(p.color) : ""}" title="${esc(p.name)}">${esc((p.name || "?").slice(0, 1))}</span>`;
+}
+function assignTo(item) {
+  const t = state && state.team; if (!t) return;
+  sheet(`<h2>누구에게 맡길까요?</h2>` + t.people.map((p, i) => `<button class="phrase" data-who="${i}">${avatarHtml(p.id)} ${esc(p.name)}${p.id === t.me ? (isEn() ? " (me)" : " (나)") : ""}${item.who === p.id ? " ✓" : ""}</button>`).join("")
+    + (item.who ? `<button class="phrase" data-who="-1">맡기지 않음</button>` : "") + `<div class="end"><button data-close>취소</button></div>`, s => {
+    s.querySelectorAll("[data-who]").forEach(b => b.addEventListener("click", () => {
+      const i = Number(b.dataset.who), p = i >= 0 ? t.people[i] : null;
+      closeSheet();
+      push({ op: "assign", id: item.id, to: p ? p.id : "" }, p ? (isEn() ? "Assigned to " + p.name : p.name + "님에게 맡겼습니다") : "맡기기를 풀었습니다");
+    }));
+  });
+}
 function moveTo(item) {
   const here = item.section || "", hereSub = item.sub || "", all = view();
   const names = [...new Set([...sectionOrder(), ...all.map(x => x.section || "")])];
@@ -1366,6 +1393,7 @@ $("list").addEventListener("click", e => {
     if (a === "split" && confirm("안 한 단계를 하나씩 따로 할 일로 나눌까요?")) { opened = null; push({ op: "split", id }, (item.steps.length - item.step) + "개 할 일로 나눴습니다"); }
     if (a === "dup") { const newId = "m" + newKey(); opened = newId; push({ op: "dup", id, newId }, "복제했습니다"); }
     if (a === "moveto") moveTo(item);
+    if (a === "assign") assignTo(item);
     if (a === "star") push({ op: "star", id, on: !item.star }, item.star ? "중요 표시를 뺐습니다" : "중요 표시했습니다");
     if (a === "edit") ask("할 일 수정", "할 일", v => push({ op: "edit", id, text: v.replace(/→|->/g, " ") }, "고쳤습니다"), item.text);
     if (a === "delete" && confirm("'" + (item.steps.length > 1 ? item.text : item.text) + "' 을(를) 삭제할까요?")) { opened = null; push({ op: "delete", id }, "삭제했습니다"); }
@@ -1478,6 +1506,23 @@ async function selfTest() {
         check("날짜순 거꾸로", rv.length >= 2 && rv.every((v, i) => !i || rv[i - 1] > v) && chipT.includes("↑"), rv.join(",") + " " + chipT); }
       check("고른 보기 기억", load("view") === "next" && load("viewRev") === true, load("view") + "/" + load("viewRev"));
       tab("날짜순 ↑"); await W(200); tab("전체"); await W(300); check("전체로 바꾸면 기억도 전체", load("view") === "all" && load("viewRev") === false); }
+    { // 팀(PC 에서 팀 기능을 켰을 때): [내 일] 칩 · 받은 일만 · "OO님이 맡김" · 남에게 맡긴 일 동그라미 · 펼치면 맡기기 단추
+      const t0 = state.todos.length;
+      state.team = { me: "kim", people: [{ id: "boss", name: "최지원", color: "#1A73E8" }, { id: "kim", name: "김대리", color: "#188038" }] };
+      state.todos.push({ id: "tm-in", section: "거래처", text: "받은 일", steps: ["받은 일"], step: 0, due: "", stepDues: [], notes: "", repeat: false, from: "최지원" },
+                       { id: "tm-out", section: "거래처", text: "맡긴 일", steps: ["맡긴 일"], step: 0, due: "", stepDues: [], notes: "", repeat: false, who: "boss" });
+      tab("전체"); render(); await W(200);
+      const chipOk = !$("mineChip").hidden && $("mineChip").textContent.endsWith(" 1");
+      const avOk = !!document.querySelector(`.item[data-id="tm-out"] .av`);
+      $("mineChip").click(); await W(250);
+      const shown = [...document.querySelectorAll(".item")].map(e => e.dataset.id);
+      const fromTxt = (document.querySelector(`.item[data-id="tm-in"] .from`) || {}).textContent || "";
+      tab("전체"); await W(200); opened = "tm-out"; render(); await W(150);
+      const btn = document.querySelector(`.item[data-id="tm-out"] [data-act="assign"]`);
+      opened = null; delete state.team; state.todos.splice(t0); render(); await W(150);
+      const gone = $("mineChip").hidden;
+      check("팀: 내 일 칩 · 받은 일만 · 맡김 · 동그라미 · 맡기기 단추", chipOk && avOk && shown.length === 1 && shown[0] === "tm-in" && fromTxt.includes("최지원") && !!btn && btn.textContent.includes("최지원") && gone, [chipOk, avOk, shown.join("|"), fromTxt, btn && btn.textContent, gone].join(" "));
+    }
     tab("일정"); await W(300);
     const evFoot = (document.querySelector(".lfoot") || {}).textContent || "";
     check("일정: 날짜 카드 · 파란 띠", document.querySelectorAll(".lday .lhead").length > 0);
