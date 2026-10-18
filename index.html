@@ -228,6 +228,7 @@ section.b0 { --sc: var(--red); } section.b1 { --sc: var(--orange); } section.b2,
   .board .item { position: relative; }
   .board .item .meta .due { position: absolute; top: 12px; right: 12px; }
   .board .item:has(.meta .due) .text { padding-right: 104px; }
+html[lang="en"] .board .item:has(.meta .due) .text { padding-right: 140px; }     /* 영어 마감 알약이 길다(1d overdue · Repeats · today) */
 /* 글자 크게 · 아주 크게: 마감 알약을 오른쪽 위에 띄우면 제목 칸이 좁아 한두 글자씩 줄이 바뀐다 → 아래 정보 줄 맨 앞으로 */
 body.big .board .item .meta .due { position: static; order: -1; }
 body.big .board .item:has(.meta .due) .text { padding-right: 0; }
@@ -415,7 +416,7 @@ function sectionOrder() {
 // PC 에서 정한 알림 시각: 오늘 · 내일이면 그렇게, 아니면 날짜
 function remindLabel(s) {
   const d = s.slice(0, 10), hm = s.slice(11, 16), t = today(), tm = day(new Date(Date.parse(t) + 86400000));
-  return (d === t ? "오늘 " : d === tm ? "내일 " : md(d) + " ") + hm;
+  return (d === t ? (isEn() ? "today " : "오늘 ") : d === tm ? (isEn() ? "tomorrow " : "내일 ") : md(d) + " ") + hm;
 }
 
 function dueLabel(item) {
@@ -424,17 +425,93 @@ function dueLabel(item) {
   // 반복 업무는 지난 날을 따지지 않는다(다음 차례에 또 생긴다)
   if (item.repeat) return left === 0 ? { text: "반복 · 오늘", cls: "late" } : { text: "반복", cls: "far" };
   const carried = item.lateFrom && left >= 0 ? Math.round((Date.parse(today()) - Date.parse(item.lateFrom)) / 86400000) : 0;
-  const when = (left === 0 ? "오늘" : left > 0 ? "D-" + left : (-left) + "일 지남") + (carried > 0 ? " · " + carried + "일 밀림" : "");
+  const en = isEn(), when = (left === 0 ? (en ? "today" : "오늘") : left > 0 ? "D-" + left : (-left) + (en ? "d overdue" : "일 지남")) + (carried > 0 ? " · " + (en ? "moved " + carried + "d" : carried + "일 밀림") : "");
   return { text: md(item.due) + " (" + when + ")", cls: carried >= 3 ? "late stuck" : left <= 0 ? "late" : left <= 3 ? "soon" : "far" };
 }
 
 const WEEK = ["일", "월", "화", "수", "목", "금", "토"];
+// ───── 언어(한국어 · English, v94) ─────
+// 폰 설정에서 고르거나(look.lang), 안 고르면 PC 설정을 따른다(state.lang). 화면에 글자가 생길 때마다 아래 표대로 바꾼다.
+// 할 일 · 메모 · 일정 제목 같은 사용자 자료는 바꾸지 않는다(표에 있는 UI 말과 똑같은 글만 바뀜).
+const isEn = () => { const l = load("look", {}).lang; return l === "en" || (!l && !!state && state.lang === "en"); };
+const EN = {
+  "전체": "All", "날짜순": "By date", "날짜순 ↑": "By date ↑", "일정": "Calendar", "기록": "Log", "검색": "Search", "문구": "Phrases", "설정": "Settings",
+  "견본 자료입니다": "Sample data", "구글 연결": "Connect Google", "구글에 연결하면 내 할 일이 보입니다": "Connect Google to see your to-dos",
+  "지난 마감": "Overdue", "오늘 마감": "Due today", "이번 주 디데이": "D-days this week", "오래 밀린 일": "Long overdue", "오늘로 옮겨 온 일": "Moved to today",
+  "오늘은 숨기기": "Hide for today", "고정": "Pinned", "반복": "Repeats", "반복 · 오늘": "Repeats · today", "마감일": "Due date", "단계 나누기": "Split steps",
+  "★ 중요": "★ Important", "중요 해제": "Unmark important", "단계 추가": "Add step", "메모 추가": "Add note", "복제": "Duplicate", "옮기기": "Move", "삭제": "Delete", "수정": "Edit",
+  "이전 단계": "Previous step", "메모": "Note", "추가": "Add", "기타": "Other", "부제 없음": "No subgroup", "프로젝트": "Project", "부제": "Subgroup", "완료": "Done",
+  "한 줄 남기기": "Add a line", "되돌리기": "Undo", "모두 오늘로": "All to today", "내일로": "To tomorrow",
+  "오늘": "Today", "내일": "Tomorrow", "다음 7일": "Next 7 days", "나중에": "Later", "날짜 없음": "No date", "종일": "All day",
+  "폰에는 오늘부터 2주 일정이 보입니다 · 더 먼 일정은 PC 일정 탭에서": "The phone shows 2 weeks from today · see further ahead in the PC Calendar tab",
+  "앞으로 2주 동안 일정이 없습니다": "No events in the next 2 weeks", "찾는 일정이 없습니다": "No matching events", "찾는 할 일이 없습니다": "No matching to-dos",
+  "남은 일이 없습니다": "Nothing left to do", "오늘 마감인 일이 없습니다": "Nothing due today",
+  "＋ 한 일 적기": "＋ Log what you did", "오늘 한 일 복사": "Copy today's work",
+  "폰에는 최근 2주 기록만 보입니다 · 지난 기록은 PC 업무 기록 탭에 모두 있습니다": "The phone shows the last 2 weeks · the full log is in the PC Work log tab",
+  "대표색": "Color", "화면": "Display", "기기 설정": "Device", "밝게": "Light", "어둡게": "Dark", "글자 크기": "Text size", "작게": "Small", "보통": "Normal", "크게": "Large", "아주 크게": "Largest",
+  "마감 지난 할 일": "Overdue to-dos", "매일 오늘로 옮기기": "Move to today daily", "그대로 두기": "Leave as is", "구글": "Google", "연결 해제": "Disconnect",
+  "앱 소개": "About", "개인정보처리방침": "Privacy policy", "닫기": "Close", "취소": "Cancel", "저장": "Save", "확인": "OK", "언어": "Language", "PC 따라": "Same as PC",
+  "남은 일 목록 복사": "Copy open to-dos", "카톡 · 메일에 붙일 글로 복사합니다(끝낸 단계는 줄임). 한 프로젝트만은 목록에서 프로젝트 이름을 누르세요": "Copies a message for chat or email (done steps shortened). For one project, tap its name in the list",
+  "링크 모음 만들기": "Make a link collection", "주소나 받은 링크 글을 붙여 넣으면 보낼 글로 정리해 줍니다": "Paste addresses or a message with links to tidy them into one message",
+  "이 프로젝트 남은 일 복사": "Copy this project's open to-dos", "카톡 · 메일에 붙일 글(끝낸 단계는 줄임)": "For chat or email (done steps shortened)",
+  "이 프로젝트 남은 일 복사 (메모 빼고)": "Copy this project's open to-dos (without notes)", "거래처 · 소속사용: 할 일 · 단계만": "For partners: to-dos and steps only",
+  "할 일 (예: 견적 내일까지)": "To-do (e.g. send quote)", "문구 관리": "Manage phrases", "복사했습니다": "Copied", "복사하지 못했습니다": "Couldn't copy",
+  "마감": "Due", "알림": "Reminder", "첨부": "Files", "단계": "Steps", "프로젝트 없음": "No project",
+  "고쳤습니다": "Saved", "구글 연결 준비 중입니다. 잠시 뒤 다시 눌러 주세요": "Google is getting ready. Tap again in a moment", "구글 연결을 하지 못했습니다": "Couldn't connect to Google",
+  "남은 일을 복사했습니다 · 카톡 · 메일에 붙여 넣으세요": "Copied open to-dos · paste into chat or email", "넣은 링크가 없습니다": "No links added", "단계 이름을 바꿨습니다": "Step renamed",
+  "메모를 넣었습니다": "Note added", "보이는 목록에 없습니다(검색 · 걸러 보기를 풀어 보세요)": "Not in the visible list (clear search or filters)", "복사했습니다. 카톡에 붙여 넣으세요": "Copied. Paste into chat",
+  "복제했습니다": "Duplicated", "부제 이름을 바꿨습니다": "Subgroup renamed", "붙여넣기를 못 했습니다. 아래 칸에 길게 눌러 붙여 넣어 주세요": "Couldn't paste. Long-press the box below to paste",
+  "삭제했습니다": "Deleted", "업무 기록에 남겼습니다": "Saved to the work log", "오늘 한 일을 복사했습니다 · 카톡 · 메일에 붙여 넣으세요": "Copied today's work · paste into chat or email",
+  "옮길 곳이 없습니다": "Nowhere to move", "이름을 바꿨습니다": "Renamed", "단계 순서를 바꿨습니다": "Steps reordered", "마감일을 지웠습니다": "Due date cleared", "부제에서 뺐습니다": "Removed from subgroup",
+  "순서를 바꿨습니다": "Reordered", "완료했습니다": "Done", "주소를 찾지 못했습니다": "No address found", "중요 표시를 뺐습니다": "Unmarked important", "중요 표시했습니다": "Marked important",
+  "찾는 기록이 없습니다": "No matching entries", "최근 2주 동안 끝낸 일이 없습니다": "Nothing finished in the last 2 weeks", "추가했습니다": "Added", "프로젝트 순서를 바꿨습니다": "Projects reordered",
+  "할 일로 뺐습니다": "Moved out as a to-do", "아래에 주소를 붙여 넣으세요": "Paste addresses below", "(제목 없음)": "(No title)"
+};
+// 이름 · 숫자가 들어간 알림 문장
+const EN_PAT = [
+  [/^'(.+)' 에 추가했습니다$/, m => "Added to '" + m[1] + "'"], [/^'(.+)'\(으\)로 옮겼습니다$/, m => "Moved to '" + m[1] + "'"], [/^'(.+)' 부제로 옮겼습니다$/, m => "Moved to subgroup '" + m[1] + "'"],
+  [/^'(.+)' 부제를 없앴습니다$/, m => "Removed subgroup '" + m[1] + "'"], [/^'(.+)' 복사했습니다$/, m => "Copied '" + m[1] + "'"], [/^'(.+)' 단계로 되돌렸습니다$/, m => "Back to step '" + m[1] + "'"],
+  [/^'(.+)' 남은 일을 메모 빼고 복사했습니다$/, m => "Copied '" + m[1] + "' open to-dos (without notes)"], [/^'(.+)' 남은 일을 복사했습니다$/, m => "Copied '" + m[1] + "' open to-dos"],
+  [/^(\d+)개 단계를 넣었습니다$/, m => m[1] + " steps added"], [/^(\d+)개 할 일로 나눴습니다$/, m => "Split into " + m[1] + " to-dos"], [/^(\d+)곳을 넣었습니다$/, m => m[1] + " addresses added"],
+  [/^(?:전날까지 마감이었던|지난 마감) (\d+)건을 오늘로 옮겼습니다$/, m => "Moved " + m[1] + " overdue to today"], [/^지난 마감 (\d+)건을 내일로 옮겼습니다$/, m => "Moved " + m[1] + " overdue to tomorrow"],
+  [/^마감 (.+)로 추가했습니다$/, m => "Added, due " + m[1]]
+];
+// 앞부분이 UI 말이고 뒤에 숫자 · 사용자 글이 붙는 것
+const EN_HEAD = [["다음: ", "Next: "], ["알림 오늘 ", "Reminder today "], ["알림 내일 ", "Reminder tomorrow "], ["알림 ", "Reminder "], ["첨부 ", "Files "]];
+function T(s) {
+  if (!s || !isEn() || !/[가-힣]/.test(s)) return s;
+  const t = s.trim(); if (EN[t]) return s.replace(t, EN[t]);
+  let m = t.match(/^(.*?)\s*(\d+)(건)?$/); if (m && m[1] && EN[m[1]]) return EN[m[1]] + " " + m[2];
+  if (m && !m[1] && m[3]) return m[2];     // "3건" → "3"
+  m = t.match(/^오늘 (\d+\/\d+ \(\w+\))( · today)?$/); if (m) return "Today " + m[1];
+  for (const [re, fn] of EN_PAT) { const mm = t.match(re); if (mm) return fn(mm); }
+  for (const [ko, en] of EN_HEAD) if (t.startsWith(ko)) return en + t.slice(ko.length);
+  return s;
+}
+const SKIP = ".text, .psec, .note, [data-stepname], .ldetail, .ltitle, .lchip, .what, [data-project], .subh, #findText, textarea, input, select";
+function trAll(root) {
+  if (!isEn() || !root) return;
+  if (root.nodeType === 3) { if (!root.parentElement || !root.parentElement.closest(SKIP + ", script, style")) { const v = T(root.data); if (v !== root.data) root.data = v; } return; }
+  if (root.nodeType !== 1 || root.closest && root.closest("script, style, #selftest")) return;
+  for (const a of ["placeholder", "aria-label", "title"]) { const v = root.getAttribute && root.getAttribute(a); if (v && T(v) !== v) root.setAttribute(a, T(v)); }
+  if (root.matches && root.matches(SKIP)) return;
+  for (const c of [...root.childNodes]) trAll(c);
+}
+let trObs = null;
+function startTr() {
+  if (!isEn()) return;
+  document.documentElement.lang = "en";
+  trAll(document.body);
+  if (trObs) return;
+  trObs = new MutationObserver(list => { for (const m of list) { if (m.type === "characterData") trAll(m.target); else m.addedNodes.forEach(trAll); } });
+  trObs.observe(document.body, { childList: true, subtree: true, characterData: true });
+}
 // 날짜순 묶음(PC [날짜순] 과 같음): 0 지남 · 오늘, 1 내일, 2 이번 주, 3 다음 주 이후, 4 디데이 없음
 const later = n => day(new Date(Date.parse(today()) + n * 86400000));
 const upBucket = x => !x.due ? 4 : x.due <= today() ? 0 : x.due === later(1) ? 1 : x.due <= later(6) ? 2 : 3;
 const upName = k => ["오늘", "내일", "다음 7일", "나중에", "날짜 없음"][k];     // TickTick 처럼(사장님 선택)
 let upRev = load("viewRev", false) === true;     // [날짜순] 을 한 번 더 눌러 거꾸로(다시 켜도 그대로)
-const dayTitle = s => { const d = new Date(s + "T00:00"); return (d.getMonth() + 1) + "/" + d.getDate() + " (" + WEEK[d.getDay()] + ")" + (s === today() ? " · 오늘" : ""); };
+const dayTitle = s => { const d = new Date(s + "T00:00"); return (d.getMonth() + 1) + "/" + d.getDate() + " (" + (isEn() ? ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] : WEEK)[d.getDay()] + ")" + (s === today() ? " · " + (isEn() ? "today" : "오늘") : ""); };
 
 // 오늘부터 2주 일정(PC 의 구글 캘린더에서 온 것)
 function eventsHtml() {
@@ -446,7 +523,7 @@ function eventsHtml() {
     (days[first] = days[first] || []).push(ev);
   }
   // 기록 탭과 같게 날짜마다 카드 하나
-  return Object.keys(days).sort().map(d => `<div class="lday"><div class="lhead"><b>${dayTitle(d).replace(" · 오늘", "")}</b>${d === today() ? `<span class="ltoday">오늘</span>` : ""}<span class="lcnt">${days[d].length}건</span></div>` + days[d].map(ev => {
+  return Object.keys(days).sort().map(d => `<div class="lday"><div class="lhead"><b>${dayTitle(d).split(" · ")[0]}</b>${d === today() ? `<span class="ltoday">오늘</span>` : ""}<span class="lcnt">${days[d].length}건</span></div>` + days[d].map(ev => {
     const when = ev.allDay || ev.start.slice(0, 10) < d ? "종일" : ev.start.slice(11, 16);
     const until = ev.last > d ? " · ~" + md(ev.last) : "";
     return `<div class="ev"><span class="when">${when}</span><span class="bar" style="${ev.color ? "background:" + esc(ev.color) : ""}"></span>`
@@ -535,7 +612,7 @@ function logsHtml() {
   for (const log of list) (days[log.date] = days[log.date] || []).push(log);
   // 날짜마다 카드 하나: 머리(날짜 · 오늘 · 건수), 줄마다 한 일(굵게) + 프로젝트 색 알약(› 부제)
   const colors = (state && state.colors) || {};
-  return logBar() + Object.keys(days).sort().reverse().map(d => `<div class="lday"><div class="lhead"><b>${dayTitle(d).replace(" · 오늘", "")}</b>${d === today() ? `<span class="ltoday">오늘</span>` : ""}<span class="lcnt">${days[d].length}건</span></div>` + days[d].map(log => {
+  return logBar() + Object.keys(days).sort().reverse().map(d => `<div class="lday"><div class="lhead"><b>${dayTitle(d).split(" · ")[0]}</b>${d === today() ? `<span class="ltoday">오늘</span>` : ""}<span class="lcnt">${days[d].length}건</span></div>` + days[d].map(log => {
     const c = colors[log.section || ""] || "", where = (log.section || "기타") + (log.sub ? " › " + log.sub : "");
     return `<div class="lrow"><div class="ltitle">${mark(log.title)}</div>${log.detail ? `<div class="ldetail">${mark(log.detail)}</div>` : ""}<span class="lchip" style="${c ? "--pc:" + esc(c) + ";--pci:" + headInk(c, isDark(), 0.16) : ""}">${esc(where)}</span></div>`;
   }).join("") + `</div>`).join("")
@@ -552,6 +629,7 @@ function rollLate() {
   if (ids.length) push({ op: "dueMany", ids: ids.join(","), due: today() }, "전날까지 마감이었던 " + ids.length + "건을 오늘로 옮겼습니다");
 }
 function render() {
+  if (isEn() && !trObs) setTimeout(startTr);     // 영어면 화면 글자를 표대로(처음 한 번 켜 두면 새로 생기는 글자도 따라 바뀜)
   if (drag) return;     // 끄는 중에는 다시 그리지 않는다(놓은 뒤 그린다)
   rollLate();
   document.body.classList.toggle("plain", filter === "events" || filter === "logs");
@@ -610,7 +688,7 @@ function render() {
     const items = inSec.map((x, i) => [x, i]).sort((a, b) => subs.indexOf(a[0].sub || "") - subs.indexOf(b[0].sub || "") || (b[0].star ? 1 : 0) - (a[0].star ? 1 : 0) || a[1] - b[1]).map(p => p[0]);
     let lastSub = "";
     if (!items.length) continue;
-    html += `<section style="${colors[name] ? "--sc:" + esc(colors[name]) + ";--sci:" + headInk(colors[name]) : ""}"><div class="proj" data-sec="${esc(name)}"><i style="${colors[name] ? "background:" + esc(colors[name]) : ""}"></i><b data-project="${esc(name)}">${esc(name || "기타")}</b>`
+    html += `<section style="${colors[name] ? "--sc:" + esc(colors[name]) + ";--sci:" + headInk(colors[name]) : ""}"><div class="proj" data-sec="${esc(name)}"><i style="${colors[name] ? "background:" + esc(colors[name]) : ""}"></i><b data-project="${esc(name)}">${esc(name || T("기타"))}</b>`
       + (pinned.includes(name) ? `<small>고정</small>` : "") + `<small>${items.length}</small></div><div class="board">`;
     for (const item of items) {
       if ((item.sub || "") !== lastSub) { lastSub = item.sub || ""; if (lastSub) html += `<div class="subh" data-subhead="${esc(lastSub)}" data-subsec="${esc(name)}"><span>${esc(lastSub)}<b>${items.filter(x => (x.sub || "") === lastSub).length}</b></span></div>`; }
@@ -825,6 +903,7 @@ function showSettings() {
   sheet(`<h2>설정</h2>
     <label>대표색</label><div class="swatches">` + COLORS.map(c => `<button data-look="accent" data-value="${c}" class="${(look.accent || "#212121") === c ? "on" : ""}" style="background:${c}" aria-label="${c}"></button>`).join("") + `</div>
     <label>화면</label>` + seg("theme", [["", "기기 설정"], ["light", "밝게"], ["dark", "어둡게"]]) + `
+    <label>언어 · Language</label>` + seg("lang", [["", "PC 따라"], ["ko", "한국어"], ["en", "English"]]) + `
     <label>글자 크기</label>` + seg("size", [["small", "작게"], ["", "보통"], ["large", "크게"], ["xl", "아주 크게"]]) + `
     <label>마감 지난 할 일</label><div class="seg"><button data-roll="on" class="${rollOn() ? "on" : ""}">매일 오늘로 옮기기</button><button data-roll="off" class="${rollOn() ? "" : "on"}">그대로 두기</button></div>
     <label>구글</label><div class="seg">` + (token ? `<button id="signOut">연결 해제</button>` : `<button id="signIn">구글 연결</button>`) + `</div>
@@ -832,7 +911,9 @@ function showSettings() {
     <div class="end"><button class="primary" data-close>닫기</button></div>`, s => {
     s.querySelectorAll("[data-look]").forEach(b => b.onclick = () => {
       const now = load("look", {}); now[b.dataset.look] = b.dataset.value; if (!b.dataset.value) delete now[b.dataset.look];
-      save("look", now); applyLook(); render(); showSettings();     // 목록도 다시 그려 프로젝트 글씨색(--sci)을 새 화면에 맞춘다
+      const langWas = isEn(); save("look", now);
+      if (isEn() !== langWas) { location.reload(); return; }     // 언어를 바꾸면 화면을 처음부터 다시 그린다
+      applyLook(); render(); showSettings();     // 목록도 다시 그려 프로젝트 글씨색(--sci)을 새 화면에 맞춘다
     });
     s.querySelectorAll("[data-roll]").forEach(b => b.onclick = () => {
       const was = rollOn(); save("roll", b.dataset.roll);
@@ -1475,6 +1556,18 @@ async function selfTest() {
     save("look", lookKeep); applyLook(); render(); await W(200);
     check("글자 아주 크게: 목록 확대 · 끌 때 빈자리 높이", zoomOk && ratioOk, info);
   } catch (e) { check("글자 아주 크게: 목록 확대 · 끌 때 빈자리 높이", false, e.message); }
+  // English 화면(맨 마지막: 한국어로 돌아가려면 다시 켜야 해서). 탭 · 오늘 카드 · 마감 알약 · 날짜순 · 설정 시트에 UI 한국어가 남지 않는지(사용자 자료 칸은 빼고)
+  try {
+    const lookKeep = load("look", {}); save("look", { ...lookKeep, lang: "en" }); applyLook(); render(); startTr(); await W(300);
+    const leftKo = new Set(), scan = () => { const tw = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, { acceptNode: n => /SCRIPT|STYLE/.test(n.parentElement?.tagName) || n.parentElement?.closest(SKIP + ", #selftest, .phrase") ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT }); let n; while ((n = tw.nextNode())) if (/[가-힣]/.test(n.data.replace(/^\s*Next: .*$/, "")) && !/한국어|언어 · Language/.test(n.data)) leftKo.add(n.data.trim()); /* Next: 뒤는 단계 이름(사용자 자료) */ };
+    scan(); tab("By date"); await W(300); scan(); tab("Calendar"); await W(300); scan(); tab("Log"); await W(300); scan(); tab("All"); await W(300);
+    $("settings").click(); await W(300); scan(); closeSheet();
+    const chipsOk = !!document.querySelector('[data-filter="all"]') && document.querySelector('[data-filter="all"]').textContent === "All" && document.querySelector('[data-filter="next"]').textContent.startsWith("By date");
+    // 영어 마감 알약(1d overdue 등)이 길어 제목과 겹치지 않는지
+    const pillOver = [...document.querySelectorAll(".board .item")].filter(it => { const d = it.querySelector(".meta .due"), tx = it.querySelector(".text"); if (!d || !tx || getComputedStyle(d).position !== "absolute") return false; const tr = tx.getBoundingClientRect(); return tr.left + tx.clientWidth - parseFloat(getComputedStyle(tx).paddingRight) > d.getBoundingClientRect().left + 1; }).length;
+    save("look", lookKeep);
+    check("English 화면(탭 · 카드 · 날짜순 · 일정 · 기록 · 설정)", chipsOk && leftKo.size === 0 && pillOver === 0, (leftKo.size ? [...leftKo].slice(0, 4).join(" | ") : "") + " 알약 겹침 " + pillOver);
+  } catch (e) { check("English 화면(탭 · 카드 · 날짜순 · 일정 · 기록 · 설정)", false, e.message); }
   const box = document.createElement("pre"); box.id = "selftest";
   box.style.cssText = "position:fixed;left:0;right:0;top:0;z-index:99;margin:0;padding:8px;font-size:11px;background:#fff;color:#000;white-space:pre-wrap";
   box.textContent = out.join("\n"); document.body.appendChild(box);
