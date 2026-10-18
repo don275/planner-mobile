@@ -1019,6 +1019,15 @@ function blanks(text) { return [...new Set([...(text || "").matchAll(/\{([^{}\n]
 // 팀(PC 에서 팀 기능을 켰을 때): 사람 동그라미 · 맡기기. 폰엔 공유 폴더가 없어서 PC 에 op "assign" 으로 부탁한다
 // 팀: 새로 받은 일이 처음 보이면 한 번 알림(PC 와 같은 말). 본 것은 기억해서 다시 알리지 않는다
 function noticeFresh() {
+  // 내가 맡긴 일을 남이 끝냄(PC 가 보낸 team.done): 처음 볼 때 한 번
+  const done = (state && state.team && state.team.done) || [], seenDone = load("seenDone", []);
+  const newDone = done.filter(x => !seenDone.includes(x.id));
+  if (newDone.length) {
+    save("seenDone", [...new Set([...seenDone, ...done.map(x => x.id)])].slice(-200));
+    const dt = newDone[0].text.length > 20 ? newDone[0].text.slice(0, 20) + "…" : newDone[0].text;
+    toast(newDone.length > 1 ? (isEn() ? newDone.length + " assigned tasks finished" : "맡긴 일 " + newDone.length + "건을 끝냈습니다") : isEn() ? newDone[0].by + " finished '" + dt + "'" : newDone[0].by + "님이 '" + dt + "' 을(를) 끝냈습니다");
+    return;
+  }
   const fresh = view().filter(x => x.fresh), seen = load("seenFresh", []);
   const added = fresh.filter(x => !seen.includes(x.id));
   if (!added.length) return;
@@ -1583,6 +1592,9 @@ async function selfTest() {
       tab("전체"); render(); await W(200);
       save("seenFresh", []); state.todos.find(x => x.id === "tm-in").fresh = true; render(); await W(150);
       const freshToast = !$("toast").hidden && $("toast").textContent.includes("맡겼습니다");
+      $("toast").hidden = true; save("seenDone", []); state.team.done = [{ id: "d-1", text: "샘플 발송", by: "최지원", at: today() + " 10:00" }]; render(); await W(120);
+      const doneToast = !$("toast").hidden && $("toast").textContent.includes("끝냈습니다"); $("toast").hidden = true; render(); await W(80);
+      const doneOnce = $("toast").hidden; delete state.team.done;
       $("toast").hidden = true; render(); await W(100);
       const toastOnce = $("toast").hidden;     // 다시 그려도 또 알리지 않음
       const freshChip = !!document.querySelector(`[data-brief="team"]`) && briefMatch("team").length === 1;
@@ -1635,7 +1647,7 @@ async function selfTest() {
       const nameFind = byName === "tm-in,tm-out";
       opened = null; delete state.team; state.todos.splice(t0); render(); await W(150);
       const gone = $("mineChip").hidden;
-      check("팀: 내 일 칩 · 받은 일만 · 맡김 · 동그라미 · 맡기기 단추 · 알약 대비 · 새 일 알림 한 번", projAssign && shareWho && nameFind && boardOk && freshToast && toastOnce && teamRatio >= 4.5 && chipOk && avOk && shown.length === 1 && shown[0] === "tm-in" && fromTxt.includes("최지원") && fromTxt.includes("오늘") && !!btn && btn.textContent.includes("최지원") && gone, [chipOk, avOk, shown.join("|"), fromTxt, btn && btn.textContent, gone, "대비 " + teamRatio.toFixed(1), "알림 " + freshToast + "/" + toastOnce, "현황 " + boardOk, "현황 대비 최소 " + (boardRatios.length ? Math.min(...boardRatios).toFixed(1) : "-"), "이름 찾기 " + byName, "복사 " + shareWho, "프로젝트 맡기기 " + sent.length].join(" "));
+      check("팀: 내 일 칩 · 받은 일만 · 맡김 · 동그라미 · 맡기기 단추 · 알약 대비 · 새 일 알림 한 번", doneToast && doneOnce && projAssign && shareWho && nameFind && boardOk && freshToast && toastOnce && teamRatio >= 4.5 && chipOk && avOk && shown.length === 1 && shown[0] === "tm-in" && fromTxt.includes("최지원") && fromTxt.includes("오늘") && !!btn && btn.textContent.includes("최지원") && gone, [chipOk, avOk, shown.join("|"), fromTxt, btn && btn.textContent, gone, "대비 " + teamRatio.toFixed(1), "알림 " + freshToast + "/" + toastOnce, "현황 " + boardOk, "현황 대비 최소 " + (boardRatios.length ? Math.min(...boardRatios).toFixed(1) : "-"), "이름 찾기 " + byName, "복사 " + shareWho, "프로젝트 맡기기 " + sent.length, "끝냄 알림 " + doneToast + "/" + doneOnce].join(" "));
     }
     { // 오늘 카드 "오늘 일정 n": 견본의 오늘 일정(주간 회의) 수와 같고, 누르면 일정 탭
       tab("전체"); await W(200);
