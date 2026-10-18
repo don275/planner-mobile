@@ -50,6 +50,13 @@ section.b0 { --sc: var(--red); } section.b1 { --sc: var(--orange); } section.b2,
 .text .av, .meta .av, .sheet .av, #sheet .av { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--accent, #202124); color: #fff; font-size: 11px; font-weight: 700; flex: none; vertical-align: middle; }
 .meta .from { color: var(--text); font-weight: 600; }
 .bchip.team { background: color-mix(in srgb, #1A73E8 16%, var(--card)); color: color-mix(in srgb, #1A73E8 55%, var(--text)); }     /* 새로 받은 일: 팀 파랑(대비 밝게 6.7 · 어둡게 5.1) */
+/* 팀 현황 시트 */
+.tcard { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; margin: 8px 0; }
+.thead { display: flex; gap: 8px; align-items: center; } .thead b { flex: 1; } .thead small { color: var(--sub); }
+.tstats { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 4px; } .tstats .st { font-size: 12.5px; font-weight: 700; border-radius: 8px; padding: 2px 8px; background: var(--canvas); }
+.tstats .st.r { color: color-mix(in srgb, var(--red) 72%, var(--text)); background: color-mix(in srgb, var(--red) 14%, var(--card)); } .tstats .st.g { color: color-mix(in srgb, #137333 70%, var(--text)); background: color-mix(in srgb, #137333 14%, var(--card)); }
+.tline { font-size: 13px; color: var(--text); margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .tnone { color: var(--sub); font-size: 13px; margin-top: 6px; }
+.tgave { border-top: 1px solid var(--line); margin-top: 8px; padding-top: 6px; } .tgave b { font-size: 12.5px; }
 .psec { font-size: 12px; font-weight: 600; color: var(--sub);     /* 프로젝트 색이 있으면 headInk 로 카드 위 4.5 맞춘 색(보라 · 옅은 노랑이 4.2 · 4.3 이었다, 2.2.91) */ margin-right: 2px; }
   .item { display: flex; gap: 10px; padding: 11px 4px 10px; border-bottom: 1px solid var(--line); }
   .item:last-child { border-bottom: 0; }
@@ -442,7 +449,7 @@ const WEEK = ["일", "월", "화", "수", "목", "금", "토"];
 // 할 일 · 메모 · 일정 제목 같은 사용자 자료는 바꾸지 않는다(표에 있는 UI 말과 똑같은 글만 바뀜).
 const isEn = () => { const l = load("look", {}).lang; return l === "en" || (!l && !!state && state.lang === "en"); };
 const EN = {
-  "전체": "All", "내 일": "Mine", "오늘 일정": "Today's events", "새로 받은 일": "New from team", "누구에게 맡길까요?": "Assign to whom?", "맡기기": "Assign", "맡기지 않음": "Unassign", "맡기기를 풀었습니다": "Unassigned", "날짜순": "By date", "날짜순 ↑": "By date ↑", "일정": "Calendar", "기록": "Log", "검색": "Search", "문구": "Phrases", "설정": "Settings",
+  "전체": "All", "내 일": "Mine", "팀 현황": "Team status", "팀 (Test)": "Team (Test)", "오늘 일정": "Today's events", "새로 받은 일": "New from team", "누구에게 맡길까요?": "Assign to whom?", "맡기기": "Assign", "맡기지 않음": "Unassign", "맡기기를 풀었습니다": "Unassigned", "날짜순": "By date", "날짜순 ↑": "By date ↑", "일정": "Calendar", "기록": "Log", "검색": "Search", "문구": "Phrases", "설정": "Settings",
   "견본 자료입니다": "Sample data", "구글 연결": "Connect Google", "구글에 연결하면 내 할 일이 보입니다": "Connect Google to see your to-dos",
   "지난 마감": "Overdue", "오늘 마감": "Due today", "이번 주 디데이": "D-days this week", "오래 밀린 일": "Long overdue", "오늘로 옮겨 온 일": "Moved to today",
   "오늘은 숨기기": "Hide for today", "고정": "Pinned", "반복": "Repeats", "반복 · 오늘": "Repeats · today", "마감일": "Due date", "단계 나누기": "Split steps",
@@ -950,6 +957,7 @@ function showSettings() {
     <label>언어 · Language</label>` + seg("lang", [["", "PC 따라"], ["ko", "한국어"], ["en", "English"]]) + `
     <label>글자 크기</label>` + seg("size", [["small", "작게"], ["", "보통"], ["large", "크게"], ["xl", "아주 크게"]]) + `
     <label>마감 지난 할 일</label><div class="seg"><button data-roll="on" class="${rollOn() ? "on" : ""}">매일 오늘로 옮기기</button><button data-roll="off" class="${rollOn() ? "" : "on"}">그대로 두기</button></div>
+    ` + (state && state.team ? `<label>팀 (Test)</label><div class="seg"><button id="teamBoard">팀 현황</button></div>` : "") + `
     <label>구글</label><div class="seg">` + (token ? `<button id="signOut">연결 해제</button>` : `<button id="signIn">구글 연결</button>`) + `</div>
     <label><a href="about.html">앱 소개</a> · <a href="privacy.html">개인정보처리방침</a></label>
     <div class="end"><button class="primary" data-close>닫기</button></div>`, s => {
@@ -968,7 +976,21 @@ function showSettings() {
     if (out) out.onclick = () => { try { if (window.google && token) google.accounts.oauth2.revoke(token, () => {}); } catch {} token = null; save("connected", false); closeSheet(); render(); };
     const inn = s.querySelector("#signIn");
     if (inn) inn.onclick = () => { closeSheet(); connect(); };
+    const tb = s.querySelector("#teamBoard");
+    if (tb) tb.onclick = () => showTeamBoard();
   });
+}
+
+// 팀 현황(PC 와 같은 카드): 사람마다 진행 중 · 기한 지남 · 이번 주 끝냄 · 급한 일 · 내가 맡긴 일. 나 먼저, 그다음 지난 마감 많은 순
+function showTeamBoard() {
+  const t = state && state.team; if (!t) return;
+  const people = [...t.people].sort((a, b) => (a.id === t.me ? -1 : b.id === t.me ? 1 : 0) || (b.late || 0) - (a.late || 0));
+  const card = p => `<div class="tcard"><div class="thead">${avatarHtml(p.id)}<b>${esc(p.name)}${p.id === t.me ? (isEn() ? " (me)" : " (나)") : ""}</b><small>${p.at ? esc(p.at.slice(5)) : ""}</small></div>`
+    + (p.open === undefined ? `<div class="tnone">${isEn() ? "No status yet" : "아직 현황이 없습니다"}</div>`
+      : `<div class="tstats"><span class="st">${isEn() ? "Open" : "진행 중"} ${p.open}</span>` + (p.late ? `<span class="st r">${isEn() ? "Overdue" : "기한 지남"} ${p.late}</span>` : "") + `<span class="st g">${isEn() ? "Done this week" : "이번 주 끝냄"} ${p.doneWeek}</span></div>`
+        + (p.top || []).map(s => `<div class="tline">· ${esc(s)}</div>`).join(""))
+    + ((p.gave || []).length ? `<div class="tgave"><b>${isEn() ? "I assigned" : "내가 맡긴 일"} · ${p.gave.length}</b>` + p.gave.map(s => `<div class="tline">↗ ${esc(s)}</div>`).join("") + `</div>` : "") + `</div>`;
+  sheet(`<h2>${isEn() ? "Team status" : "팀 현황"}</h2>` + people.map(card).join("") + `<div class="end"><button class="primary" data-close>${isEn() ? "Close" : "닫기"}</button></div>`);
 }
 
 // ───── 문구 ─────
@@ -1550,9 +1572,14 @@ async function selfTest() {
       const fromTxt = (document.querySelector(`.item[data-id="tm-in"] .from`) || {}).textContent || "";
       tab("전체"); await W(200); opened = "tm-out"; render(); await W(150);
       const btn = document.querySelector(`.item[data-id="tm-out"] [data-act="assign"]`);
+      state.team.people[0].open = 4; state.team.people[0].late = 0; state.team.people[0].doneWeek = 12; state.team.people[0].top = ["계약서 검토 · 10/23 (D-4)"]; state.team.people[0].gave = ["샘플 발송 확인 · 10/21 (D-2)"];
+      state.team.people[1].open = 6; state.team.people[1].late = 1; state.team.people[1].doneWeek = 9;
+      $("settings").click(); await W(250); const tbBtn = document.querySelector("#teamBoard"); if (tbBtn) tbBtn.click(); await W(250);
+      const tcards = [...document.querySelectorAll("#sheet .tcard")], boardOk = tcards.length === 2 && tcards[0].textContent.includes("김대리") && tcards[1].textContent.includes("내가 맡긴 일") && !!document.querySelector("#sheet .st.r");
+      closeSheet();
       opened = null; delete state.team; state.todos.splice(t0); render(); await W(150);
       const gone = $("mineChip").hidden;
-      check("팀: 내 일 칩 · 받은 일만 · 맡김 · 동그라미 · 맡기기 단추 · 알약 대비 · 새 일 알림 한 번", freshToast && toastOnce && teamRatio >= 4.5 && chipOk && avOk && shown.length === 1 && shown[0] === "tm-in" && fromTxt.includes("최지원") && !!btn && btn.textContent.includes("최지원") && gone, [chipOk, avOk, shown.join("|"), fromTxt, btn && btn.textContent, gone, "대비 " + teamRatio.toFixed(1), "알림 " + freshToast + "/" + toastOnce].join(" "));
+      check("팀: 내 일 칩 · 받은 일만 · 맡김 · 동그라미 · 맡기기 단추 · 알약 대비 · 새 일 알림 한 번", boardOk && freshToast && toastOnce && teamRatio >= 4.5 && chipOk && avOk && shown.length === 1 && shown[0] === "tm-in" && fromTxt.includes("최지원") && !!btn && btn.textContent.includes("최지원") && gone, [chipOk, avOk, shown.join("|"), fromTxt, btn && btn.textContent, gone, "대비 " + teamRatio.toFixed(1), "알림 " + freshToast + "/" + toastOnce, "현황 " + boardOk].join(" "));
     }
     { // 오늘 카드 "오늘 일정 n": 견본의 오늘 일정(주간 회의) 수와 같고, 누르면 일정 탭
       tab("전체"); await W(200);
