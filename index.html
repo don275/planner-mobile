@@ -106,7 +106,7 @@ section.b0 { --sc: var(--red); } section.b1 { --sc: var(--orange); } section.b2,
   .quick button small { font-weight: 400; opacity: .65; font-size: 12px; }
   .quick button.on { outline: 2px solid var(--accent); }
   .latebar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px;     /* 좁은 폰 · 큰 글자 · 영어에서 단추가 화면 밖으로 나가지 않게 줄바꿈 */ margin: 10px 2px 2px; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, #D93025 12%, transparent); }
-  .latebar span { flex: 1 1 auto; min-width: 7em; font-weight: 600; color: #D93025; }
+  .latebar span { flex: 1 1 auto; min-width: 7em; font-weight: 600; color: color-mix(in srgb, #D93025 60%, var(--text)); }     /* 밝게 4.1 · 어둡게 3.7 이던 것 */
   .latebar button { font-size: 13px; padding: 5px 11px; border-radius: 999px; }
   .empty { text-align: center; color: var(--sub); padding: 48px 0; }
   footer { flex: none; background: var(--back); border-top: 1px solid var(--line); padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); }
@@ -167,7 +167,7 @@ section.b0 { --sc: var(--red); } section.b1 { --sc: var(--orange); } section.b2,
 .ldetail { margin-top: 3px; font-size: 13px; color: var(--sub); word-break: keep-all; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }     /* 내용 · 성과: PC 카드처럼 제목 아래 회색 두 줄까지 */
   /* 시안 A(PC 업무 기록 · 일정과 같게): 날짜마다 카드, 머리는 옅은 파란 띠, 줄 사이 가는 선 */
   .lday { padding: 0; overflow: hidden; }
-  .lhead { padding: 10px 14px; background: color-mix(in srgb, #1a73e8 11%, var(--card)); color: color-mix(in srgb, #1a73e8 72%, var(--text)); }
+  .lhead { padding: 10px 14px; background: color-mix(in srgb, #1a73e8 11%, var(--card)); color: color-mix(in srgb, #1a73e8 55%, var(--text)); }     /* 어두운 화면 "오늘" 대비 4.2 → 4.5 넘게 */
   .lhead b::before { display: none; }
   .ltoday { color: inherit; }
   .lday > .ev, .lday > .lrow { padding-left: 14px; padding-right: 14px; }
@@ -1821,6 +1821,29 @@ async function selfTest() {
     save("look", lookKeep); applyLook(); render(); await W(200);
     check("글자 아주 크게: 목록 확대 · 끌 때 빈자리 높이", zoomOk && ratioOk, info);
   } catch (e) { check("글자 아주 크게: 목록 확대 · 끌 때 빈자리 높이", false, e.message); }
+  // 글자 대비 훑기: 밝게 · 어둡게, 탭 다섯 · 설정 · 펼친 할 일 · 프로젝트 시트에서 보이는 글자가 모두 4.5(큰 글자 3) 이상. 아이콘(★)은 빼고
+  try {
+    const rgbOf = c => { const n = (c.match(/[\d.]+/g) || []).map(Number); return { v: c.startsWith("color(") ? n.slice(0, 3).map(q => q * 255) : n.slice(0, 3), a: n[3] ?? 1 }; };
+    const lumOf = v => v.map(q => { q /= 255; return q <= 0.03928 ? q / 12.92 : Math.pow((q + 0.055) / 1.055, 2.4); }).reduce((s, q, i) => s + q * [0.2126, 0.7152, 0.0722][i], 0);
+    const bgOf = el => { for (; el; el = el.parentElement) { const b = rgbOf(getComputedStyle(el).backgroundColor); if (b.a > 0.9 && b.v.length === 3) return b.v; } return [255, 255, 255]; };
+    const low = new Set(), sweep = tag => { for (const el of document.querySelectorAll("body *")) {
+      if (!el.getClientRects().length || el.closest("#selftest, .star, .toast")) continue;
+      if (![...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())) continue;
+      const cs = getComputedStyle(el); if (cs.visibility === "hidden" || +cs.opacity < 0.5) continue;
+      const a = lumOf(rgbOf(cs.color).v), b = lumOf(bgOf(el)), r = (Math.max(a, b) + .05) / (Math.min(a, b) + .05);
+      const fs = parseFloat(cs.fontSize), big = fs >= 18.66 || (fs >= 14 && +cs.fontWeight >= 700);
+      if (r < (big ? 3 : 4.5)) low.add(tag + " " + r.toFixed(1) + " '" + el.textContent.trim().slice(0, 12) + "'"); } };
+    const lookKeep = load("look", {});
+    for (const th of ["light", "dark"]) {
+      save("look", { ...lookKeep, theme: th }); applyLook();
+      for (const f of ["all", "next", "mine", "events", "log"]) { const b = document.querySelector(`[data-filter="${f}"]`); if (b) { b.click(); await W(200); sweep(th + "/" + f); } }
+      document.querySelector('[data-filter="all"]').click(); await W(200);
+      $("settings").click(); await W(250); sweep(th + "/settings"); closeSheet();
+      document.querySelector(".proj")?.click(); await W(250); sweep(th + "/proj"); closeSheet();
+    }
+    save("look", lookKeep); applyLook(); render(); await W(150);
+    check("글자 대비 훑기(밝게 · 어둡게)", low.size === 0, [...low].slice(0, 4).join(" | "));
+  } catch (e) { check("글자 대비 훑기(밝게 · 어둡게)", false, e.message); }
   // English 화면(맨 마지막: 한국어로 돌아가려면 다시 켜야 해서). 탭 · 오늘 카드 · 마감 알약 · 날짜순 · 설정 시트에 UI 한국어가 남지 않는지(사용자 자료 칸은 빼고)
   try {
     const lookKeep = load("look", {}); save("look", { ...lookKeep, lang: "en" }); applyLook(); render(); startTr(); await W(300);
