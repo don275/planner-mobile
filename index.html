@@ -1604,9 +1604,14 @@ async function selfTest() {
       showTeamBoard(); await W(150);
       const tcards = [...document.querySelectorAll("#sheet .tcard")], boardOk = boardContrast && tcards.length === 2 && tcards[0].textContent.includes("김대리") && /[34]분 전/.test(tcards[0].textContent) && tcards[1].textContent.includes("내가 맡긴 일") && !!document.querySelector("#sheet .st.r");
       closeSheet();
+      // 찾기에 팀 사람 이름: "최지원" → 최지원이 맡긴 일(tm-in) · 최지원에게 맡긴 일(tm-out), 다른 일은 안 걸림
+      query = "최지원"; render(); await W(100);
+      const byName = [...document.querySelectorAll(".item")].map(e => e.dataset.id).sort().join(",");
+      query = ""; render(); await W(100);
+      const nameFind = byName === "tm-in,tm-out";
       opened = null; delete state.team; state.todos.splice(t0); render(); await W(150);
       const gone = $("mineChip").hidden;
-      check("팀: 내 일 칩 · 받은 일만 · 맡김 · 동그라미 · 맡기기 단추 · 알약 대비 · 새 일 알림 한 번", boardOk && freshToast && toastOnce && teamRatio >= 4.5 && chipOk && avOk && shown.length === 1 && shown[0] === "tm-in" && fromTxt.includes("최지원") && fromTxt.includes("오늘") && !!btn && btn.textContent.includes("최지원") && gone, [chipOk, avOk, shown.join("|"), fromTxt, btn && btn.textContent, gone, "대비 " + teamRatio.toFixed(1), "알림 " + freshToast + "/" + toastOnce, "현황 " + boardOk, "현황 대비 최소 " + (boardRatios.length ? Math.min(...boardRatios).toFixed(1) : "-")].join(" "));
+      check("팀: 내 일 칩 · 받은 일만 · 맡김 · 동그라미 · 맡기기 단추 · 알약 대비 · 새 일 알림 한 번", nameFind && boardOk && freshToast && toastOnce && teamRatio >= 4.5 && chipOk && avOk && shown.length === 1 && shown[0] === "tm-in" && fromTxt.includes("최지원") && fromTxt.includes("오늘") && !!btn && btn.textContent.includes("최지원") && gone, [chipOk, avOk, shown.join("|"), fromTxt, btn && btn.textContent, gone, "대비 " + teamRatio.toFixed(1), "알림 " + freshToast + "/" + toastOnce, "현황 " + boardOk, "현황 대비 최소 " + (boardRatios.length ? Math.min(...boardRatios).toFixed(1) : "-"), "이름 찾기 " + byName].join(" "));
     }
     { // 오늘 카드 "오늘 일정 n": 견본의 오늘 일정(주간 회의) 수와 같고, 누르면 일정 탭
       tab("전체"); await W(200);
