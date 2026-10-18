@@ -1049,9 +1049,17 @@ function noticeFresh() {
   toast(added.length > 1 ? (isEn() ? added.length + " new tasks from your team" : "새로 받은 일 " + added.length + "건") : isEn() ? added[0].from + " assigned '" + t + "' to you" : added[0].from + "님이 '" + t + "' 을(를) 맡겼습니다");
 }
 function personName(id) { const p = ((state && state.team && state.team.people) || []).find(x => x.id === id); return p ? p.name : id; }
+// 사람 동그라미: 색이 없으면 PC 와 같은 팔레트에서 사람마다 하나, 글자는 바탕에 맞춰 검정 · 흰색 중 잘 보이는 쪽(PC 의 TextOn 과 같음)
+const TEAM_COLORS = ["#1A73E8", "#188038", "#9334E6", "#E37400", "#D93025", "#00897B", "#5F6368", "#C2185B"];
+function avatarColors(id, color) {
+  let bg = /^#[0-9a-f]{6}$/i.test(color || "") ? color : TEAM_COLORS[[...String(id || "")].reduce((s, c) => (s * 31 + c.charCodeAt(0)) >>> 0, 7) % TEAM_COLORS.length];
+  const lum = [1, 3, 5].map(i => parseInt(bg.substr(i, 2), 16) / 255).map(q => q <= 0.03928 ? q / 12.92 : Math.pow((q + 0.055) / 1.055, 2.4)).reduce((s, q, i) => s + q * [0.2126, 0.7152, 0.0722][i], 0);
+  return { bg, fg: (1.05 / (lum + .05)) >= ((lum + .05) / .05) ? "#fff" : "#000" };
+}
 function avatarHtml(id) {
   const p = ((state && state.team && state.team.people) || []).find(x => x.id === id) || { name: id, color: "" };
-  return `<span class="av" style="${p.color ? "background:" + esc(p.color) : ""}" title="${esc(p.name)}">${esc((p.name || "?").slice(0, 1))}</span>`;
+  const c = avatarColors(p.id || id, p.color);
+  return `<span class="av" style="background:${c.bg};color:${c.fg}" title="${esc(p.name)}">${esc((p.name || "?").slice(0, 1))}</span>`;
 }
 // 여러 개 한꺼번에 맡기기(프로젝트 시트): 받은 일(남이 맡긴 일)은 빼고, 고른 사람에게 하나씩 op assign
 function assignMany(items, title) {
@@ -1643,6 +1651,11 @@ async function selfTest() {
         }
         save("look", keepLook); applyLook(); }
       const boardContrast = boardRatios.length >= 4 && Math.min(...boardRatios) >= 4.5;
+      { // 사람 동그라미 글자 대비: 팔레트 8색 · 색 없음 모두 4.5 이상(어두운 화면에서 흰 바탕 흰 글자였음)
+        const ratioOf = (a, b) => { const L = h => [1, 3, 5].map(i => parseInt(h.substr(i, 2), 16) / 255).map(q => q <= 0.03928 ? q / 12.92 : Math.pow((q + 0.055) / 1.055, 2.4)).reduce((s, q, i) => s + q * [0.2126, 0.7152, 0.0722][i], 0);
+          const x = L(a), y = L(b === "#fff" ? "#ffffff" : "#000000"); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05); };
+        const avRatios = [...TEAM_COLORS, "", "bad"].map((col, i) => { const c = avatarColors("p" + i, col); return ratioOf(c.bg, c.fg); });
+        check("사람 동그라미 글자 잘 보임(4.5 이상)", Math.min(...avRatios) >= 4.5, avRatios.map(r => r.toFixed(1)).join(",")); }
       showTeamBoard(); await W(150);
       const tcards = [...document.querySelectorAll("#sheet .tcard")], boardOk = boardContrast && tcards.length === 2 && tcards[0].textContent.includes("김대리") && /[34]분 전/.test(tcards[0].textContent) && tcards[1].textContent.includes("내가 맡긴 일") && !!document.querySelector("#sheet .st.r");
       // 열어 둔 동안 새 목록: 같으면 그대로, 바뀌면 다시 그림
