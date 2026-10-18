@@ -859,8 +859,8 @@ function wordDue(text) {
   if (due < today()) return null;
   return { text: text.slice(0, m.index).trim(), due };
 }
-function quickDues() {
-  const t = Date.parse(today()), wd = new Date(t).getUTCDay(), at = n => day(new Date(t + n * 86400000)), list = [["오늘", at(0)], ["내일", at(1)]];
+function quickDues(base) {     // base: 시험용 기준 날짜(없으면 오늘)
+  const t = Date.parse(base || today()), wd = new Date(t).getUTCDay(), at = n => day(new Date(t + n * 86400000)), list = [["오늘", at(0)], ["내일", at(1)]];
   const toFri = (5 - wd + 7) % 7, toMon = (1 - wd + 7) % 7;
   if (toFri >= 2) list.push(["이번 주 금요일", at(toFri)]);
   if ((toMon || 7) !== 1) list.push(["다음 주 월요일", at(toMon || 7)]);     // 일요일이면 내일과 같은 날이라 빼기(PC 와 같음)
@@ -1462,7 +1462,9 @@ async function selfTest() {
         document.querySelector('[data-brief="nodate"]').click(); await W(300); const first = (document.querySelector(".item.flash") || {}).dataset?.id;
         document.querySelector('[data-brief="nodate"]').click(); await W(300); const second = [...document.querySelectorAll(".item.flash")].map(e => e.dataset.id).find(id => id !== first);
         state.todos.splice(t0); render(); await W(200);
-        check("날짜 없음 알약: 오래된 것부터", first === "nd-old" && second === "nd-mid", first + "," + second);
+        { const dup = []; for (let k = 0; k < 7; k++) { const base = day(new Date(Date.parse("2026-10-12") + k * 86400000)), q = quickDues(base); if (new Set(q.map(p => p[1])).size !== q.length) dup.push(base); }
+        check("빠른 마감일 같은 날짜 두 번 없음(요일 7가지)", dup.length === 0, dup.join(",")); }
+      check("날짜 없음 알약: 오래된 것부터", first === "nd-old" && second === "nd-mid", first + "," + second);
         tab("날짜순"); await W(300); }      check("오늘 카드 날짜 없음 알약", briefMatch("nodate").length > 0 && !!document.querySelector('[data-brief="nodate"]') || load("briefHidden", "") === today());
       check("날짜순 묶음", hs.length >= 2 && hs.every((v, i) => !i || hs[i - 1] < v) && psec && noSheet && filter === "next", hs.join(",") + " 디데이 없음 " + firstNoDue + " psec=" + psec + " noSheet=" + noSheet);
       tab("날짜순"); await W(300);     // 한 번 더 누르면 거꾸로(날짜 없음이 맨 위)
