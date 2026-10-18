@@ -1517,6 +1517,12 @@ async function selfTest() {
       tab("전체"); render(); await W(200);
       state.todos.find(x => x.id === "tm-in").fresh = true; render(); await W(150);
       const freshChip = !!document.querySelector(`[data-brief="team"]`) && briefMatch("team").length === 1;
+      // 새로 받은 일 알약(팀 파랑) 글씨 대비 4.5 이상(반투명 바탕은 카드 색과 섞어서)
+      const teamRatio = (() => { const el = document.querySelector(`[data-brief="team"]`); if (!el) return 0;
+        const rgb = c => { const n = c.match(/[\d.]+/g).map(Number); return c.startsWith("color(") ? { v: n.slice(0, 3).map(q => q * 255), a: n[3] ?? 1 } : { v: n.slice(0, 3), a: n[3] ?? 1 }; };
+        const lum = v => v.map(q => { q /= 255; return q <= 0.03928 ? q / 12.92 : Math.pow((q + 0.055) / 1.055, 2.4); }).reduce((s, q, i) => s + q * [0.2126, 0.7152, 0.0722][i], 0);
+        const cs = getComputedStyle(el), card = rgb(getComputedStyle(document.querySelector(".brief")).backgroundColor).v, b = rgb(cs.backgroundColor), t = rgb(cs.color);
+        const bg = b.v.map((q, i) => q * b.a + card[i] * (1 - b.a)), L1 = lum(t.v), L2 = lum(bg); return (Math.max(L1, L2) + 0.05) / (Math.min(L1, L2) + 0.05); })();
       const chipOk = freshChip && !$("mineChip").hidden && $("mineChip").textContent.endsWith(" 1");
       const avOk = !!document.querySelector(`.item[data-id="tm-out"] .text .av`);
       $("mineChip").click(); await W(250);
@@ -1526,7 +1532,7 @@ async function selfTest() {
       const btn = document.querySelector(`.item[data-id="tm-out"] [data-act="assign"]`);
       opened = null; delete state.team; state.todos.splice(t0); render(); await W(150);
       const gone = $("mineChip").hidden;
-      check("팀: 내 일 칩 · 받은 일만 · 맡김 · 동그라미 · 맡기기 단추", chipOk && avOk && shown.length === 1 && shown[0] === "tm-in" && fromTxt.includes("최지원") && !!btn && btn.textContent.includes("최지원") && gone, [chipOk, avOk, shown.join("|"), fromTxt, btn && btn.textContent, gone].join(" "));
+      check("팀: 내 일 칩 · 받은 일만 · 맡김 · 동그라미 · 맡기기 단추 · 알약 대비", teamRatio >= 4.5 && chipOk && avOk && shown.length === 1 && shown[0] === "tm-in" && fromTxt.includes("최지원") && !!btn && btn.textContent.includes("최지원") && gone, [chipOk, avOk, shown.join("|"), fromTxt, btn && btn.textContent, gone, "대비 " + teamRatio.toFixed(1)].join(" "));
     }
     tab("일정"); await W(300);
     const evFoot = (document.querySelector(".lfoot") || {}).textContent || "";
