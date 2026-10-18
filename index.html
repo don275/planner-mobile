@@ -694,7 +694,7 @@ function render() {
         + (many ? `<span class="prog"><i style="width:${Math.round((item.step + 1) * 100 / item.steps.length)}%"></i></span><span>${item.step + 1}/${item.steps.length}</span>` + (item.step < item.steps.length - 1 ? `<span>다음: ${esc(item.steps[item.step + 1])}</span>` : "") : "")
         + (due ? `<span class="due ${due.cls}">${due.text}</span>` : withSec && ageDays(item) > 0 ? `<span class="due far age">${ageDays(item)}일째</span>` : "") + (item.remind ? `<span>알림 ${remindLabel(item.remind)}</span>` : "")
         + (item.files ? `<span>첨부 ${item.files}</span>` : "") + (item.notes && opened !== item.id ? `<span>메모</span>` : "")
-        + (item.from ? `<span class="from">${isEn() ? "From " + esc(item.from) : esc(item.from) + "님이 맡김"}</span>` : "") + `</div>`;
+        + (item.from ? `<span class="from">${isEn() ? "From " + esc(item.from) : esc(item.from) + "님이 맡김"}${whenAssigned(item.fromAt)}</span>` : "") + `</div>`;
       if (opened === item.id) {
         html += `<div class="more">`;
         if (many) html += `<ul class="steps" data-steps="${esc(item.id)}">` + item.steps.map((s, i) => `<li class="${i < item.step ? "done" : i === item.step ? "now" : ""}"${i >= item.step ? ` data-stepi="${i}"` : ""}><span data-stepname="${i}">${i + 1}. ${esc(s)}</span>`
@@ -982,6 +982,13 @@ function showSettings() {
 }
 
 // 팀 현황(PC 와 같은 카드): 사람마다 진행 중 · 기한 지남 · 이번 주 끝냄 · 급한 일 · 내가 맡긴 일. 나 먼저, 그다음 지난 마감 많은 순
+// 맡긴 때(PC 와 같은 말): " · 오늘" · " · 어제" · " · 10/18"
+function whenAssigned(at) {
+  if (!at) return "";
+  const d0 = at.slice(0, 10), t = today(), y = new Date(); y.setDate(y.getDate() - 1);
+  const yd = y.getFullYear() + "-" + String(y.getMonth() + 1).padStart(2, "0") + "-" + String(y.getDate()).padStart(2, "0");
+  return " · " + (d0 === t ? (isEn() ? "today" : "오늘") : d0 === yd ? (isEn() ? "yesterday" : "어제") : md(d0));
+}
 // "yyyy-MM-dd HH:mm" → 방금 · n분 전 · n시간 전 · n일 전(PC 팀 현황과 같은 말)
 function agoText(at) {
   const t = Date.parse(at.replace(" ", "T")); if (isNaN(t)) return "";
@@ -1558,7 +1565,7 @@ async function selfTest() {
     { // 팀(PC 에서 팀 기능을 켰을 때): [내 일] 칩 · 받은 일만 · "OO님이 맡김" · 남에게 맡긴 일 동그라미 · 펼치면 맡기기 단추
       const t0 = state.todos.length;
       state.team = { me: "kim", people: [{ id: "boss", name: "최지원", color: "#1A73E8" }, { id: "kim", name: "김대리", color: "#188038" }] };
-      state.todos.push({ id: "tm-in", section: "거래처", text: "받은 일", steps: ["받은 일"], step: 0, due: "", stepDues: [], notes: "", repeat: false, from: "최지원" },
+      state.todos.push({ id: "tm-in", section: "거래처", text: "받은 일", steps: ["받은 일"], step: 0, due: "", stepDues: [], notes: "", repeat: false, from: "최지원", fromAt: today() + " 09:00" },
                        { id: "tm-out", section: "거래처", text: "맡긴 일", steps: ["맡긴 일"], step: 0, due: "", stepDues: [], notes: "", repeat: false, who: "boss" });
       tab("전체"); render(); await W(200);
       save("seenFresh", []); state.todos.find(x => x.id === "tm-in").fresh = true; render(); await W(150);
@@ -1599,7 +1606,7 @@ async function selfTest() {
       closeSheet();
       opened = null; delete state.team; state.todos.splice(t0); render(); await W(150);
       const gone = $("mineChip").hidden;
-      check("팀: 내 일 칩 · 받은 일만 · 맡김 · 동그라미 · 맡기기 단추 · 알약 대비 · 새 일 알림 한 번", boardOk && freshToast && toastOnce && teamRatio >= 4.5 && chipOk && avOk && shown.length === 1 && shown[0] === "tm-in" && fromTxt.includes("최지원") && !!btn && btn.textContent.includes("최지원") && gone, [chipOk, avOk, shown.join("|"), fromTxt, btn && btn.textContent, gone, "대비 " + teamRatio.toFixed(1), "알림 " + freshToast + "/" + toastOnce, "현황 " + boardOk, "현황 대비 최소 " + (boardRatios.length ? Math.min(...boardRatios).toFixed(1) : "-")].join(" "));
+      check("팀: 내 일 칩 · 받은 일만 · 맡김 · 동그라미 · 맡기기 단추 · 알약 대비 · 새 일 알림 한 번", boardOk && freshToast && toastOnce && teamRatio >= 4.5 && chipOk && avOk && shown.length === 1 && shown[0] === "tm-in" && fromTxt.includes("최지원") && fromTxt.includes("오늘") && !!btn && btn.textContent.includes("최지원") && gone, [chipOk, avOk, shown.join("|"), fromTxt, btn && btn.textContent, gone, "대비 " + teamRatio.toFixed(1), "알림 " + freshToast + "/" + toastOnce, "현황 " + boardOk, "현황 대비 최소 " + (boardRatios.length ? Math.min(...boardRatios).toFixed(1) : "-")].join(" "));
     }
     { // 오늘 카드 "오늘 일정 n": 견본의 오늘 일정(주간 회의) 수와 같고, 누르면 일정 탭
       tab("전체"); await W(200);
