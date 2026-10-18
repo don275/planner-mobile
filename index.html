@@ -1419,6 +1419,9 @@ $("undo").addEventListener("click", () => {
   $("toast").hidden = true; render(); send();
 });
 document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
+// 켜 둔 채 자정이 지나면 오늘 카드 · 날짜순(오늘 · 내일) · D-n · 며칠째를 새 날짜로 다시 그린다(PC 와 같음, 구글 연결 없이도)
+let shownDay = today();
+setInterval(() => { if (today() !== shownDay && !drag && $("shade").hidden) { shownDay = today(); render(); } }, 60000);
 // 폰이 밝게 · 어둡게로 바뀌면(밤 자동 전환 등) 색을 다시 계산해 그린다
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { applyLook(); render(); });
 // 화면을 보고 있는 동안에는 알아서 맞춘다.
