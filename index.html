@@ -567,7 +567,7 @@ function briefHtml() {
 }
 let briefAt = {};
 function pickBrief(kind) {
-  const ids = briefMatch(kind).map(x => x.id), els = ids.map(id => document.querySelector(`.item[data-id="${CSS.escape(id)}"]`)).filter(Boolean);
+  const ids = (kind === "nodate" ? briefMatch(kind).sort((a, b) => ageDays(b) - ageDays(a)) : briefMatch(kind)).map(x => x.id), els =     /* 날짜 없음은 오래 묵은 것부터(PC 와 같음) */ ids.map(id => document.querySelector(`.item[data-id="${CSS.escape(id)}"]`)).filter(Boolean);
   // [오늘] 탭에서 이번 주 디데이 등을 누르면 [전체] 로 바꿔 다시 찾는다(PC 와 같게)
   if (!els.length && filter === "today" && !query) { document.querySelector('[data-filter="all"]').click(); setTimeout(() => pickBrief(kind), 50); return; }
   if (!els.length) { toast("보이는 목록에 없습니다(검색 · 걸러 보기를 풀어 보세요)"); return; }
@@ -575,7 +575,8 @@ function pickBrief(kind) {
   els[i].scrollIntoView({ behavior: "smooth", block: "center" });
   els[i].classList.add("flash"); setTimeout(() => els[i].classList.remove("flash"), 1200);
   // 몇 번째인지 · 무슨 일인지(폰은 마우스 풍선이 없어서). 한 번 더 누르면 다음 것
-  if (els.length > 1) toast((i + 1) + " / " + els.length + " · " + ((els[i].querySelector(".text") || {}).textContent || "").slice(0, 30) + " · 한 번 더 누르면 다음");
+  const ageNote = kind === "nodate" && ageDays(briefMatch(kind).find(x => x.id === els[i].dataset.id) || {}) > 0 ? ageDays(briefMatch(kind).find(x => x.id === els[i].dataset.id)) + (isEn() ? "d waiting · " : "일째 · ") : "";
+  if (els.length > 1 || ageNote) toast((i + 1) + " / " + els.length + " · " + ageNote + ((els[i].querySelector(".text") || {}).textContent || "").slice(0, 30) + (els.length < 2 ? "" : isEn() ? " · tap again for the next" : " · 한 번 더 누르면 다음"));
 }
 
 // 기록 탭 위의 두 단추: 목록에 없던 일도 바로 기록 · 오늘 한 일을 보고 글로 복사
