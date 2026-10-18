@@ -1077,12 +1077,12 @@ function shareText(only, bare) {
   // 화면에 놓인 차례대로(고정 프로젝트가 위): 그려진 할 일 순서를 따르고, 화면에 없는 것은 뒤에
   const shown = [...document.querySelectorAll(".item[data-id]")].map(e => e.dataset.id), rank = x => { const i = shown.indexOf(x.id); return i < 0 ? 1e9 : i; };
   for (const x of view().filter(x => only == null || (x.section || "") === only)     /* 빈 이름("프로젝트 없음")도 그 묶음만 */.slice().sort((a, b) => rank(a) - rank(b))) { const k = (x.section || "기타") + (x.sub ? "/" + x.sub : ""); if (!groups[k]) { groups[k] = []; order.push(k); } groups[k].push(x); }
-  let out = (d.getMonth() + 1) + "월 " + d.getDate() + "일 남은 업무";
+  let out = isEn() ? "Remaining work · " + d.toLocaleDateString("en-US", { month: "short", day: "numeric" }) : (d.getMonth() + 1) + "월 " + d.getDate() + "일 남은 업무";     // 영어 화면이면 머리말도 영어(PC 와 같게)
   for (const k of order) {
     out += "\n\n[" + k + "]\n";
     for (const x of groups[k]) {
       const st = x.steps && x.steps.length ? x.steps : [x.text || ""], at = Math.min(x.step || 0, st.length - 1);
-      const head = at >= 2 ? "(끝낸 " + at + "단계) " : at === 1 ? "✓" + st[0] + " → " : "";
+      const head = at >= 2 ? (isEn() ? "(" + at + " steps done) " : "(끝낸 " + at + "단계) ") : at === 1 ? "✓" + st[0] + " → " : "";
       out += "\n□ " + head + st.slice(at).join(" → ") + (x.who ? " (" + personName(x.who) + ")" : "") + (x.due ? " (~" + Number(x.due.slice(5, 7)) + "/" + Number(x.due.slice(8, 10)) + ")" : "");
       if (!bare) for (const n of (x.notes || "").split("\n").map(s => s.trim()).filter(Boolean)) out += "\n• " + n.replace(/^•\s*/, "");     // bare: 메모 빼고(거래처 · 소속사에 보낼 때)
     }
@@ -1755,7 +1755,7 @@ async function selfTest() {
     const pillOver = [...document.querySelectorAll(".board .item")].filter(it => { const d = it.querySelector(".meta .due"), tx = it.querySelector(".text"); if (!d || !tx || getComputedStyle(d).position !== "absolute") return false; const tr = tx.getBoundingClientRect(); return tr.left + tx.clientWidth - parseFloat(getComputedStyle(tx).paddingRight) > d.getBoundingClientRect().left + 1; }).length;
     save("look", lookKeep);
     const w1 = wordDue("Send the quote by Friday"), w2 = wordDue("Call Kim tomorrow"), w3 = wordDue("Plan the Friday party");
-    save("look", { ...lookKeep, lang: "en" }); const rep = dayReport(); save("look", lookKeep); const reportOk = rep.includes(" · done ") && !/한 일 |아직 남은 일/.test(rep);     // 오늘 한 일 복사 글 머리말도 영어
+    save("look", { ...lookKeep, lang: "en" }); const rep = dayReport(), listEn = shareText(null, true); save("look", lookKeep); const reportOk = rep.includes(" · done ") && !/한 일 |아직 남은 일/.test(rep) && listEn.startsWith("Remaining work · ") && !listEn.includes("남은 업무");     // 오늘 한 일 · 남은 일 목록 복사 글 머리말도 영어     // 오늘 한 일 복사 글 머리말도 영어
     const wordsOk = !!w1 && w1.text === "Send the quote" && !!w2 && w2.due === later(1) && w2.text === "Call Kim" && !w3;
     check("English 화면(탭 · 카드 · 날짜순 · 일정 · 기록 · 설정)", chipsOk && wordsOk && reportOk && leftKo.size === 0 && pillOver === 0, (leftKo.size ? [...leftKo].slice(0, 4).join(" | ") : "") + " 알약 겹침 " + pillOver + (chipsOk ? "" : " chips") + (wordsOk ? "" : " words") + (reportOk ? "" : " report:" + rep.slice(0, 60)));
   } catch (e) { check("English 화면(탭 · 카드 · 날짜순 · 일정 · 기록 · 설정)", false, e.message); }
