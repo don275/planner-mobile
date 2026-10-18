@@ -1453,7 +1453,16 @@ async function selfTest() {
       const hd = document.querySelector("section.bucket .uphead"); if (hd) hd.click(); await W(200); const noSheet = $("shade").hidden; if (!noSheet) closeSheet();
       const ageOk = [...document.querySelectorAll("section.b4 .due.age")].some(e => e.textContent === "12일째");     // 날짜 없음 줄: 며칠째
       check("날짜순: 날짜 없음 며칠째", ageOk);
-      check("오늘 카드 날짜 없음 알약", briefMatch("nodate").length > 0 && !!document.querySelector('[data-brief="nodate"]') || load("briefHidden", "") === today());
+      // 날짜 없음 알약을 누르면 오래 묵은 것부터(시험 일 둘을 잠깐 넣었다 뺀다)
+      { const t0 = state.todos.length;
+        state.todos.push({ id: "nd-old", section: "거래처", text: "아주 오래된 일", steps: ["아주 오래된 일"], step: 0, due: "", stepDues: [], notes: "", repeat: false, created: later(-4000) },
+                         { id: "nd-mid", section: "거래처", text: "꽤 오래된 일", steps: ["꽤 오래된 일"], step: 0, due: "", stepDues: [], notes: "", repeat: false, created: later(-3000) });
+        tab("전체"); render(); await W(200); briefAt = {};
+        document.querySelector('[data-brief="nodate"]').click(); await W(300); const first = (document.querySelector(".item.flash") || {}).dataset?.id;
+        document.querySelector('[data-brief="nodate"]').click(); await W(300); const second = [...document.querySelectorAll(".item.flash")].map(e => e.dataset.id).find(id => id !== first);
+        state.todos.splice(t0); render(); await W(200);
+        check("날짜 없음 알약: 오래된 것부터", first === "nd-old" && second === "nd-mid", first + "," + second);
+        tab("날짜순"); await W(300); }      check("오늘 카드 날짜 없음 알약", briefMatch("nodate").length > 0 && !!document.querySelector('[data-brief="nodate"]') || load("briefHidden", "") === today());
       check("날짜순 묶음", hs.length >= 2 && hs.every((v, i) => !i || hs[i - 1] < v) && psec && noSheet && filter === "next", hs.join(",") + " 디데이 없음 " + firstNoDue + " psec=" + psec + " noSheet=" + noSheet);
       tab("날짜순"); await W(300);     // 한 번 더 누르면 거꾸로(날짜 없음이 맨 위)
       { const rv = [...document.querySelectorAll("section.bucket")].map(s => +s.className.match(/b(\d)/)[1]), chipT = document.querySelector('[data-filter="next"]').textContent;
