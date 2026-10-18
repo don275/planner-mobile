@@ -588,8 +588,8 @@ function allLogs() {
 }
 function dayReport() {
   const d = today(), logs = allLogs().filter(x => x.date === d), groups = {};
-  for (const x of logs) (groups[x.section || "기타"] = groups[x.section || "기타"] || []).push(x);
-  let out = dayTitle(d).replace(" · 오늘", "") + " 한 일 " + logs.length + "건";
+  const en = isEn(), other = en ? "Other" : "기타";     // English 면 머리말 · 날짜도 영어(PC 2.2.106 과 같음, 할 일 이름은 그대로)
+  let out = dayTitle(d).split(" · ")[0] + (en ? " · done " + logs.length : " 한 일 " + logs.length + "건");
   for (const g of Object.keys(groups).sort((a, b) => groups[b].length - groups[a].length)) {
     out += "\n\n[" + g + "]";
     const items = groups[g], subs = [...new Set(items.map(x => x.sub || ""))].sort((a, b) => (a ? 1 : 0) - (b ? 1 : 0));
@@ -599,7 +599,7 @@ function dayReport() {
     }
   }
   const left = view().filter(x => x.due && x.due <= d && !x.repeat);
-  if (left.length) out += "\n\n아직 남은 일 " + left.length + "건" + left.map(x => "\n- " + (x.section ? "[" + x.section + (x.sub ? " › " + x.sub : "") + "] " : "") + x.steps[Math.min(x.step, x.steps.length - 1)]).join("");
+  if (left.length) out += (en ? "\n\nStill open " + left.length : "\n\n아직 남은 일 " + left.length + "건") + left.map(x => "\n- " + (x.section ? "[" + x.section + (x.sub ? " › " + x.sub : "") + "] " : "") + x.steps[Math.min(x.step, x.steps.length - 1)]).join("");
   return out;
 }
 function addLogSheet() {
@@ -1606,8 +1606,9 @@ async function selfTest() {
     const pillOver = [...document.querySelectorAll(".board .item")].filter(it => { const d = it.querySelector(".meta .due"), tx = it.querySelector(".text"); if (!d || !tx || getComputedStyle(d).position !== "absolute") return false; const tr = tx.getBoundingClientRect(); return tr.left + tx.clientWidth - parseFloat(getComputedStyle(tx).paddingRight) > d.getBoundingClientRect().left + 1; }).length;
     save("look", lookKeep);
     const w1 = wordDue("Send the quote by Friday"), w2 = wordDue("Call Kim tomorrow"), w3 = wordDue("Plan the Friday party");
+    save("look", { ...lookKeep, lang: "en" }); const rep = dayReport(); save("look", lookKeep); const reportOk = rep.includes(" · done ") && !/한 일 |아직 남은 일/.test(rep);     // 오늘 한 일 복사 글 머리말도 영어
     const wordsOk = !!w1 && w1.text === "Send the quote" && !!w2 && w2.due === later(1) && w2.text === "Call Kim" && !w3;
-    check("English 화면(탭 · 카드 · 날짜순 · 일정 · 기록 · 설정)", chipsOk && wordsOk && leftKo.size === 0 && pillOver === 0, (leftKo.size ? [...leftKo].slice(0, 4).join(" | ") : "") + " 알약 겹침 " + pillOver);
+    check("English 화면(탭 · 카드 · 날짜순 · 일정 · 기록 · 설정)", chipsOk && wordsOk && reportOk && leftKo.size === 0 && pillOver === 0, (leftKo.size ? [...leftKo].slice(0, 4).join(" | ") : "") + " 알약 겹침 " + pillOver + (chipsOk ? "" : " chips") + (wordsOk ? "" : " words") + (reportOk ? "" : " report:" + rep.slice(0, 60)));
   } catch (e) { check("English 화면(탭 · 카드 · 날짜순 · 일정 · 기록 · 설정)", false, e.message); }
   const box = document.createElement("pre"); box.id = "selftest";
   box.style.cssText = "position:fixed;left:0;right:0;top:0;z-index:99;margin:0;padding:8px;font-size:11px;background:#fff;color:#000;white-space:pre-wrap";
