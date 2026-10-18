@@ -27,8 +27,8 @@
   body { position: fixed; left: 0; right: 0; top: 0; bottom: var(--kb, 0px); display: flex; flex-direction: column; padding-bottom: var(--ad, 0px); }
   header { flex: none; z-index: 5; background: var(--back); padding: calc(10px + env(safe-area-inset-top)) 16px 8px; border-bottom: 1px solid var(--line); }
   .top { display: flex; align-items: center; gap: 8px; }
-  h1 { font-size: 18px; margin: 0; flex: none; white-space: nowrap; }
-  .state { flex: 1; min-width: 0; text-align: right; font-size: 12px; color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  h1 { font-size: 18px; margin: 0; flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }     /* 맨 위 상태 글(PC 대기 n)이 길면 제목이 줄어듦 */
+  .state { flex: 1; min-width: max-content; text-align: right; font-size: 12px; color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   button { font: inherit; color: var(--text); background: var(--card); border: 1px solid var(--line); border-radius: 9px; padding: 7px 12px; }
   button.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
   .chips { display: flex; gap: 6px; margin-top: 8px; overflow-x: auto; scrollbar-width: none; }     /* 좁은 폰 · 영어에서 맨 끝 탭(Log)이 잘리던 것: 그래도 넘치면 옆으로 밀기 */
@@ -673,7 +673,7 @@ function render() {
   document.body.classList.toggle("plain", filter === "events" || filter === "logs");
   if (filter === "events" || filter === "logs") {
     $("list").innerHTML = filter === "events" ? eventsHtml() : logsHtml();
-    $("state").textContent = problem;
+    $("state").textContent = stateText();
     $("banner").hidden = !demo && (!!token || (booting && !!state));
     $("bannerText").textContent = demo ? "견본 자료입니다" : "구글에 연결하면 내 할 일이 보입니다";
     $("connect").hidden = demo;
@@ -749,7 +749,7 @@ function render() {
   const want = picked ? keep : load("lastSection", null);
   if (want !== null && (names.includes(want) || want === "")) sel.value = want;
   fillSubs();
-  $("state").textContent = problem;
+  $("state").textContent = stateText();
   $("banner").hidden = !demo && (!!token || (booting && !!state));
   $("bannerText").textContent = demo ? "견본 자료입니다" : "구글에 연결하면 내 할 일이 보입니다";
   $("connect").hidden = demo;
@@ -768,6 +768,17 @@ function toast(text, op) {
 }
 
 function push(op, said) { op.key = op.key || newKey(); op.at = new Date().toISOString(); inbox.push(op); save("inbox", inbox); render(); send(); if (said) toast(said, op); }
+// 맨 위 상태 글: 연결 문제, 아니면 PC 가 3분 넘게 못 받은 변경 수(PC 플래너가 꺼져 있을 때). 누르면 까닭
+function pendingOld() { const cut = Date.now() - 3 * 60000; return inbox.filter(o => o.at && Date.parse(o.at) < cut).length; }
+function stateText() {
+  if (problem) return problem;
+  const n = demo ? 0 : pendingOld(); if (!n) return "";
+  return isEn() ? "PC wait " + inbox.length : "PC 대기 " + inbox.length;
+}
+$("state").addEventListener("click", () => {
+  if (!$("state").textContent || problem) return;
+  toast(isEn() ? "Your changes are saved. They show up on the PC once the planner there is running." : "바꾼 것은 저장돼 있습니다. PC 에서 플래너가 켜지면 반영됩니다.");
+});
 
 function check(id) {
   const item = view().find(x => x.id === id);
@@ -1822,6 +1833,15 @@ async function selfTest() {
     save("look", lookKeep); applyLook(); render(); await W(200);
     check("글자 아주 크게: 목록 확대 · 끌 때 빈자리 높이", zoomOk && ratioOk, info);
   } catch (e) { check("글자 아주 크게: 목록 확대 · 끌 때 빈자리 높이", false, e.message); }
+  { // PC 반영 대기: 3분 넘게 못 받은 변경이 있으면 맨 위에 수, 방금 것만 있으면 안 보임
+    const keepInbox = inbox, keepDemo = demo; demo = false;
+    inbox = [{ op: "check", id: "x", key: "t1", at: new Date(Date.now() - 10 * 60000).toISOString() }, { op: "check", id: "y", key: "t2", at: new Date().toISOString() }];
+    const oldShown = stateText();
+    inbox = [{ op: "check", id: "y", key: "t2", at: new Date().toISOString() }];
+    const freshShown = stateText();
+    inbox = keepInbox; demo = keepDemo; render();
+    check("PC 반영 대기 표시", oldShown === "PC 대기 2" && freshShown === "", oldShown + "/" + freshShown);
+  }
   // 글자 대비 훑기: 밝게 · 어둡게, 탭 다섯 · 설정 · 펼친 할 일 · 프로젝트 시트에서 보이는 글자가 모두 4.5(큰 글자 3) 이상. 아이콘(★)은 빼고
   try {
     const rgbOf = c => { const n = (c.match(/[\d.]+/g) || []).map(Number); return { v: c.startsWith("color(") ? n.slice(0, 3).map(q => q * 255) : n.slice(0, 3), a: n[3] ?? 1 }; };
