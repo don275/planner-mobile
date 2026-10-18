@@ -999,15 +999,25 @@ function agoText(at) {
   if (isEn()) return m < 1 ? "just now" : m < 60 ? m + " min ago" : m < 1440 ? Math.floor(m / 60) + " h ago" : Math.floor(m / 1440) + " d ago";
   return m < 1 ? "방금" : m < 60 ? m + "분 전" : m < 1440 ? Math.floor(m / 60) + "시간 전" : Math.floor(m / 1440) + "일 전";
 }
+let boardKey = null;
 function showTeamBoard() {
   const t = state && state.team; if (!t) return;
+  boardKey = JSON.stringify(t);
   const people = [...t.people].sort((a, b) => (a.id === t.me ? -1 : b.id === t.me ? 1 : 0) || (b.late || 0) - (a.late || 0));
   const card = p => `<div class="tcard"><div class="thead">${avatarHtml(p.id)}<b>${esc(p.name)}${p.id === t.me ? (isEn() ? " (me)" : " (나)") : ""}</b><small>${p.at ? esc(agoText(p.at)) : ""}</small></div>`
     + (p.open === undefined ? `<div class="tnone">${isEn() ? "No status yet" : "아직 현황이 없습니다"}</div>`
       : `<div class="tstats"><span class="st">${isEn() ? "Open" : "진행 중"} ${p.open}</span>` + (p.late ? `<span class="st r">${isEn() ? "Overdue" : "기한 지남"} ${p.late}</span>` : "") + `<span class="st g">${isEn() ? "Done this week" : "이번 주 끝냄"} ${p.doneWeek}</span></div>`
         + (p.top || []).map(s => `<div class="tline">· ${esc(s)}</div>`).join(""))
     + ((p.gave || []).length ? `<div class="tgave"><b>${isEn() ? "I assigned" : "내가 맡긴 일"} · ${p.gave.length}</b>` + p.gave.map(s => `<div class="tline">↗ ${esc(s)}</div>`).join("") + `</div>` : "") + `</div>`;
-  sheet(`<h2>${isEn() ? "Team status" : "팀 현황"}</h2>` + people.map(card).join("") + `<div class="end"><button class="primary" data-close>${isEn() ? "Close" : "닫기"}</button></div>`);
+  sheet(`<h2 id="teamBoardH">${isEn() ? "Team status" : "팀 현황"}</h2>` + people.map(card).join("") + `<div class="end"><button class="primary" data-close>${isEn() ? "Close" : "닫기"}</button></div>`);
+}
+
+// 팀 현황을 열어 둔 동안 새 목록이 오면: 바뀌었을 때만 다시 그림(스크롤 자리 지킴, PC 와 같음)
+function refreshTeamBoard() {
+  if (!document.querySelector("#sheet #teamBoardH") || !state || !state.team) return false;
+  if (JSON.stringify(state.team) === boardKey) return false;
+  const top = $("sheet").scrollTop; showTeamBoard(); $("sheet").scrollTop = top;
+  return true;
 }
 
 // ───── 문구 ─────
@@ -1262,7 +1272,7 @@ async function refresh() {
       state = fresh; save("state", state); save("inbox", inbox);
     }
     problem = "";
-    render();
+    render(); refreshTeamBoard();
     await send();
   } catch (e) { problem = "연결 안 됨"; render(); }
 }
@@ -1635,7 +1645,13 @@ async function selfTest() {
       const boardContrast = boardRatios.length >= 4 && Math.min(...boardRatios) >= 4.5;
       showTeamBoard(); await W(150);
       const tcards = [...document.querySelectorAll("#sheet .tcard")], boardOk = boardContrast && tcards.length === 2 && tcards[0].textContent.includes("김대리") && /[34]분 전/.test(tcards[0].textContent) && tcards[1].textContent.includes("내가 맡긴 일") && !!document.querySelector("#sheet .st.r");
+      // 열어 둔 동안 새 목록: 같으면 그대로, 바뀌면 다시 그림
+      const boardSame = !refreshTeamBoard();
+      state.team.people[1].open = 7; const boardRedrew = refreshTeamBoard() && ($("sheet").textContent || "").includes("진행 중 7");
+      state.team.people[1].open = 6;
       closeSheet();
+      const boardClosedNoop = !refreshTeamBoard();
+      check("팀 현황 열어 둔 동안 새로 그림", boardSame && boardRedrew && boardClosedNoop);
       const shareWho = shareText(null, true).includes("맡긴 일 (최지원)");
       // 프로젝트 시트 [이 프로젝트 맡기기] → 사람: 그 프로젝트 남은 일 중 받은 일(tm-in)은 빼고 하나씩 assign
       const inboxBefore = inbox.length;
