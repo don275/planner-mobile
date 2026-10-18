@@ -1582,11 +1582,24 @@ async function selfTest() {
       state.team.people[0].open = 4; state.team.people[0].late = 0; state.team.people[0].doneWeek = 12; state.team.people[0].top = ["계약서 검토 · 10/23 (D-4)"]; state.team.people[0].gave = ["샘플 발송 확인 · 10/21 (D-2)"];
       state.team.people[1].open = 6; state.team.people[1].late = 1; state.team.people[1].doneWeek = 9; state.team.people[1].at = (() => { const d = new Date(Date.now() - 3 * 60000); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0") + " " + String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); })();
       $("settings").click(); await W(250); const tbBtn = document.querySelector("#teamBoard"); if (tbBtn) tbBtn.click(); await W(250);
-      const tcards = [...document.querySelectorAll("#sheet .tcard")], boardOk = tcards.length === 2 && tcards[0].textContent.includes("김대리") && /[34]분 전/.test(tcards[0].textContent) && tcards[1].textContent.includes("내가 맡긴 일") && !!document.querySelector("#sheet .st.r");
+      // 팀 현황 알약(진행 중 · 기한 지남 · 이번 주 끝냄) 글씨 대비: 밝게 · 어둡게 모두 4.5 이상
+      const boardRatios = [];
+      { const rgbOf = c => { const n = c.match(/[\d.]+/g).map(Number); return c.startsWith("color(") ? n.slice(0, 3).map(q => q * 255) : n.slice(0, 3); };
+        const lumOf = v => v.map(q => { q /= 255; return q <= 0.03928 ? q / 12.92 : Math.pow((q + 0.055) / 1.055, 2.4); }).reduce((s, q, i) => s + q * [0.2126, 0.7152, 0.0722][i], 0);
+        const keepLook = load("look", {});
+        for (const th of ["light", "dark"]) {
+          const lk = { ...keepLook, theme: th }; save("look", lk); applyLook(); showTeamBoard(); await W(80);
+          for (const el of document.querySelectorAll("#sheet .tstats .st")) { const cs = getComputedStyle(el), a = lumOf(rgbOf(cs.color)), b = lumOf(rgbOf(cs.backgroundColor)); boardRatios.push((Math.max(a, b) + .05) / (Math.min(a, b) + .05)); }
+          closeSheet();
+        }
+        save("look", keepLook); applyLook(); }
+      const boardContrast = boardRatios.length >= 4 && Math.min(...boardRatios) >= 4.5;
+      showTeamBoard(); await W(150);
+      const tcards = [...document.querySelectorAll("#sheet .tcard")], boardOk = boardContrast && tcards.length === 2 && tcards[0].textContent.includes("김대리") && /[34]분 전/.test(tcards[0].textContent) && tcards[1].textContent.includes("내가 맡긴 일") && !!document.querySelector("#sheet .st.r");
       closeSheet();
       opened = null; delete state.team; state.todos.splice(t0); render(); await W(150);
       const gone = $("mineChip").hidden;
-      check("팀: 내 일 칩 · 받은 일만 · 맡김 · 동그라미 · 맡기기 단추 · 알약 대비 · 새 일 알림 한 번", boardOk && freshToast && toastOnce && teamRatio >= 4.5 && chipOk && avOk && shown.length === 1 && shown[0] === "tm-in" && fromTxt.includes("최지원") && !!btn && btn.textContent.includes("최지원") && gone, [chipOk, avOk, shown.join("|"), fromTxt, btn && btn.textContent, gone, "대비 " + teamRatio.toFixed(1), "알림 " + freshToast + "/" + toastOnce, "현황 " + boardOk].join(" "));
+      check("팀: 내 일 칩 · 받은 일만 · 맡김 · 동그라미 · 맡기기 단추 · 알약 대비 · 새 일 알림 한 번", boardOk && freshToast && toastOnce && teamRatio >= 4.5 && chipOk && avOk && shown.length === 1 && shown[0] === "tm-in" && fromTxt.includes("최지원") && !!btn && btn.textContent.includes("최지원") && gone, [chipOk, avOk, shown.join("|"), fromTxt, btn && btn.textContent, gone, "대비 " + teamRatio.toFixed(1), "알림 " + freshToast + "/" + toastOnce, "현황 " + boardOk, "현황 대비 최소 " + (boardRatios.length ? Math.min(...boardRatios).toFixed(1) : "-")].join(" "));
     }
     { // 오늘 카드 "오늘 일정 n": 견본의 오늘 일정(주간 회의) 수와 같고, 누르면 일정 탭
       tab("전체"); await W(200);
