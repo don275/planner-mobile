@@ -864,7 +864,7 @@ function quickDues() {
   const toFri = (5 - wd + 7) % 7, toMon = (1 - wd + 7) % 7;
   if (toFri >= 2) list.push(["이번 주 금요일", at(toFri)]);
   if ((toMon || 7) !== 1) list.push(["다음 주 월요일", at(toMon || 7)]);     // 일요일이면 내일과 같은 날이라 빼기(PC 와 같음)
-  list.push(["일주일 뒤", at(7)]);
+  if (!list.some(p => p[1] === at(7))) list.push(["일주일 뒤", at(7)]);     // 월요일이면 다음 주 월요일과 같은 날
   return list;
 }
 function pickDate(current, done) {
