@@ -1841,6 +1841,17 @@ async function selfTest() {
       document.querySelector('[data-filter="all"]').click(); await W(200);
       $("settings").click(); await W(250); sweep(th + "/settings"); closeSheet();
       document.querySelector(".proj")?.click(); await W(250); sweep(th + "/proj"); closeSheet();
+      { // 팀 현황(시험용 두 사람, 긴 이름 · 긴 제목) · 펼친 할 일 · 수정 시트
+        const teamKeep = state.team, at = new Date(Date.now() - 5 * 60000), atS = at.getFullYear() + "-" + String(at.getMonth() + 1).padStart(2, "0") + "-" + String(at.getDate()).padStart(2, "0") + " " + String(at.getHours()).padStart(2, "0") + ":" + String(at.getMinutes()).padStart(2, "0");
+        state.team = { me: "sw1", people: [{ id: "sw1", name: "신동규", color: "#E37400", open: 12, late: 2, doneWeek: 8, at: atS, top: ["거래처 견적서 보내기 아주 긴 제목이 들어가는 경우 · 10/18"], gave: ["계약서 검토 · 10/23 (D-4)"] }, { id: "sw2", name: "김대리아주긴이름", open: 3, late: 0, doneWeek: 1 }] };
+        showTeamBoard(); await W(200); sweep(th + "/board"); closeSheet(); state.team = teamKeep;
+        const firstId = document.querySelector(".item")?.dataset.id, editId = (state.todos.find(t => !t.done && (t.steps || []).length <= 1 && document.querySelector(`.item[data-id="${CSS.escape(t.id)}"]`)) || {}).id;     // 수정 단추는 단계 하나짜리에만
+        if (firstId) { opened = firstId; render(); await W(200); sweep(th + "/open"); }
+        if (!editId) throw new Error("수정할 할 일 없음");
+        opened = editId; render(); await W(200); document.querySelector(`.item[data-id="${CSS.escape(editId)}"] [data-act="edit"]`)?.click(); await W(250);
+        if (!($("sheet").textContent || "").trim()) throw new Error("수정 창 안 열림");
+        sweep(th + "/edit"); closeSheet(); opened = null; render(); await W(150);
+      }
     }
     save("look", lookKeep); applyLook(); render(); await W(150);
     check("글자 대비 훑기(밝게 · 어둡게)", low.size === 0, [...low].slice(0, 4).join(" | "));
@@ -1860,6 +1871,17 @@ async function selfTest() {
       document.querySelector('[data-filter="all"]').click(); await W(150);
       $("settings").click(); await W(250); sweepOut(tag + "/settings"); closeSheet();
       document.querySelector(".proj")?.click(); await W(250); sweepOut(tag + "/proj"); closeSheet();
+      { // 팀 현황(시험용 두 사람, 긴 이름 · 긴 제목) · 펼친 할 일 · 수정 시트
+        const teamKeep = state.team, at = new Date(Date.now() - 5 * 60000), atS = at.getFullYear() + "-" + String(at.getMonth() + 1).padStart(2, "0") + "-" + String(at.getDate()).padStart(2, "0") + " " + String(at.getHours()).padStart(2, "0") + ":" + String(at.getMinutes()).padStart(2, "0");
+        state.team = { me: "sw1", people: [{ id: "sw1", name: "신동규", color: "#E37400", open: 12, late: 2, doneWeek: 8, at: atS, top: ["거래처 견적서 보내기 아주 긴 제목이 들어가는 경우 · 10/18"], gave: ["계약서 검토 · 10/23 (D-4)"] }, { id: "sw2", name: "김대리아주긴이름", open: 3, late: 0, doneWeek: 1 }] };
+        showTeamBoard(); await W(200); sweepOut(tag + "/board"); closeSheet(); state.team = teamKeep;
+        const firstId = document.querySelector(".item")?.dataset.id, editId = (state.todos.find(t => !t.done && (t.steps || []).length <= 1 && document.querySelector(`.item[data-id="${CSS.escape(t.id)}"]`)) || {}).id;     // 수정 단추는 단계 하나짜리에만
+        if (firstId) { opened = firstId; render(); await W(200); sweepOut(tag + "/open"); }
+        if (!editId) throw new Error("수정할 할 일 없음");
+        opened = editId; render(); await W(200); document.querySelector(`.item[data-id="${CSS.escape(editId)}"] [data-act="edit"]`)?.click(); await W(250);
+        if (!($("sheet").textContent || "").trim()) throw new Error("수정 창 안 열림");
+        sweepOut(tag + "/edit"); closeSheet(); opened = null; render(); await W(150);
+      }
     }
     save("look", lookKeep); applyLook(); render(); await W(150);
     check("넘침 훑기(한 · 영 × 보통 · 아주 크게) · 폭 " + innerWidth, outs.size === 0, [...outs].slice(0, 4).join(" | "));
