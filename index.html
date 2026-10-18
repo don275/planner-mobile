@@ -465,7 +465,14 @@ const EN = {
   "옮길 곳이 없습니다": "Nowhere to move", "이름을 바꿨습니다": "Renamed", "단계 순서를 바꿨습니다": "Steps reordered", "마감일을 지웠습니다": "Due date cleared", "부제에서 뺐습니다": "Removed from subgroup",
   "순서를 바꿨습니다": "Reordered", "완료했습니다": "Done", "주소를 찾지 못했습니다": "No address found", "중요 표시를 뺐습니다": "Unmarked important", "중요 표시했습니다": "Marked important",
   "찾는 기록이 없습니다": "No matching entries", "최근 2주 동안 끝낸 일이 없습니다": "Nothing finished in the last 2 weeks", "추가했습니다": "Added", "프로젝트 순서를 바꿨습니다": "Projects reordered",
-  "할 일로 뺐습니다": "Moved out as a to-do", "아래에 주소를 붙여 넣으세요": "Paste addresses below", "(제목 없음)": "(No title)", "이번 주 금요일": "This Friday", "다음 주 월요일": "Next Monday", "일주일 뒤": "In a week"
+  "할 일로 뺐습니다": "Moved out as a to-do", "아래에 주소를 붙여 넣으세요": "Paste addresses below", "(제목 없음)": "(No title)", "이번 주 금요일": "This Friday", "다음 주 월요일": "Next Monday", "일주일 뒤": "In a week",
+  "한 일 적기": "Log what you did", "한 일 (예: 견적서 회신 받음)": "What I did (e.g. got the quote reply)", "맨 끝에 붙일 단계": "Steps to add at the end", "지우기": "Clear", "날짜 고르기": "Pick a date",
+  "어디로 옮길까요?": "Move where?", "이름 바꾸기": "Rename", "부제 없애기": "Remove subgroup", "할 일은 그대로 프로젝트에 남습니다": "To-dos stay in the project", "부제 이름 바꾸기": "Rename subgroup", "부제 이름": "Subgroup name",
+  "저장한 문구가 없습니다. PC 앱의 [문구 ▾ › 문구 관리]에서 만들면 여기 보입니다.": "No saved phrases. Create them on the PC in [Phrases ▾ › Manage phrases].",
+  "머리말": "Opening", "링크": "Links", "주소나 받은 링크 글을 여기 붙여 넣기": "Paste addresses or a message with links here", "복사한 것 붙여넣기": "Paste copied text", "넣기": "Insert", "맺음말": "Closing",
+  "(없으면 비워 두기)": "(leave blank if none)", "보내는 모양": "Format", "한 줄로: 이름 : 주소": "One line: name : address", "두 줄로: 이름 아래 주소": "Two lines: name, then address", "복사": "Copy", "이름": "Name", "위로": "Up",
+  "연결 안 됨": "Not connected", "↕ 단계 순서 바꾸기": "↕ Reorder steps", "프로젝트 이름 바꾸기": "Rename project", "프로젝트 이름": "Project name", "단계 이름 바꾸기": "Rename step", "단계 이름": "Step name", "단계 마감": "Step due date",
+  "안 한 단계를 하나씩 따로 할 일로 나눌까요?": "Split each remaining step into its own to-do?", "할 일 수정": "Edit to-do", "할 일": "To-do", "결과 · 내용 (업무 기록에 들어갑니다)": "Result · details (goes into the work log)", "없음": "None"
 };
 // 이름 · 숫자가 들어간 알림 문장
 const EN_PAT = [
@@ -474,8 +481,12 @@ const EN_PAT = [
   [/^'(.+)' 남은 일을 메모 빼고 복사했습니다$/, m => "Copied '" + m[1] + "' open to-dos (without notes)"], [/^'(.+)' 남은 일을 복사했습니다$/, m => "Copied '" + m[1] + "' open to-dos"],
   [/^(\d+)개 단계를 넣었습니다$/, m => m[1] + " steps added"], [/^(\d+)개 할 일로 나눴습니다$/, m => "Split into " + m[1] + " to-dos"], [/^(\d+)곳을 넣었습니다$/, m => m[1] + " addresses added"],
   [/^(?:전날까지 마감이었던|지난 마감) (\d+)건을 오늘로 옮겼습니다$/, m => "Moved " + m[1] + " overdue to today"], [/^지난 마감 (\d+)건을 내일로 옮겼습니다$/, m => "Moved " + m[1] + " overdue to tomorrow"],
-  [/^마감 (.+)로 추가했습니다$/, m => "Added, due " + m[1]]
+  [/^마감 (.+)로 추가했습니다$/, m => "Added, due " + m[1]],
+  [/^'(.+)' 을\(를\) 삭제할까요\?$/, m => "Delete '" + m[1] + "'?"], [/^'(.+)' 부제를 없앨까요\? 할 일은 그대로 남습니다\.$/, m => "Remove subgroup '" + m[1] + "'? To-dos stay."],
+  [/^'(.+)' 완료$/, m => "Done: '" + m[1] + "'"], [/^⇱ 할 일로 빼기(.*)$/, m => "⇱ Make it a to-do" + m[1]], [/^마감일 \(예: (.+), 비우면 지움\)$/, m => "Due date (e.g. " + m[1] + ", blank to clear)"]
 ];
+// 확인창 · 입력창(confirm · prompt)은 화면 글자가 아니라서 따로 바꾼다
+{ const c0 = window.confirm.bind(window), p0 = window.prompt.bind(window); window.confirm = m => c0(T(String(m))); window.prompt = (m, d) => p0(T(String(m)), d); }
 // 앞부분이 UI 말이고 뒤에 숫자 · 사용자 글이 붙는 것
 const EN_HEAD = [["다음: ", "Next: "], ["알림 오늘 ", "Reminder today "], ["알림 내일 ", "Reminder tomorrow "], ["알림 ", "Reminder "], ["첨부 ", "Files "]];
 function T(s) {
