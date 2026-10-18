@@ -228,6 +228,9 @@ section.b0 { --sc: var(--red); } section.b1 { --sc: var(--orange); } section.b2,
   .board .item { position: relative; }
   .board .item .meta .due { position: absolute; top: 12px; right: 12px; }
   .board .item:has(.meta .due) .text { padding-right: 104px; }
+/* 글자 크게 · 아주 크게: 마감 알약을 오른쪽 위에 띄우면 제목 칸이 좁아 한두 글자씩 줄이 바뀐다 → 아래 정보 줄 맨 앞으로 */
+body.big .board .item .meta .due { position: static; order: -1; }
+body.big .board .item:has(.meta .due) .text { padding-right: 0; }
   .prog { display: inline-block; width: 46px; height: 5px; border-radius: 3px; background: color-mix(in srgb, var(--sub) 22%, transparent); vertical-align: middle; overflow: hidden; }
   .prog i { display: block; height: 100%; border-radius: 3px; background: var(--sc, var(--accent)); }
   .meta .due { padding: 1px 8px; border-radius: 999px; background: var(--tint); }
@@ -812,7 +815,9 @@ function applyLook() {
   else { root.style.removeProperty("--accent"); root.style.removeProperty("--on-accent"); }
   // 검정 대표색은 어두운 화면에서 기본(밝은 회색)으로
   if (dark && look.accent === "#212121") { root.style.removeProperty("--accent"); root.style.removeProperty("--on-accent"); }
-  document.body.style.fontSize = ({ small: "14px", large: "17px" })[look.size] || "";
+  document.body.style.fontSize = ({ small: "14px", large: "17px", xl: "18px" })[look.size] || "";
+  // 할 일 · 일정 · 기록 목록은 글씨마다 크기가 정해져 있어 바탕 글씨만 바꾸면 거의 안 변했다(사장님 "체감이 안 된다", v93): 목록 전체를 같은 비율로
+  const z = ({ small: 0.9, large: 1.2, xl: 1.4 })[look.size] || 1; $("list").style.zoom = z === 1 ? "" : String(z); document.body.classList.toggle("big", z > 1);
 }
 function showSettings() {
   const look = load("look", {});
@@ -820,7 +825,7 @@ function showSettings() {
   sheet(`<h2>설정</h2>
     <label>대표색</label><div class="swatches">` + COLORS.map(c => `<button data-look="accent" data-value="${c}" class="${(look.accent || "#212121") === c ? "on" : ""}" style="background:${c}" aria-label="${c}"></button>`).join("") + `</div>
     <label>화면</label>` + seg("theme", [["", "기기 설정"], ["light", "밝게"], ["dark", "어둡게"]]) + `
-    <label>글자 크기</label>` + seg("size", [["small", "작게"], ["", "보통"], ["large", "크게"]]) + `
+    <label>글자 크기</label>` + seg("size", [["small", "작게"], ["", "보통"], ["large", "크게"], ["xl", "아주 크게"]]) + `
     <label>마감 지난 할 일</label><div class="seg"><button data-roll="on" class="${rollOn() ? "on" : ""}">매일 오늘로 옮기기</button><button data-roll="off" class="${rollOn() ? "" : "on"}">그대로 두기</button></div>
     <label>구글</label><div class="seg">` + (token ? `<button id="signOut">연결 해제</button>` : `<button id="signIn">구글 연결</button>`) + `</div>
     <label><a href="about.html">앱 소개</a> · <a href="privacy.html">개인정보처리방침</a></label>
@@ -1088,10 +1093,12 @@ function beginDrag(t, y) {
   const r = t.el.getBoundingClientRect();
   drag = { ...t, src, offset: y - r.top, h: r.height, origin: t.kind === "item" ? t.el.dataset.sec : null, ul: t.kind === "step" ? t.el.parentElement : null };
   drag.ghost = t.el.cloneNode(true); drag.ghost.classList.add("ghost"); drag.ghost.classList.remove("now", "done");
-  Object.assign(drag.ghost.style, { left: r.left + "px", width: r.width + "px", top: r.top + "px" });
+  // 글자 크기(목록 확대)를 따라: 띄운 카드도 같은 배율, 자리 수치는 배율로 나눠 넣는다(v93, 아주 크게에서 빈자리가 1.4배 높아 놓는 곳이 어긋났다)
+  drag.z = parseFloat($("list").style.zoom) || 1;
+  Object.assign(drag.ghost.style, { left: r.left / drag.z + "px", width: r.width / drag.z + "px", top: r.top / drag.z + "px", zoom: drag.z === 1 ? "" : String(drag.z) });
   drag.hint = document.createElement("span"); drag.hint.className = "hint"; drag.hint.hidden = true; drag.ghost.appendChild(drag.hint);
   document.body.appendChild(drag.ghost);
-  drag.slot = document.createElement(t.kind === "step" ? "li" : "div"); drag.slot.className = "slot"; drag.slot.style.height = r.height + "px";
+  drag.slot = document.createElement(t.kind === "step" ? "li" : "div"); drag.slot.className = "slot"; drag.slot.style.height = r.height / drag.z + "px";
   src.parentElement.insertBefore(drag.slot, src);
   // 처음 자리(놓았을 때 그대로면 아무것도 안 한다)
   if (t.kind === "item") drag.was = (nextItem(src) || {}).dataset?.id || "";
@@ -1112,7 +1119,7 @@ function beginDrag(t, y) {
 // 빈칸을 손가락(끄는 줄의 가운데)이 있는 자리로 옮긴다.
 function moveDrag(y) {
   lastY = y;
-  drag.ghost.style.top = (y - drag.offset) + "px";
+  drag.ghost.style.top = (y - drag.offset) / drag.z + "px";
   const at = y - drag.offset + drag.h / 2, slot = drag.slot;
   if (drag.kind === "step") {
     // 단계 목록 위 · 아래로 멀리 끌면: 할 일로 빼기(목록 사이에 빈칸이 생긴다)
@@ -1448,6 +1455,26 @@ async function selfTest() {
     tab("전체");
   } catch (e) { errs.push(e.message); }
   check("자바스크립트 오류 없음", errs.length === 0, errs.join(" / "));
+  // 글자 크기 '아주 크게': 목록이 1.4배로 커지고, 끌 때 빈자리가 카드와 같은 높이(v93 전에는 1.4배 더 높아 놓는 곳이 어긋났다)
+  try {
+    const lookKeep = load("look", {}); save("look", { ...lookKeep, size: "xl" }); applyLook(); tab("전체"); await W(300);
+    const it = document.querySelector(".item"), zoomOk = $("list").style.zoom === "1.4";
+    let ratioOk = false, info = "";
+    if (it) {
+      it.scrollIntoView({ block: "center" }); await W(200);
+      const r0 = it.getBoundingClientRect(), tx = it.querySelector(".text"), rr = tx.getBoundingClientRect();
+      const fire = (tp, yy) => tx.dispatchEvent(new PointerEvent(tp, { bubbles: true, cancelable: true, clientX: rr.left + rr.width / 2, clientY: yy, pointerId: 1, pointerType: "touch", isPrimary: true, button: 0, buttons: tp === "pointerup" ? 0 : 1 }));
+      fire("pointerdown", rr.top + rr.height / 2); await W(700);
+      const sh = drag && drag.slot ? drag.slot.getBoundingClientRect().height : 0;
+      fire("pointerup", rr.top + rr.height / 2); await W(500);
+      ratioOk = sh > 0 && Math.abs(sh - r0.height) < 4; info = "카드 " + r0.height.toFixed(0) + " · 빈자리 " + sh.toFixed(0);
+      // 제목 칸이 카드 폭의 60% 이상(마감 알약 때문에 한두 글자씩 줄바꿈되던 것)
+      const narrow = [...document.querySelectorAll(".board .item .text")].filter(e => e.clientWidth - parseFloat(getComputedStyle(e).paddingRight) < e.closest(".item").clientWidth * 0.6).length;
+      ratioOk = ratioOk && narrow === 0; info += " · 좁은 제목 " + narrow;
+    }
+    save("look", lookKeep); applyLook(); render(); await W(200);
+    check("글자 아주 크게: 목록 확대 · 끌 때 빈자리 높이", zoomOk && ratioOk, info);
+  } catch (e) { check("글자 아주 크게: 목록 확대 · 끌 때 빈자리 높이", false, e.message); }
   const box = document.createElement("pre"); box.id = "selftest";
   box.style.cssText = "position:fixed;left:0;right:0;top:0;z-index:99;margin:0;padding:8px;font-size:11px;background:#fff;color:#000;white-space:pre-wrap";
   box.textContent = out.join("\n"); document.body.appendChild(box);
