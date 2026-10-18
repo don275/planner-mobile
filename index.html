@@ -449,7 +449,7 @@ const WEEK = ["일", "월", "화", "수", "목", "금", "토"];
 // 할 일 · 메모 · 일정 제목 같은 사용자 자료는 바꾸지 않는다(표에 있는 UI 말과 똑같은 글만 바뀜).
 const isEn = () => { const l = load("look", {}).lang; return l === "en" || (!l && !!state && state.lang === "en"); };
 const EN = {
-  "전체": "All", "내 일": "Mine", "팀 현황": "Team status", "팀 (Test)": "Team (Test)", "오늘 일정": "Today's events", "새로 받은 일": "New from team", "누구에게 맡길까요?": "Assign to whom?", "맡기기": "Assign", "맡기지 않음": "Unassign", "맡기기를 풀었습니다": "Unassigned", "날짜순": "By date", "날짜순 ↑": "By date ↑", "일정": "Calendar", "기록": "Log", "검색": "Search", "문구": "Phrases", "설정": "Settings",
+  "전체": "All", "내 일": "Mine", "팀 현황": "Team status", "이 프로젝트 맡기기": "Assign this project", "남은 일을 한 사람에게 한꺼번에": "All its open to-dos to one person", "맡길 일이 없습니다": "Nothing to assign", "팀 (Test)": "Team (Test)", "오늘 일정": "Today's events", "새로 받은 일": "New from team", "누구에게 맡길까요?": "Assign to whom?", "맡기기": "Assign", "맡기지 않음": "Unassign", "맡기기를 풀었습니다": "Unassigned", "날짜순": "By date", "날짜순 ↑": "By date ↑", "일정": "Calendar", "기록": "Log", "검색": "Search", "문구": "Phrases", "설정": "Settings",
   "견본 자료입니다": "Sample data", "구글 연결": "Connect Google", "구글에 연결하면 내 할 일이 보입니다": "Connect Google to see your to-dos",
   "지난 마감": "Overdue", "오늘 마감": "Due today", "이번 주 디데이": "D-days this week", "오래 밀린 일": "Long overdue", "오늘로 옮겨 온 일": "Moved to today",
   "오늘은 숨기기": "Hide for today", "고정": "Pinned", "반복": "Repeats", "반복 · 오늘": "Repeats · today", "마감일": "Due date", "단계 나누기": "Split steps",
@@ -1031,6 +1031,19 @@ function avatarHtml(id) {
   const p = ((state && state.team && state.team.people) || []).find(x => x.id === id) || { name: id, color: "" };
   return `<span class="av" style="${p.color ? "background:" + esc(p.color) : ""}" title="${esc(p.name)}">${esc((p.name || "?").slice(0, 1))}</span>`;
 }
+// 여러 개 한꺼번에 맡기기(프로젝트 시트): 받은 일(남이 맡긴 일)은 빼고, 고른 사람에게 하나씩 op assign
+function assignMany(items, title) {
+  const t = state && state.team; if (!t || !items.length) { if (t) toast("맡길 일이 없습니다"); return; }
+  sheet(`<h2>${esc(title)} · ${items.length}${isEn() ? "" : "건"}</h2>` + t.people.map((p, i) => `<button class="phrase" data-who="${i}">${avatarHtml(p.id)} ${esc(p.name)}${p.id === t.me ? (isEn() ? " (me)" : " (나)") : ""}</button>`).join("")
+    + `<button class="phrase" data-who="-1">맡기지 않음</button><div class="end"><button data-close>취소</button></div>`, s => {
+    s.querySelectorAll("[data-who]").forEach(b => b.addEventListener("click", () => {
+      const i = Number(b.dataset.who), p = i >= 0 ? t.people[i] : null;
+      closeSheet();
+      for (const it of items) push({ op: "assign", id: it.id, to: p ? p.id : "" });
+      toast(p ? (isEn() ? items.length + " assigned to " + p.name : items.length + "건을 " + p.name + "님에게 맡겼습니다") : (isEn() ? "Unassigned " + items.length : items.length + "건 맡기기를 풀었습니다"));
+    }));
+  });
+}
 function assignTo(item) {
   const t = state && state.team; if (!t) return;
   sheet(`<h2>누구에게 맡길까요?</h2>` + t.people.map((p, i) => `<button class="phrase" data-who="${i}">${avatarHtml(p.id)} ${esc(p.name)}${p.id === t.me ? (isEn() ? " (me)" : " (나)") : ""}${item.who === p.id ? " ✓" : ""}</button>`).join("")
@@ -1411,7 +1424,7 @@ $("list").addEventListener("click", e => {
   if (box) { check(box.dataset.check); return; }
   // 프로젝트 머리를 누르면: 이 프로젝트 남은 일만 복사(PC 오른쪽 클릭과 같게). 꾹 눌러 끌기는 그대로
   const ph = e.target.closest(".proj:not(.uphead)");     // 날짜순 머리줄(날짜 묶음)은 이름표일 뿐
-  if (ph) { const nm = ph.dataset.sec || ""; sheet(`<h2>${esc(nm || "프로젝트 없음")}</h2><button class="phrase" id="projShare">이 프로젝트 남은 일 복사<small>카톡 · 메일에 붙일 글(끝낸 단계는 줄임)</small></button><button class="phrase" id="projShareBare">이 프로젝트 남은 일 복사 (메모 빼고)<small>거래처 · 소속사용: 할 일 · 단계만</small></button><div class="end"><button data-close>닫기</button></div>`, s => { s.querySelector("#projShareBare").onclick = async () => { closeSheet(); toast(await copy(shareText(nm, true)) ? "'" + (nm || "프로젝트 없음") + "' 남은 일을 메모 빼고 복사했습니다" : "복사하지 못했습니다"); }; s.querySelector("#projShare").onclick = async () => { closeSheet(); toast(await copy(shareText(nm)) ? "'" + (nm || "프로젝트 없음") + "' 남은 일을 복사했습니다" : "복사하지 못했습니다"); }; }); return; }
+  if (ph) { const nm = ph.dataset.sec || ""; sheet(`<h2>${esc(nm || "프로젝트 없음")}</h2><button class="phrase" id="projShare">이 프로젝트 남은 일 복사<small>카톡 · 메일에 붙일 글(끝낸 단계는 줄임)</small></button><button class="phrase" id="projShareBare">이 프로젝트 남은 일 복사 (메모 빼고)<small>거래처 · 소속사용: 할 일 · 단계만</small></button>${state && state.team ? `<button class="phrase" id="projAssign">이 프로젝트 맡기기<small>남은 일을 한 사람에게 한꺼번에</small></button>` : ""}<div class="end"><button data-close>닫기</button></div>`, s => { const pa = s.querySelector("#projAssign"); if (pa) pa.onclick = () => assignMany(view().filter(x => (x.section || "") === nm && !x.from), nm || "프로젝트 없음"); s.querySelector("#projShareBare").onclick = async () => { closeSheet(); toast(await copy(shareText(nm, true)) ? "'" + (nm || "프로젝트 없음") + "' 남은 일을 메모 빼고 복사했습니다" : "복사하지 못했습니다"); }; s.querySelector("#projShare").onclick = async () => { closeSheet(); toast(await copy(shareText(nm)) ? "'" + (nm || "프로젝트 없음") + "' 남은 일을 복사했습니다" : "복사하지 못했습니다"); }; }); return; }
   const lateBtn = e.target.closest("[data-late]");
   if (lateBtn) {
     const ids = view().filter(x => x.due && x.due < today() && !x.repeat).map(x => x.id), to = quickDues()[Number(lateBtn.dataset.late)][1];
@@ -1604,7 +1617,17 @@ async function selfTest() {
       showTeamBoard(); await W(150);
       const tcards = [...document.querySelectorAll("#sheet .tcard")], boardOk = boardContrast && tcards.length === 2 && tcards[0].textContent.includes("김대리") && /[34]분 전/.test(tcards[0].textContent) && tcards[1].textContent.includes("내가 맡긴 일") && !!document.querySelector("#sheet .st.r");
       closeSheet();
-      const shareWho = shareText(null, true).includes("맡긴 일 (최지원)");     // 남은 일 복사: 남에게 맡긴 일 끝에 맡은 사람
+      const shareWho = shareText(null, true).includes("맡긴 일 (최지원)");
+      // 프로젝트 시트 [이 프로젝트 맡기기] → 사람: 그 프로젝트 남은 일 중 받은 일(tm-in)은 빼고 하나씩 assign
+      const inboxBefore = inbox.length;
+      document.querySelector('.proj[data-sec="거래처"]')?.click(); await W(200);
+      document.querySelector("#projAssign")?.click(); await W(200);
+      document.querySelector('#sheet [data-who="0"]')?.click(); await W(200);
+      const sent = inbox.slice(inboxBefore).filter(o => o.op === "assign");
+      const projAssign = sent.length > 0 && sent.every(o => o.to === "boss") && !sent.some(o => o.id === "tm-in");
+      inbox.splice(inboxBefore); save("inbox", inbox); if (!$("shade").hidden) closeSheet();
+      for (const o of sent) { const it = state.todos.find(z => z.id === o.id); if (it && o.id !== "tm-out") it.who = ""; }
+      render(); await W(100);     // 남은 일 복사: 남에게 맡긴 일 끝에 맡은 사람
       // 찾기에 팀 사람 이름: "최지원" → 최지원이 맡긴 일(tm-in) · 최지원에게 맡긴 일(tm-out), 다른 일은 안 걸림
       query = "최지원"; render(); await W(100);
       const byName = [...document.querySelectorAll(".item")].map(e => e.dataset.id).sort().join(",");
@@ -1612,7 +1635,7 @@ async function selfTest() {
       const nameFind = byName === "tm-in,tm-out";
       opened = null; delete state.team; state.todos.splice(t0); render(); await W(150);
       const gone = $("mineChip").hidden;
-      check("팀: 내 일 칩 · 받은 일만 · 맡김 · 동그라미 · 맡기기 단추 · 알약 대비 · 새 일 알림 한 번", shareWho && nameFind && boardOk && freshToast && toastOnce && teamRatio >= 4.5 && chipOk && avOk && shown.length === 1 && shown[0] === "tm-in" && fromTxt.includes("최지원") && fromTxt.includes("오늘") && !!btn && btn.textContent.includes("최지원") && gone, [chipOk, avOk, shown.join("|"), fromTxt, btn && btn.textContent, gone, "대비 " + teamRatio.toFixed(1), "알림 " + freshToast + "/" + toastOnce, "현황 " + boardOk, "현황 대비 최소 " + (boardRatios.length ? Math.min(...boardRatios).toFixed(1) : "-"), "이름 찾기 " + byName, "복사 " + shareWho].join(" "));
+      check("팀: 내 일 칩 · 받은 일만 · 맡김 · 동그라미 · 맡기기 단추 · 알약 대비 · 새 일 알림 한 번", projAssign && shareWho && nameFind && boardOk && freshToast && toastOnce && teamRatio >= 4.5 && chipOk && avOk && shown.length === 1 && shown[0] === "tm-in" && fromTxt.includes("최지원") && fromTxt.includes("오늘") && !!btn && btn.textContent.includes("최지원") && gone, [chipOk, avOk, shown.join("|"), fromTxt, btn && btn.textContent, gone, "대비 " + teamRatio.toFixed(1), "알림 " + freshToast + "/" + toastOnce, "현황 " + boardOk, "현황 대비 최소 " + (boardRatios.length ? Math.min(...boardRatios).toFixed(1) : "-"), "이름 찾기 " + byName, "복사 " + shareWho, "프로젝트 맡기기 " + sent.length].join(" "));
     }
     { // 오늘 카드 "오늘 일정 n": 견본의 오늘 일정(주간 회의) 수와 같고, 누르면 일정 탭
       tab("전체"); await W(200);
