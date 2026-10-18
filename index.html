@@ -31,8 +31,9 @@
   .state { flex: 1; min-width: 0; text-align: right; font-size: 12px; color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   button { font: inherit; color: var(--text); background: var(--card); border: 1px solid var(--line); border-radius: 9px; padding: 7px 12px; }
   button.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
-  .chips { display: flex; gap: 6px; margin-top: 8px; }
-  .chip { border-radius: 999px; padding: 4px 13px; font-size: 13px; }
+  .chips { display: flex; gap: 6px; margin-top: 8px; overflow-x: auto; scrollbar-width: none; }     /* 좁은 폰 · 영어에서 맨 끝 탭(Log)이 잘리던 것: 그래도 넘치면 옆으로 밀기 */
+  .chips::-webkit-scrollbar { display: none; }
+  .chip { border-radius: 999px; padding: 4px clamp(9px, 3.4vw, 13px); font-size: 13px; flex: none; }
   .chip.on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
   .banner { margin: 10px 16px 0; padding: 9px 12px; border-radius: 10px; background: var(--tint); color: var(--sub); font-size: 13px; display: flex; align-items: center; gap: 8px; }
   .banner span { flex: 1; }
@@ -1850,7 +1851,8 @@ async function selfTest() {
     const leftKo = new Set(), scan = () => { const tw = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, { acceptNode: n => /SCRIPT|STYLE/.test(n.parentElement?.tagName) || n.parentElement?.closest(SKIP + ", #selftest, .phrase") ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT }); let n; while ((n = tw.nextNode())) if (/[가-힣]/.test(n.data.replace(/^\s*Next: .*$/, "")) && !/한국어|언어 · Language/.test(n.data)) leftKo.add(n.data.trim()); /* Next: 뒤는 단계 이름(사용자 자료) */ };
     scan(); tab("By date"); await W(300); scan(); tab("Calendar"); await W(300); scan(); tab("Log"); await W(300); scan(); tab("All"); await W(300);
     $("settings").click(); await W(300); scan(); closeSheet();
-    const chipsOk = !!document.querySelector('[data-filter="all"]') && document.querySelector('[data-filter="all"]').textContent === "All" && document.querySelector('[data-filter="next"]').textContent.startsWith("By date");
+    const chipRow = document.querySelector(".chips"), chipsFit = !chipRow || chipRow.scrollWidth <= chipRow.clientWidth + 1;     // 영어 탭 줄이 화면 안에 다 들어감
+    const chipsOk = chipsFit && !!document.querySelector('[data-filter="all"]') && document.querySelector('[data-filter="all"]').textContent === "All" && document.querySelector('[data-filter="next"]').textContent.startsWith("By date");
     // 영어 마감 알약(1d overdue 등)이 길어 제목과 겹치지 않는지
     const pillOver = [...document.querySelectorAll(".board .item")].filter(it => { const d = it.querySelector(".meta .due"), tx = it.querySelector(".text"); if (!d || !tx || getComputedStyle(d).position !== "absolute") return false; const tr = tx.getBoundingClientRect(); return tr.left + tx.clientWidth - parseFloat(getComputedStyle(tx).paddingRight) > d.getBoundingClientRect().left + 1; }).length;
     save("look", lookKeep);
