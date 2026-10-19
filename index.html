@@ -90,7 +90,7 @@ section.b0 { --sc: var(--red); } section.b1 { --sc: var(--orange); } section.b2,
 .news.old { color: var(--faint); }
 h1 .pf { display: none; margin-left: 8px; font-size: 12px; padding: 2px 9px; border-radius: 999px; background: #7b4fd6; color: #fff; vertical-align: middle; }
 body.personal h1 .pf { display: inline-block; }
-.steps li.na span { text-decoration: none; color: var(--faint); }
+.steps li.done.na span { text-decoration: none; color: var(--faint); }     /* 해당 없음: 끝냄(줄 긋기)과 구별 — li.done 보다 우선 */
 .nachip { font-style: normal; font-size: 11.5px; padding: 1px 8px; border-radius: 999px; background: var(--track, #f1f3f4); color: var(--sub); white-space: nowrap; }
 .news.memo::before { content: "✎ "; }
   .steps li span { flex: 1; min-width: 0; word-break: keep-all; overflow-wrap: anywhere; }
@@ -1899,6 +1899,12 @@ async function selfTest() {
       const noBtn = !document.querySelector('.item[data-id="s3"] [data-act="n2p"]');
       opened = ""; render();
       check("메모 → 진행(폰)", ok && noBtn, "btn=" + btn + " ok=" + ok + " noBtn=" + noBtn);
+    }
+    { // 해당 없음 단계는 줄을 긋지 않음(끝냄과 구별)
+      const keepInbox2 = inbox.slice(); inbox.push({ op: "skip", id: "s1", reason: "주문 없음" }); opened = "s1"; render(); await W(100);
+      const naSpan = document.querySelector('.item[data-id="s1"] .steps li.na span'), deco = naSpan ? getComputedStyle(naSpan).textDecorationLine : "없음";
+      inbox.length = 0; keepInbox2.forEach(o => inbox.push(o)); opened = ""; render();
+      check("해당 없음 단계 줄 긋지 않음(폰)", !!naSpan && deco === "none", deco);
     }
     { // 해당 없음: 보낸 일(skip)을 화면에 바로 — 단계 하나 넘어가고 그 단계에 이유 칩, 마지막이면 사라짐
       const keepInbox = inbox.slice();
