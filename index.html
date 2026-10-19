@@ -265,6 +265,7 @@ body.xl .bchip { font-size: 11.2px; padding: 5px 10px; }     /* 아주 크게: �
 html[lang="en"] .board .item:has(.meta .due) .text { padding-right: 140px; }     /* 영어 마감 알약이 길다(1d overdue · Repeats · today) */
 /* 글자 크게 · 아주 크게: 마감 알약을 오른쪽 위에 띄우면 제목 칸이 좁아 한두 글자씩 줄이 바뀐다 → 아래 정보 줄 맨 앞으로 */
 body.big .board .item .meta .due { position: static; order: -1; }
+.board .item .meta .due.wait { position: static; order: -1; } .board .item:has(.meta .due.wait) .text { padding-right: 0; }     /* 기다림 알약은 길어서(누구 · 다시 볼 날) 오른쪽 위에 두면 좁은 폰에서 제목이 한 글자씩 꺾였다 → 아래 줄 맨 앞에 */
 body.big .board .item:has(.meta .due) .text { padding-right: 0; }
   .prog { display: inline-block; width: 46px; height: 5px; border-radius: 3px; background: color-mix(in srgb, var(--sub) 22%, transparent); vertical-align: middle; overflow: hidden; }
   .prog i { display: block; height: 100%; border-radius: 3px; background: var(--sc, var(--accent)); }
@@ -1800,7 +1801,7 @@ setInterval(() => { if (!demo && token && !document.hidden) refresh(); }, 20000)
 if (!demo && !native()) { const s = document.createElement("script"); s.src = "https://accounts.google.com/gsi/client"; s.async = true; document.head.appendChild(s); }
 if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
 if (state) render();
-refresh().finally(() => { booting = false; if (demo && shotOpen && shotOpen !== "settings" && shotOpen !== "suggest") opened = shotOpen; render(); if (demo && shotTab) { const tb = document.querySelector(`[data-filter="${shotTab}"]`); if (tb) tb.click(); } if (demo && shotOpen === "settings") showSettings(); if (demo && shotOpen === "suggest") showSuggestions(); if (demo && selftestOn) selfTest(); });
+refresh().finally(() => { booting = false; if (demo && shotOpen && shotOpen !== "settings" && shotOpen !== "suggest") opened = shotOpen; render(); if (demo && opened) { const oi = document.querySelector(`.item[data-id="${CSS.escape(opened)}"]`); if (oi) oi.scrollIntoView({ block: "start" }); }     /* 사진 틀: 펼친 할 일까지 내려가 찍는다 */ if (demo && shotTab) { const tb = document.querySelector(`[data-filter="${shotTab}"]`); if (tb) tb.click(); } if (demo && shotOpen === "settings") showSettings(); if (demo && shotOpen === "suggest") showSuggestions(); if (demo && selftestOn) selfTest(); });
 
 // 폰 자체 시험(?demo&selftest): 탭마다 열어 보고(빠뜨리는 탭이 없게) 결과를 화면 맨 위 #selftest 에 적는다. 견본 자료만 쓴다.
 async function selfTest() {
@@ -1968,7 +1969,7 @@ async function selfTest() {
     { // 기다리는 중(폰): 보라 알약 · 흐린 글 · '기다리는 중' 알약, 지난 마감 일을 기다리게 하면 지난 마감에서 빠짐, 시트(누구 짐작 · 다시 볼 날) → op wait, 기다림 끝 → op unwait
       const keepInbox = inbox.slice(); filter = "all"; opened = null; render(); await W(60);
       const card6 = document.querySelector('.item[data-id="s6"]'), pill6 = card6 && card6.querySelector(".due.wait");
-      const shown = !!pill6 && pill6.textContent.includes(T("대표님 검토").slice(0, 4)) && card6.classList.contains("waiting") && !!document.querySelector('.bchip[data-brief="waiting"]') && upBucket(view().find(x => x.id === "s6")) === 1;     /* 날짜순은 다시 볼 날(내일) 묶음 */
+      const shown = !!pill6 && (t6 => t6.clientWidth - parseFloat(getComputedStyle(t6).paddingRight) > card6.clientWidth * 0.6)(card6.querySelector(".text")) && pill6.textContent.includes(T("대표님 검토").slice(0, 4)) && card6.classList.contains("waiting") && !!document.querySelector('.bchip[data-brief="waiting"]') && upBucket(view().find(x => x.id === "s6")) === 1;     /* 날짜순은 다시 볼 날(내일) 묶음 */
       const lateBefore = briefMatch("late").length;
       push({ op: "wait", id: "s5", who: "회신", until: day(new Date(Date.parse(today()) + 86400000)) }); await W(60);
       const lateAfter = briefMatch("late").length, wN = briefMatch("waiting").length;
