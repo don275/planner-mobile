@@ -385,6 +385,7 @@ function view() {
     if (op.op === "back" && item.step > 0) { item.step--; sync(item); }
     if (op.op === "note") item.notes = item.notes ? item.notes.trimEnd() + "\n" + op.text : op.text;
     if (op.op === "progress") item.prog = [...(item.prog || []), { s: item.step, t: md(op.at || today()) + "  " + op.text }];
+    if (op.op === "progressEdit" && (item.prog || [])[op.index]) { const pr = [...item.prog]; if (op.text) pr[op.index] = { ...pr[op.index], t: pr[op.index].t.split("  ")[0] + "  " + op.text }; else pr.splice(op.index, 1); item.prog = pr; }
     if (op.op === "edit" && item.steps.length < 2) { item.text = op.text; item.steps = [op.text]; }
     if (op.op === "editStep" && op.step < item.steps.length) item.steps[op.step] = op.text;
     if (op.op === "delete") item.gone = true;
@@ -464,7 +465,7 @@ const EN = {
   "지난 마감": "Overdue", "오늘 마감": "Due today", "이번 주 디데이": "D-days this week", "오늘 알림": "Reminders today", "오래 밀린 일": "Long overdue", "오늘로 옮겨 온 일": "Moved to today",
   "오늘은 숨기기": "Hide for today", "고정": "Pinned", "반복": "Repeats", "반복 · 오늘": "Repeats · today", "마감일": "Due date", "단계 나누기": "Split steps",
   "★ 중요": "★ Important", "중요 해제": "Unmark important", "단계 추가": "Add step", "메모 추가": "Add note", "복제": "Duplicate", "옮기기": "Move", "삭제": "Delete", "수정": "Edit",
-  "이전 단계": "Previous step", "메모": "Note", "추가": "Add", "진행 한 줄": "Progress", "지금 단계에 진행을 남겼습니다": "Progress added under the current step", "기타": "Other", "부제 없음": "No subgroup", "프로젝트": "Project", "부제": "Subgroup", "완료": "Done",
+  "이전 단계": "Previous step", "메모": "Note", "추가": "Add", "진행 한 줄": "Progress", "지우기": "Delete", "진행 한 줄을 지웠습니다": "Progress line deleted", "진행 한 줄을 고쳤습니다": "Progress line edited", "지금 단계에 진행을 남겼습니다": "Progress added under the current step", "기타": "Other", "부제 없음": "No subgroup", "프로젝트": "Project", "부제": "Subgroup", "완료": "Done",
   "한 줄 남기기": "Add a line", "되돌리기": "Undo", "모두 오늘로": "All to today", "내일로": "To tomorrow",
   "오늘": "Today", "내일": "Tomorrow", "다음 7일": "Next 7 days", "나중에": "Later", "날짜 없음": "No date", "종일": "All day",
   "폰에는 오늘부터 2주 일정이 보입니다 · 더 먼 일정은 PC 일정 탭에서": "The phone shows 2 weeks from today · see further ahead in the PC Calendar tab",
@@ -750,8 +751,8 @@ function render() {
         html += `<div class="more">`;
         if (many) html += `<ul class="steps" data-steps="${esc(item.id)}">` + item.steps.map((s, i) => `<li class="${i < item.step ? "done" : i === item.step ? "now" : ""}"${i >= item.step ? ` data-stepi="${i}"` : ""}><span data-stepname="${i}">${i + 1}. ${esc(s)}</span>`
           + (i >= item.step ? `<button data-stepdue="${i}">${item.stepDues[i] ? "~" + md(item.stepDues[i]) : "마감일"}</button>` : "") + `</li>`
-          + (item.prog || []).filter(q => q.s === i).map(q => `<li class="newsline"><div class="news${i < item.step ? " old" : ""}">${linkify(q.t)}</div></li>`).join("")).join("") + `</ul>`;
-        if (!many) html += (item.prog || []).map(q => `<div class="news">${linkify(q.t)}</div>`).join("");
+          + (item.prog || []).map((q, k) => ({ q, k })).filter(o => o.q.s === i).map(o => `<li class="newsline"><div class="news${i < item.step ? " old" : ""}" data-prog="${o.k}">${linkify(o.q.t)}</div></li>`).join("")).join("") + `</ul>`;
+        if (!many) html += (item.prog || []).map((q, k) => `<div class="news" data-prog="${k}">${linkify(q.t)}</div>`).join("");     /* 누르면 고치기 · 지우기 */
         if (item.notes) html += `<div class="note">${linkify(item.notes)}</div>`;
         html += `<div class="acts">` + (item.step > 0 ? `<button data-act="back">이전 단계</button>` : "")
           + (many && item.steps.length - item.step >= 2 ? `<button data-act="split">단계 나누기</button>` : "")
@@ -927,6 +928,17 @@ function addSteps(id) {
     s.querySelector("#stepAdd").onclick = go;
     box.addEventListener("keydown", e => { if (e.key === "Enter" && !e.isComposing) { e.preventDefault(); go(); } });
     s.querySelector("#stepDone").onclick = () => { closeSheet(); if (added) toast(added + "개 단계를 넣었습니다"); };
+  });
+}
+// 진행 한 줄 고치기 · 지우기(PC 와 같음): 날짜는 그대로, 글만
+function editProg(item, k) {
+  const q = (item.prog || [])[k]; if (!q) return;
+  const date = q.t.split("  ")[0], body = q.t.slice(date.length).trim();
+  sheet(`<h2>${T("진행 한 줄")} · ${esc(date)}</h2><textarea id="progText" rows="3">${esc(body)}</textarea>
+    <div class="end"><button id="progDel">${T("지우기")}</button><button data-close>${T("취소")}</button><button class="primary" id="progOk">${T("저장")}</button></div>`, s => {
+    const box = s.querySelector("#progText");
+    s.querySelector("#progDel").onclick = () => { closeSheet(); push({ op: "progressEdit", id: item.id, index: k, text: "" }, T("진행 한 줄을 지웠습니다")); };
+    s.querySelector("#progOk").onclick = () => { const v = box.value.replace(/　/g, " ").trim(); if (!v || v === body) { closeSheet(); return; } closeSheet(); push({ op: "progressEdit", id: item.id, index: k, text: v }, T("진행 한 줄을 고쳤습니다")); };
   });
 }
 function ask(title, placeholder, done, value) {
@@ -1560,6 +1572,8 @@ $("list").addEventListener("click", e => {
     ask("프로젝트 이름 바꾸기", "프로젝트 이름", v => { if (v !== from) push({ op: "rename", from, to: v.replace(/[\[\]]/g, "").trim() }, "이름을 바꿨습니다"); }, from);
     return;
   }
+  const progLine = e.target.closest("[data-prog]");
+  if (progLine && item && !e.target.closest("a")) { editProg(item, Number(progLine.dataset.prog)); return; }
   const stepName = e.target.closest("[data-stepname]");
   if (stepName && item) {
     const i = Number(stepName.dataset.stepname);
@@ -1781,6 +1795,15 @@ async function selfTest() {
       const lines = [...document.querySelectorAll('.item[data-id="s3"] .steps .news')].map(e => e.className + ":" + e.textContent);
       opened = ""; render();
       check("진행 한 줄(접힘 · 펼침)", shown.includes("회신 대기") && !shown.includes("호텔") && lines.length === 2 && lines[0].includes("old") && !lines[1].includes("old"), shown + " / " + lines.join(" | "));
+    }
+    { // 진행 한 줄 고치기 · 지우기: 보낼 일을 넣으면 바로 화면에 반영(고치면 날짜 그대로 · 지우면 빠짐)
+      const keepInbox = inbox.slice();
+      inbox.push({ op: "progressEdit", id: "s3", index: 1, text: "회신 받음" });
+      const afterEdit = (view().find(t => t.id === "s3").prog || []).map(q => q.t).join(" | ");
+      inbox.push({ op: "progressEdit", id: "s3", index: 0, text: "" });
+      const afterDel = (view().find(t => t.id === "s3").prog || []).map(q => q.t).join(" | ");
+      inbox.length = 0; keepInbox.forEach(o => inbox.push(o));
+      check("진행 한 줄 고치기 · 지우기(폰)", afterEdit.endsWith("10/18  회신 받음") && afterDel === "10/18  회신 받음", afterEdit + " / " + afterDel);
     }
     { // 검색: 진행 한 줄에만 있는 말로도 찾음
       tab("전체"); query = "호텔"; render(); await W(150);
