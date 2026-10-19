@@ -1878,10 +1878,13 @@ async function selfTest() {
     check("오늘 한 일 · 이번 주 복사 글에 한 일 이름", rep.includes("[시험 프로젝트]") && rep.includes("- 오늘 시험 기록") && wk.includes("이번 주 한 일") && wk.includes(md(d) + " 오늘 시험 기록"), rep.slice(0, 40) + " / " + wk.slice(0, 40));
   }
   { // 마감 알약이 제목을 덮지 않음: [전체] · [날짜순] (긴 '1일 지남' 알약도)
-    tab("전체"); await W(200); const o1 = pillOverlaps();
-    document.querySelector('[data-filter="next"]').click(); await W(250); const o2 = pillOverlaps();
+    const keepMax = $("list").style.maxWidth; $("list").style.maxWidth = "320px";     // 좁은 폰 폭에서 재야 긴 알약이 걸린다(넓은 화면에서 돌려도)
+    tab("전체"); await W(200); fitPills(); const o1 = pillOverlaps();
+    document.querySelector('[data-filter="next"]').click(); await W(250); fitPills(); const o2 = pillOverlaps();
+    document.querySelectorAll(".board .item .text").forEach(t => t.style.paddingRight = ""); const oOld = pillOverlaps(); fitPills();     // 고정 여백(예전)이면 걸리는지: 시험이 실제로 잡는지
+    $("list").style.maxWidth = keepMax;
     document.querySelector('[data-filter="all"]').click(); await W(200);
-    check("마감 알약이 제목을 안 덮음(전체 · 날짜순)", o1 === 0 && o2 === 0, o1 + "/" + o2);
+    check("마감 알약이 제목을 안 덮음(전체 · 날짜순)", o1 === 0 && o2 === 0 && oOld > 0, o1 + "/" + o2 + " 예전 " + oOld);
   }
   // 글자 대비 훑기: 밝게 · 어둡게, 탭 다섯 · 설정 · 펼친 할 일 · 프로젝트 시트에서 보이는 글자가 모두 4.5(큰 글자 3) 이상. 아이콘(★)은 빼고
   try {
