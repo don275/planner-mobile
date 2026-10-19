@@ -527,9 +527,9 @@ let trObs = null;
 function startTr() {
   if (!isEn()) return;
   document.documentElement.lang = "en";
-  trAll(document.body);
+  trAll(document.body); fitPills();
   if (trObs) return;
-  trObs = new MutationObserver(list => { for (const m of list) { if (m.type === "characterData") trAll(m.target); else m.addedNodes.forEach(trAll); } });
+  trObs = new MutationObserver(list => { for (const m of list) { if (m.type === "characterData") trAll(m.target); else m.addedNodes.forEach(trAll); } fitPills(); });     // 번역으로 알약 글이 길어지면 제목 여백도 다시
   trObs.observe(document.body, { childList: true, subtree: true, characterData: true });
 }
 // 날짜순 묶음(PC [날짜순] 과 같음): 0 지남 · 오늘, 1 내일, 2 이번 주, 3 다음 주 이후, 4 디데이 없음
@@ -603,6 +603,18 @@ function pickBrief(kind) {
 }
 
 // 기록 탭 위의 두 단추: 목록에 없던 일도 바로 기록 · 오늘 한 일을 보고 글로 복사
+// 줄마다 마감 알약의 실제 폭 + 10px 만큼 제목 오른쪽을 비운다(알약이 위에 떠 있을 때만)
+function fitPills() {
+  for (const it of document.querySelectorAll(".board .item")) {
+    const d = it.querySelector(".meta .due"), tx = it.querySelector(".text");
+    if (!d || !tx) continue;
+    tx.style.paddingRight = getComputedStyle(d).position === "absolute" ? (d.offsetWidth + 10) + "px" : "";
+  }
+}
+// 시험: 알약이 제목 글자를 덮는 줄 수
+function pillOverlaps() {
+  return [...document.querySelectorAll(".board .item")].filter(it => { const d = it.querySelector(".meta .due"), tx = it.querySelector(".text"); if (!d || !tx || getComputedStyle(d).position !== "absolute") return false; const tr = tx.getBoundingClientRect(); return tr.left + tx.clientWidth - parseFloat(getComputedStyle(tx).paddingRight) > d.getBoundingClientRect().left + 1; }).length;
+}
 function logBar() { return `<div class="logbar"><button id="logAdd">＋ 한 일 적기</button><button id="logCopy">오늘 복사</button><button id="logWeek">이번 주 복사</button></div>`; }
 // PC 에 아직 안 넘어간 기록(폰에서 적은 것 · 끝낸 것)까지 합쳐 보여 준다
 function allLogs() {
@@ -757,6 +769,7 @@ function render() {
   if (filter === "mine" && !query && !todos.length) html += `<div class="empty">나에게 맡겨진 일이 없습니다<br>누가 일을 맡기면 여기에 모입니다</div>`;
   else if ((filter === "all" || filter === "next") && !query && !todos.length && html) html += `<div class="empty">남은 일이 없습니다</div>`;     // 오늘 카드만 덩그러니 남지 않게
   $("list").innerHTML = html || `<div class="empty">${query ? "찾는 할 일이 없습니다" : filter === "today" ? "오늘 마감인 일이 없습니다" + (briefMatch("week").length ? `<br><button class="bchip rolled" data-brief="week" style="margin-top:12px">이번 주 디데이 ${briefMatch("week").length}</button>` : "") : "남은 일이 없습니다"}</div>`;
+  fitPills();     // 마감 알약 폭만큼 제목 오른쪽을 비움(고정 104px 보다 긴 '10/18 (1일 지남)' 이 제목을 덮던 것)
   const names = order.filter(Boolean), sel = $("newSection"), keep = sel.value;
   sel.innerHTML = names.map(n => `<option>${esc(n)}</option>`).join("") + `<option value="">기타</option>`;
   // 고른 곳을 기억: 이번에 고른 것, 아니면 지난번에 넣은 프로젝트(다음에 켜도)
@@ -1863,6 +1876,12 @@ async function selfTest() {
     const rep = dayReport(), wk = weekReport();
     state.logs = keepLogs;
     check("오늘 한 일 · 이번 주 복사 글에 한 일 이름", rep.includes("[시험 프로젝트]") && rep.includes("- 오늘 시험 기록") && wk.includes("이번 주 한 일") && wk.includes(md(d) + " 오늘 시험 기록"), rep.slice(0, 40) + " / " + wk.slice(0, 40));
+  }
+  { // 마감 알약이 제목을 덮지 않음: [전체] · [날짜순] (긴 '1일 지남' 알약도)
+    tab("전체"); await W(200); const o1 = pillOverlaps();
+    document.querySelector('[data-filter="next"]').click(); await W(250); const o2 = pillOverlaps();
+    document.querySelector('[data-filter="all"]').click(); await W(200);
+    check("마감 알약이 제목을 안 덮음(전체 · 날짜순)", o1 === 0 && o2 === 0, o1 + "/" + o2);
   }
   // 글자 대비 훑기: 밝게 · 어둡게, 탭 다섯 · 설정 · 펼친 할 일 · 프로젝트 시트에서 보이는 글자가 모두 4.5(큰 글자 3) 이상. 아이콘(★)은 빼고
   try {
