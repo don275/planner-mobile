@@ -478,7 +478,7 @@ const EN = {
   "남은 일을 복사했습니다 · 카톡 · 메일에 붙여 넣으세요": "Copied open to-dos · paste into chat or email", "넣은 링크가 없습니다": "No links added", "단계 이름을 바꿨습니다": "Step renamed",
   "메모를 넣었습니다": "Note added", "보이는 목록에 없습니다(검색 · 걸러 보기를 풀어 보세요)": "Not in the visible list (clear search or filters)", "복사했습니다. 카톡에 붙여 넣으세요": "Copied. Paste into chat",
   "복제했습니다": "Duplicated", "부제 이름을 바꿨습니다": "Subgroup renamed", "붙여넣기를 못 했습니다. 아래 칸에 길게 눌러 붙여 넣어 주세요": "Couldn't paste. Long-press the box below to paste",
-  "삭제했습니다": "Deleted", "업무 기록에 남겼습니다": "Saved to the work log", "오늘 한 일을 복사했습니다 · 카톡 · 메일에 붙여 넣으세요": "Copied today's work · paste into chat or email", "이번 주 한 일을 복사했습니다 · 카톡 · 메일에 붙여 넣으세요": "Copied this week's work · paste into chat or email",
+  "삭제했습니다": "Deleted", "업무 기록에 남겼습니다": "Saved to the work log", "오늘 한 일을 복사했습니다 · 카톡 · 메일에 붙여 넣으세요": "Copied today's work · paste into chat or email", "이번 주 한 일을 복사했습니다 · 카톡 · 메일에 붙여 넣으세요": "Copied this week's work · paste into chat or email", "다시 연결하는 중…": "Reconnecting…",
   "옮길 곳이 없습니다": "Nowhere to move", "이름을 바꿨습니다": "Renamed", "단계 순서를 바꿨습니다": "Steps reordered", "마감일을 지웠습니다": "Due date cleared", "부제에서 뺐습니다": "Removed from subgroup",
   "순서를 바꿨습니다": "Reordered", "완료했습니다": "Done", "주소를 찾지 못했습니다": "No address found", "중요 표시를 뺐습니다": "Unmarked important", "중요 표시했습니다": "Marked important",
   "찾는 기록이 없습니다": "No matching entries", "최근 2주 동안 끝낸 일이 없습니다": "Nothing finished in the last 2 weeks", "추가했습니다": "Added", "프로젝트 순서를 바꿨습니다": "Projects reordered",
@@ -806,7 +806,8 @@ function stateText() {
   return isEn() ? "PC wait " + inbox.length : "PC 대기 " + inbox.length;
 }
 $("state").addEventListener("click", () => {
-  if (!$("state").textContent || problem) return;
+  if (problem) { toast(isEn() ? "Reconnecting…" : "다시 연결하는 중…"); refresh(); return; }     // 연결 안 됨: 누르면 바로 다시(20초 기다리지 않게)
+  if (!$("state").textContent) return;
   toast(isEn() ? "Your changes are saved. They show up on the PC once the planner there is running." : "바꾼 것은 저장돼 있습니다. PC 에서 플래너가 켜지면 반영됩니다.");
 });
 
@@ -1610,6 +1611,7 @@ async function selfTest() {
   const tab = name => { const b = [...document.querySelectorAll("button")].find(x => x.textContent.trim() === name); if (b) b.click(); return !!b; };
   const out = [], errs = [];
   window.addEventListener("error", e => errs.push(e.message));
+  upRev = false; save("viewRev", false);     // 전에 손으로 눌러 둔 [날짜순] 거꾸로가 남아 있으면 날짜순 묶음 시험이 흔들렸다
   const check = (name, ok, more) => out.push((ok ? "OK  " : "FAIL ") + name + (more ? " · " + more : ""));
   try {
     tab("전체"); await W(300);
@@ -1866,6 +1868,13 @@ async function selfTest() {
     save("look", lookKeep); applyLook(); render(); await W(200);
     check("글자 아주 크게: 목록 확대 · 끌 때 빈자리 높이", zoomOk && ratioOk, info);
   } catch (e) { check("글자 아주 크게: 목록 확대 · 끌 때 빈자리 높이", false, e.message); }
+  { // 연결 안 됨을 누르면 바로 다시 연결(refresh)
+    const keepProblem = problem, keepRefresh = refresh; let called = 0;
+    problem = "연결 안 됨"; refresh = async () => { called++; }; render();
+    $("state").click(); await W(50);
+    refresh = keepRefresh; problem = keepProblem; render();
+    check("연결 안 됨 누르면 바로 다시 연결", called === 1, "부름 " + called);
+  }
   { // PC 반영 대기: 3분 넘게 못 받은 변경이 있으면 맨 위에 수, 방금 것만 있으면 안 보임
     const keepInbox = inbox, keepDemo = demo; demo = false;
     inbox = [{ op: "check", id: "x", key: "t1", at: new Date(Date.now() - 10 * 60000).toISOString() }, { op: "check", id: "y", key: "t2", at: new Date().toISOString() }];
