@@ -1901,6 +1901,12 @@ async function selfTest() {
       opened = ""; render();
       check("메모 → 진행(폰)", ok && noBtn, "btn=" + btn + " ok=" + ok + " noBtn=" + noBtn);
     }
+    { // 아주 크게: 오늘 카드 알약 글자는 '크게' 만큼(11.2px × 목록 1.4배) — 한 줄에 하나씩 첫 화면을 다 차지하지 않게
+      const lookKeep2 = load("look", {}); save("look", { ...lookKeep2, size: "xl" }); applyLook(); render(); await W(100);
+      const bc = document.querySelector(".bchip"), fs = bc ? parseFloat(getComputedStyle(bc).fontSize) : 0;
+      save("look", lookKeep2); applyLook(); render();
+      check("아주 크게 오늘 카드 알약 크기", !!bc && Math.abs(fs - 11.2) < 0.3, fs + "px");
+    }
     { // 프로젝트 머리의 작은 표시(고정 · 개수)는 한 줄: 아주 큰 글자 · 좁은 폭에서도 꺾이지 않음
       const sm = [...document.querySelectorAll(".proj small")];
       check("프로젝트 머리 표시 한 줄", sm.length > 0 && sm.every(s => getComputedStyle(s).whiteSpace === "nowrap"), sm.length + "개");
