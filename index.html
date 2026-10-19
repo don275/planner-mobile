@@ -174,8 +174,8 @@ section.b0 { --sc: var(--red); } section.b1 { --sc: var(--orange); } section.b2,
   .lday > .ev, .lday > .lrow { padding-left: 14px; padding-right: 14px; }
   .lday > .lhead + .ev, .lday > .lhead + .lrow { border-top: 0; }
   .lchip { display: inline-block; margin-top: 5px; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; background: color-mix(in srgb, var(--pc, var(--sub)) 16%, var(--card)); color: var(--pci, color-mix(in srgb, var(--pc, var(--sub)) 85%, var(--text))); }     /* --pci: 옅은 프로젝트 색이어도 대비 4.5 (headInk) */
-  .logbar { display: flex; gap: 8px; margin: 4px 12px 10px; }
-  .logbar button { flex: 1; padding: 10px; border-radius: 12px; border: 1px solid var(--line, rgba(127,127,127,.25)); background: var(--card); color: var(--text); font-weight: 600; }
+  .logbar { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 12px 10px; }     /* 단추 셋: 한 줄 글자, 좁으면(영어 · 큰 글자) 다음 줄로 */
+  .logbar button { flex: 1 1 auto; white-space: nowrap; padding: 10px 8px; border-radius: 12px; border: 1px solid var(--line, rgba(127,127,127,.25)); background: var(--card); color: var(--text); font-weight: 600; }
   .sheet label { display: block; font-size: 13px; color: var(--sub); margin: 10px 0 4px; }
   .sheet .end { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
   .lkrows { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
@@ -461,7 +461,7 @@ const EN = {
   "폰에는 오늘부터 2주 일정이 보입니다 · 더 먼 일정은 PC 일정 탭에서": "The phone shows 2 weeks from today · see further ahead in the PC Calendar tab",
   "앞으로 2주 동안 일정이 없습니다": "No events in the next 2 weeks", "찾는 일정이 없습니다": "No matching events", "찾는 할 일이 없습니다": "No matching to-dos",
   "남은 일이 없습니다": "Nothing left to do", "오늘 마감인 일이 없습니다": "Nothing due today",
-  "＋ 한 일 적기": "＋ Log what you did", "오늘 한 일 복사": "Copy today's work",
+  "＋ 한 일 적기": "＋ Log what you did", "오늘 한 일 복사": "Copy today's work", "오늘 복사": "Copy today", "이번 주 복사": "Copy this week",
   "폰에는 최근 2주 기록만 보입니다 · 지난 기록은 PC 업무 기록 탭에 모두 있습니다": "The phone shows the last 2 weeks · the full log is in the PC Work log tab",
   "대표색": "Color", "화면": "Display", "기기 설정": "Device", "밝게": "Light", "어둡게": "Dark", "글자 크기": "Text size", "작게": "Small", "보통": "Normal", "크게": "Large", "아주 크게": "Largest",
   "마감 지난 할 일": "Overdue to-dos", "매일 오늘로 옮기기": "Move to today daily", "그대로 두기": "Leave as is", "구글": "Google", "연결 해제": "Disconnect",
@@ -476,7 +476,7 @@ const EN = {
   "남은 일을 복사했습니다 · 카톡 · 메일에 붙여 넣으세요": "Copied open to-dos · paste into chat or email", "넣은 링크가 없습니다": "No links added", "단계 이름을 바꿨습니다": "Step renamed",
   "메모를 넣었습니다": "Note added", "보이는 목록에 없습니다(검색 · 걸러 보기를 풀어 보세요)": "Not in the visible list (clear search or filters)", "복사했습니다. 카톡에 붙여 넣으세요": "Copied. Paste into chat",
   "복제했습니다": "Duplicated", "부제 이름을 바꿨습니다": "Subgroup renamed", "붙여넣기를 못 했습니다. 아래 칸에 길게 눌러 붙여 넣어 주세요": "Couldn't paste. Long-press the box below to paste",
-  "삭제했습니다": "Deleted", "업무 기록에 남겼습니다": "Saved to the work log", "오늘 한 일을 복사했습니다 · 카톡 · 메일에 붙여 넣으세요": "Copied today's work · paste into chat or email",
+  "삭제했습니다": "Deleted", "업무 기록에 남겼습니다": "Saved to the work log", "오늘 한 일을 복사했습니다 · 카톡 · 메일에 붙여 넣으세요": "Copied today's work · paste into chat or email", "이번 주 한 일을 복사했습니다 · 카톡 · 메일에 붙여 넣으세요": "Copied this week's work · paste into chat or email",
   "옮길 곳이 없습니다": "Nowhere to move", "이름을 바꿨습니다": "Renamed", "단계 순서를 바꿨습니다": "Steps reordered", "마감일을 지웠습니다": "Due date cleared", "부제에서 뺐습니다": "Removed from subgroup",
   "순서를 바꿨습니다": "Reordered", "완료했습니다": "Done", "주소를 찾지 못했습니다": "No address found", "중요 표시를 뺐습니다": "Unmarked important", "중요 표시했습니다": "Marked important",
   "찾는 기록이 없습니다": "No matching entries", "최근 2주 동안 끝낸 일이 없습니다": "Nothing finished in the last 2 weeks", "추가했습니다": "Added", "프로젝트 순서를 바꿨습니다": "Projects reordered",
@@ -603,24 +603,38 @@ function pickBrief(kind) {
 }
 
 // 기록 탭 위의 두 단추: 목록에 없던 일도 바로 기록 · 오늘 한 일을 보고 글로 복사
-function logBar() { return `<div class="logbar"><button id="logAdd">＋ 한 일 적기</button><button id="logCopy">오늘 한 일 복사</button></div>`; }
+function logBar() { return `<div class="logbar"><button id="logAdd">＋ 한 일 적기</button><button id="logCopy">오늘 복사</button><button id="logWeek">이번 주 복사</button></div>`; }
 // PC 에 아직 안 넘어간 기록(폰에서 적은 것 · 끝낸 것)까지 합쳐 보여 준다
 function allLogs() {
   const mine = inbox.filter(o => o.op === "addLog").map(o => ({ date: o.date, section: o.section, sub: o.sub, title: o.title }));
   return [...((state && state.logs) || []), ...mine];
 }
-function dayReport() {
-  const d = today(), logs = allLogs().filter(x => x.date === d), groups = {};
-  const en = isEn(), other = en ? "Other" : "기타";     // English 면 머리말 · 날짜도 영어(PC 2.2.106 과 같음, 할 일 이름은 그대로)
-  let out = dayTitle(d).split(" · ")[0] + (en ? " · done " + logs.length : " 한 일 " + logs.length + "건");
+// 한 일을 프로젝트 › 부제로 묶은 글(많은 프로젝트 먼저). withDate 면 줄 앞에 날짜(이번 주 복사)
+function logGroups(logs, withDate) {
+  const other = isEn() ? "Other" : "기타", groups = {};
+  for (const x of logs) (groups[x.section || other] = groups[x.section || other] || []).push(x);     // 전에는 묶음을 채우지 않아 머리말만 복사되던 것
+  let out = "";
   for (const g of Object.keys(groups).sort((a, b) => groups[b].length - groups[a].length)) {
     out += "\n\n[" + g + "]";
-    const items = groups[g], subs = [...new Set(items.map(x => x.sub || ""))].sort((a, b) => (a ? 1 : 0) - (b ? 1 : 0));
+    const items = groups[g].slice().sort((a, b) => (a.date || "").localeCompare(b.date || "")), subs = [...new Set(items.map(x => x.sub || ""))].sort((a, b) => (a ? 1 : 0) - (b ? 1 : 0));
     for (const s of subs) {
       if (s) out += "\n  › " + s;
-      for (const x of items.filter(y => (y.sub || "") === s)) out += "\n" + (s ? "    " : "") + "- " + x.title;
+      for (const x of items.filter(y => (y.sub || "") === s)) out += "\n" + (s ? "    " : "") + "- " + (withDate && x.date ? md(x.date) + " " : "") + x.title;
     }
   }
+  return out;
+}
+// 이번 주(월요일부터 오늘까지) 한 일: 카톡 · 메일 주간 보고용(PC 주간 요약의 완료 부분과 같은 묶음)
+function weekReport() {
+  const d = today(), t = new Date(d + "T00:00:00"), back = (t.getDay() + 6) % 7; t.setDate(t.getDate() - back);
+  const mon = t.getFullYear() + "-" + String(t.getMonth() + 1).padStart(2, "0") + "-" + String(t.getDate()).padStart(2, "0");
+  const logs = allLogs().filter(x => x.date >= mon && x.date <= d), en = isEn();
+  return md(mon) + " ~ " + md(d) + (en ? " · done this week " + logs.length : " 이번 주 한 일 " + logs.length + "건") + logGroups(logs, true);
+}
+function dayReport() {
+  const d = today(), logs = allLogs().filter(x => x.date === d);
+  const en = isEn();     // English 면 머리말 · 날짜도 영어(PC 2.2.106 과 같음, 할 일 이름은 그대로)
+  let out = dayTitle(d).split(" · ")[0] + (en ? " · done " + logs.length : " 한 일 " + logs.length + "건") + logGroups(logs, false);
   const left = view().filter(x => x.due && x.due <= d && !x.repeat);
   if (left.length) out += (en ? "\n\nStill open " + left.length : "\n\n아직 남은 일 " + left.length + "건") + left.map(x => "\n- " + (x.section ? "[" + x.section + (x.sub ? " › " + x.sub : "") + "] " : "") + x.steps[Math.min(x.step, x.steps.length - 1)]).join("");
   return out;
@@ -1478,6 +1492,7 @@ $("list").addEventListener("click", e => {
   if (e.target.closest("[data-briefx]")) { save("briefHidden", today()); render(); return; }
   if (e.target.closest("#logAdd")) { addLogSheet(); return; }
   if (e.target.closest("#logCopy")) { copy(dayReport()).then(ok => toast(ok ? "오늘 한 일을 복사했습니다 · 카톡 · 메일에 붙여 넣으세요" : "복사하지 못했습니다")); return; }
+  if (e.target.closest("#logWeek")) { copy(weekReport()).then(ok => toast(ok ? "이번 주 한 일을 복사했습니다 · 카톡 · 메일에 붙여 넣으세요" : "복사하지 못했습니다")); return; }
   const subHead = e.target.closest("[data-subhead]");
   if (subHead) { subMenu(subHead.dataset.subsec, subHead.dataset.subhead); return; }
   const id = opened, item = id && view().find(x => x.id === id);
@@ -1841,6 +1856,13 @@ async function selfTest() {
     const freshShown = stateText();
     inbox = keepInbox; demo = keepDemo; render();
     check("PC 반영 대기 표시", oldShown === "PC 대기 2" && freshShown === "", oldShown + "/" + freshShown);
+  }
+  { // 오늘 한 일 · 이번 주 복사 글에 한 일 이름이 들어감(전에는 묶음이 비어 머리말만 복사됐다)
+    const keepLogs = state.logs, d = today();
+    state.logs = [...(keepLogs || []), { date: d, section: "시험 프로젝트", sub: "", title: "오늘 시험 기록" }];
+    const rep = dayReport(), wk = weekReport();
+    state.logs = keepLogs;
+    check("오늘 한 일 · 이번 주 복사 글에 한 일 이름", rep.includes("[시험 프로젝트]") && rep.includes("- 오늘 시험 기록") && wk.includes("이번 주 한 일") && wk.includes(md(d) + " 오늘 시험 기록"), rep.slice(0, 40) + " / " + wk.slice(0, 40));
   }
   // 글자 대비 훑기: 밝게 · 어둡게, 탭 다섯 · 설정 · 펼친 할 일 · 프로젝트 시트에서 보이는 글자가 모두 4.5(큰 글자 3) 이상. 아이콘(★)은 빼고
   try {
