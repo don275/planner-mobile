@@ -156,6 +156,7 @@ body.personal h1 .pf { display: inline-block; }
   .bx { background: none; border: 0; color: var(--sub); font-size: 14px; padding: 2px 6px; }
   .bchips { display: flex; flex-wrap: wrap; gap: 6px; }
   .bchip { border: 0; border-radius: 999px; padding: 6px 12px; font-size: 13px; font-weight: 700; }
+body.xl .bchip { font-size: 11.2px; padding: 5px 10px; }     /* 아주 크게: 오늘 카드 알약은 "크게" 만큼만(목록 1.4배 확대 안에서) — 한 줄에 하나씩 첫 화면을 다 차지하던 것 */
   .bchip.stuck { background: color-mix(in srgb, var(--red) 72%, #000); color: #fff; }
   .bchip.late { background: color-mix(in srgb, var(--red) 16%, var(--card)); color: color-mix(in srgb, var(--red) 72%, var(--text)); }     /* 옅은 바탕 위 작은 글씨 대비 4.5(그냥 빨강은 약 4) */
   .bchip.today { background: color-mix(in srgb, var(--orange) 16%, var(--card)); color: color-mix(in srgb, var(--orange) 58%, var(--text)); }     /* 주황은 2.6 이었다 */
@@ -1079,7 +1080,7 @@ function applyLook() {
   if (dark && look.accent === "#212121") { root.style.removeProperty("--accent"); root.style.removeProperty("--on-accent"); }
   document.body.style.fontSize = ({ small: "14px", large: "17px", xl: "18px" })[look.size] || "";
   // 할 일 · 일정 · 기록 목록은 글씨마다 크기가 정해져 있어 바탕 글씨만 바꾸면 거의 안 변했다(사장님 "체감이 안 된다", v93): 목록 전체를 같은 비율로
-  const z = ({ small: 0.9, large: 1.2, xl: 1.4 })[look.size] || 1; $("list").style.zoom = z === 1 ? "" : String(z); document.body.classList.toggle("big", z > 1);
+  const z = ({ small: 0.9, large: 1.2, xl: 1.4 })[look.size] || 1; $("list").style.zoom = z === 1 ? "" : String(z); document.body.classList.toggle("big", z > 1); document.body.classList.toggle("xl", look.size === "xl");
 }
 // PC 가 이 목록을 보낸 때(state.updated): PC 가 꺼져 있으면 오래된 목록일 수 있어 설정에 보인다
 function fromPcText() {
