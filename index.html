@@ -545,7 +545,7 @@ const dayTitle = s => { const d = new Date(s + "T00:00"); return (d.getMonth() +
 
 // 오늘부터 2주 일정(PC 의 구글 캘린더에서 온 것)
 function eventsHtml() {
-  const list = ((state && state.events) || []).filter(ev => !query || hits(ev.title || "", ev.calendar || ""));
+  const list = ((state && state.events) || []).filter(ev => !query || hits(ev.title || "", (ev.calendar || "") + " " + (ev.location || "")));     // 장소로도 찾기(예: 홍은)
   if (!list.length) return `<div class="empty">${query ? "찾는 일정이 없습니다" : "앞으로 2주 동안 일정이 없습니다"}</div>`;
   const days = {};
   for (const ev of list) {
@@ -1896,8 +1896,11 @@ async function selfTest() {
     state.events = [{ title: "장소 시험 촬영", allDay: false, start: d + "T11:00", last: d, end: d + "T18:00", calendar: "업무", color: "", location: "서울 서대문구 홍은중앙로 116" }, { title: "장소 없는 일정", allDay: true, start: d + "T00:00", last: d, end: d + "T00:00", calendar: "", color: "" }];
     tab("일정"); await W(250);
     const withLoc = document.querySelector('.ev[data-loc]'), locTxt = (withLoc && withLoc.querySelector(".loc") || {}).textContent || "", plain = [...document.querySelectorAll(".ev")].filter(e => !e.dataset.loc).length;
+    $("findText").value = "홍은중앙로"; $("findText").dispatchEvent(new Event("input", { bubbles: true })); await W(250);
+    const found = [...document.querySelectorAll(".ev")].map(e => e.textContent).join("|");
+    $("findText").value = ""; $("findText").dispatchEvent(new Event("input", { bubbles: true })); await W(150);
     state.events = keepEv; tab("전체"); await W(200);
-    check("일정 장소 보이고 누를 수 있음", !!withLoc && locTxt.includes("홍은중앙로") && plain === 1, locTxt + " / 장소 없는 것 " + plain);
+    check("일정 장소 보이고 누를 수 있음 · 장소로 찾기", !!withLoc && locTxt.includes("홍은중앙로") && plain === 1 && found.includes("장소 시험 촬영") && !found.includes("장소 없는 일정"), locTxt + " / 장소 없는 것 " + plain + " / 찾기 " + found.slice(0, 30));
   }
   // 글자 대비 훑기: 밝게 · 어둡게, 탭 다섯 · 설정 · 펼친 할 일 · 프로젝트 시트에서 보이는 글자가 모두 4.5(큰 글자 3) 이상. 아이콘(★)은 빼고
   try {
