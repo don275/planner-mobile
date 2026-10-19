@@ -1940,7 +1940,7 @@ async function selfTest() {
     const lookKeep = load("look", {});
     for (const th of ["light", "dark"]) {
       save("look", { ...lookKeep, theme: th }); applyLook();
-      for (const f of ["all", "next", "mine", "events", "log"]) { const b = document.querySelector(`[data-filter="${f}"]`); if (b) { b.click(); await W(200); sweep(th + "/" + f); } }
+      for (const f of ["all", "next", "mine", "events", "logs"]) { const b = document.querySelector(`[data-filter="${f}"]`); if (b) { b.click(); await W(200); sweep(th + "/" + f); } else if (f !== "mine") low.add("탭 단추 없음 " + f); }     // 없는 탭을 조용히 건너뛰지 않게(전에 [기록] 이름을 log 로 잘못 적어 빠져 있었다)
       document.querySelector('[data-filter="all"]').click(); await W(200);
       $("settings").click(); await W(250); sweep(th + "/settings"); closeSheet();
       document.querySelector(".proj")?.click(); await W(250); sweep(th + "/proj"); closeSheet();
@@ -1970,7 +1970,7 @@ async function selfTest() {
     const lookKeep = load("look", {});
     for (const size of ["", "xl"]) for (const lang of ["ko", "en"]) {
       const tag = (size || "보통") + "/" + lang; save("look", { ...lookKeep, size, lang }); applyLook(); render(); await W(200);
-      for (const f of ["all", "next", "mine", "events", "log"]) { const b = document.querySelector(`[data-filter="${f}"]`); if (b) { b.click(); await W(150); sweepOut(tag + "/" + f); } }
+      for (const f of ["all", "next", "mine", "events", "logs"]) { const b = document.querySelector(`[data-filter="${f}"]`); if (b) { b.click(); await W(150); sweepOut(tag + "/" + f); } else if (f !== "mine") outs.add("탭 단추 없음 " + f); }
       document.querySelector('[data-filter="all"]').click(); await W(150);
       $("settings").click(); await W(250); sweepOut(tag + "/settings"); closeSheet();
       document.querySelector(".proj")?.click(); await W(250); sweepOut(tag + "/proj"); closeSheet();
