@@ -350,7 +350,7 @@ function sample() {
     { id: "s2", section: "매일 하는 일", text: "문의 메일 답장", steps: ["문의 메일 답장"], step: 0, due: t, stepDues: [], notes: "", repeat: true },
     { id: "s3", section: "가을 행사", text: "장소 확정 → 안내문 작성 → 참석자에게 발송", steps: ["장소 확정", "안내문 작성", "참석자에게 발송"], step: 1, due: plus(2), stepDues: [plus(-1), plus(2), plus(7)], notes: "작년 안내문 참고\n참석 예정 40명", repeat: false, prog: [{ s: 0, t: "10/14  호텔 2곳 견적 받음" }, { s: 1, t: "10/18  초안 대표님께 보냄, 회신 대기" }] },
     { id: "s4", section: "가을 행사", text: "인쇄물 견적 받기", steps: ["인쇄물 견적 받기"], step: 0, due: "", stepDues: [], notes: "", repeat: false, created: plus(-12), dated: "10/18  두 곳에 견적 요청함" },
-    { id: "s5", section: "거래처", text: "계약서 수정 사항 확인", steps: ["계약서 수정 사항 확인"], step: 0, due: plus(-1), stepDues: [], notes: "", repeat: false, files: 2 },
+    { id: "s5", section: "거래처", text: "계약서 수정 사항 확인", steps: ["계약서 수정 사항 확인"], step: 0, due: plus(-1), stepDues: [], notes: "", repeat: false, files: 2, dated: "10/18  수정본 메일 받음" },
     { id: "s6", section: "거래처", text: "대표님 검토 → 전자 계약 발송", steps: ["대표님 검토", "전자 계약 발송"], step: 0, due: plus(9), stepDues: [], notes: "", repeat: false, star: true, remind: t + " 15:00" } ] };
 }
 
@@ -670,8 +670,15 @@ function dayReport() {
   const en = isEn();     // English 면 머리말 · 날짜도 영어(PC 2.2.106 과 같음, 할 일 이름은 그대로)
   let out = dayTitle(d).split(" · ")[0] + (en ? " · done " + logs.length : " 한 일 " + logs.length + "건") + logGroups(logs, false);
   const left = view().filter(x => x.due && x.due <= d && !x.repeat);
-  if (left.length) out += (en ? "\n\nStill open " + left.length : "\n\n아직 남은 일 " + left.length + "건") + left.map(x => "\n- " + (x.section ? "[" + x.section + (x.sub ? " › " + x.sub : "") + "] " : "") + x.steps[Math.min(x.step, x.steps.length - 1)]).join("");
+  if (left.length) out += (en ? "\n\nStill open " + left.length : "\n\n아직 남은 일 " + left.length + "건") + left.map(x => "\n- " + (x.section ? "[" + x.section + (x.sub ? " › " + x.sub : "") + "] " : "") + x.steps[Math.min(x.step, x.steps.length - 1)] + newsTail(x)).join("");
   return out;
+}
+// 남은 일 줄 끝에 최근 소식(PC 주간 요약과 같음): 진행 한 줄, 없으면 메모 속 최근 날짜 소식, 길면 줄임
+function newsTail(x) {
+  const n = ((x.prog || []).filter(q => q.s === Math.min(x.step, x.steps.length - 1)).slice(-1)[0] || {}).t || x.dated || "";
+  if (!n) return "";
+  const s = n.replace(/  /g, " ");
+  return (isEn() ? "  · latest: " : "  · 최근: ") + (s.length > 48 ? s.slice(0, 47) + "…" : s);
 }
 function addLogSheet() {
   const names = [...new Set([...sectionOrder(), ...view().map(x => x.section || "")])].filter(Boolean);
@@ -1804,6 +1811,10 @@ async function selfTest() {
       const afterDel = (view().find(t => t.id === "s3").prog || []).map(q => q.t).join(" | ");
       inbox.length = 0; keepInbox.forEach(o => inbox.push(o));
       check("진행 한 줄 고치기 · 지우기(폰)", afterEdit.endsWith("10/18  회신 받음") && afterDel === "10/18  회신 받음", afterEdit + " / " + afterDel);
+    }
+    { // 오늘 한 일 복사: 아직 남은 일 줄 끝에 최근 소식
+      const rep = dayReport();
+      check("오늘 한 일 복사에 남은 일 최근 소식", /계약서 수정 사항 확인 {2}· (최근|latest): 10\/18 수정본 메일 받음/.test(rep), rep.slice(-120));
     }
     { // 검색: 진행 한 줄에만 있는 말로도 찾음
       tab("전체"); query = "호텔"; render(); await W(150);
