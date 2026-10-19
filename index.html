@@ -573,6 +573,14 @@ function briefMatch(kind) {
   const wk = new Date(); wk.setDate(wk.getDate() + 6); const w = wk.getFullYear() + "-" + String(wk.getMonth() + 1).padStart(2, "0") + "-" + String(wk.getDate()).padStart(2, "0");
   return view().filter(x => kind === "stuck" ? carriedDays(x) >= 3 : kind === "late" ? x.due && x.due < d && !x.repeat : kind === "today" ? x.due === d : kind === "week" ? x.due && x.due > d && x.due <= w && !x.repeat : kind === "nodate" ? !x.due && !x.repeat : kind === "team" ? !!x.fresh : carriedDays(x) > 0 && x.due === d);
 }
+// 홈 화면에 설치한 앱 아이콘 배지: 오늘 마감 + 지난 마감 수(PC 트레이 글과 같은 기준). 지원 안 하는 브라우저는 그냥 넘어간다
+let badgeShown = -1;
+function updateBadge() {
+  if (!state || demo && !window.__badgeTest) return;
+  const n = briefMatch("today").length + briefMatch("late").length;
+  if (n === badgeShown) return; badgeShown = n;
+  try { if (n > 0 && navigator.setAppBadge) navigator.setAppBadge(n).catch(() => {}); else if (navigator.clearAppBadge) navigator.clearAppBadge().catch(() => {}); } catch {}
+}
 function briefHtml() {
   const n = k => briefMatch(k).length, chips = [];
   if (n("stuck")) chips.push(`<button class="bchip stuck" data-brief="stuck">오래 밀린 일 ${n("stuck")}</button>`);
@@ -776,6 +784,7 @@ function render() {
   else if ((filter === "all" || filter === "next") && !query && !todos.length && html) html += `<div class="empty">남은 일이 없습니다</div>`;     // 오늘 카드만 덩그러니 남지 않게
   $("list").innerHTML = html || `<div class="empty">${query ? "찾는 할 일이 없습니다" : filter === "today" ? "오늘 마감인 일이 없습니다" + (briefMatch("week").length ? `<br><button class="bchip rolled" data-brief="week" style="margin-top:12px">이번 주 디데이 ${briefMatch("week").length}</button>` : "") : "남은 일이 없습니다"}</div>`;
   fitPills();     // 마감 알약 폭만큼 제목 오른쪽을 비움(고정 104px 보다 긴 '10/18 (1일 지남)' 이 제목을 덮던 것)
+  updateBadge();
   const names = order.filter(Boolean), sel = $("newSection"), keep = sel.value;
   sel.innerHTML = names.map(n => `<option>${esc(n)}</option>`).join("") + `<option value="">기타</option>`;
   // 고른 곳을 기억: 이번에 고른 것, 아니면 지난번에 넣은 프로젝트(다음에 켜도)
@@ -1901,6 +1910,17 @@ async function selfTest() {
     state.updated = undefined; $("settings").click(); await W(250); const none = !document.getElementById("fromPc"); closeSheet();
     state.updated = keepU;
     check("설정에 PC 에서 받은 목록 때", /10\/19 16:41/.test(note) && none, note);
+  }
+  { // 앱 아이콘 배지: 오늘 마감 + 지난 마감 수로 부르고, 0 이면 지움
+    const keepSet = navigator.setAppBadge, keepClear = navigator.clearAppBadge, calls = [];
+    navigator.setAppBadge = n => { calls.push("set " + n); return Promise.resolve(); };
+    navigator.clearAppBadge = () => { calls.push("clear"); return Promise.resolve(); };
+    window.__badgeTest = true; badgeShown = -1;
+    const want = briefMatch("today").length + briefMatch("late").length;
+    render(); await W(50);
+    const keepTodos = state.todos; state.todos = []; render(); await W(50); state.todos = keepTodos;
+    window.__badgeTest = false; navigator.setAppBadge = keepSet; navigator.clearAppBadge = keepClear; badgeShown = -1; render();
+    check("앱 아이콘 배지(오늘 + 지난 마감)", want > 0 && calls[0] === "set " + want && calls[calls.length - 1] === "clear", calls.join(","));
   }
   { // PC 목록이 하루 넘게 묵으면 맨 위에 'PC n일 전', 싱싱하면 안 보임
     const keepU = state.updated, keepDemo = demo, keepInbox = inbox; demo = false; inbox = [];
