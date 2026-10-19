@@ -302,8 +302,8 @@ const INBOX_FILE = "planner-inbox.json";     // 폰에서 한 일. PC 가 가져
 // 앱(아이폰 · 안드로이드)으로 감쌌을 때: 앱이 window.PlannerNative = { signIn(), copy(text) } 를 넣어 주면 그걸 쓴다.
 const native = () => window.PlannerNative || null;
 // 메모 속 주소(https://…, www.…)는 눌러 열 수 있게. 앱이 PlannerNative.openUrl(url) 을 주면 그걸로(바깥 브라우저) 연다.
-const linkify = s => esc(s).replace(/(?:https?:\/\/|www\.)[^\s<>"']+/g, m => { const u = m.replace(/[.,)]+$/, ""), rest = m.slice(u.length);
-  return `<a class="link" href="${/^www\./i.test(u) ? "https://" + u : u}" target="_blank" rel="noopener">${u}</a>${rest}`; });
+const linkify = s => esc(s).replace(/(?:https?:\/\/|www\.)[^\s<>"']+|(?<![@\w.\/-])[A-Za-z0-9][A-Za-z0-9-]*(?:\.[A-Za-z0-9-]+)*\.(?:com|net|org|kr|io|me|co|biz|info|shop|site|app|dev)(?![\w.-]*@)(?:\/[^\s<>"']*)?(?![\w-])/g, m => { const u = m.replace(/[.,)]+$/, ""), rest = m.slice(u.length);     /* 맨 주소(findcopyright.or.kr)도, 메일 주소는 빼고 */
+  return `<a class="link" href="${/^https?:\/\//i.test(u) ? u : "https://" + u}" target="_blank" rel="noopener">${u}</a>${rest}`; });
 function openLink(url) {
   try { if (window.PlannerNative?.openUrl) { window.PlannerNative.openUrl(url); return; } } catch {}
   window.open(url, "_blank", "noopener");
@@ -1761,6 +1761,10 @@ async function selfTest() {
       opened = null; delete state.team; state.todos.splice(t0); render(); await W(150);
       const gone = $("mineChip").hidden;
       check("팀: 내 일 칩 · 받은 일만 · 맡김 · 동그라미 · 맡기기 단추 · 알약 대비 · 새 일 알림 한 번", mineEmpty && doneToast && doneOnce && projAssign && shareWho && nameFind && boardOk && freshToast && toastOnce && teamRatio >= 4.5 && chipOk && avOk && shown.length === 1 && shown[0] === "tm-in" && fromTxt.includes("최지원") && fromTxt.includes("오늘") && !!btn && btn.textContent.includes("최지원") && gone, [chipOk, avOk, shown.join("|"), fromTxt, btn && btn.textContent, gone, "대비 " + teamRatio.toFixed(1), "알림 " + freshToast + "/" + toastOnce, "현황 " + boardOk, "현황 대비 최소 " + (boardRatios.length ? Math.min(...boardRatios).toFixed(1) : "-"), "이름 찾기 " + byName, "복사 " + shareWho, "프로젝트 맡기기 " + sent.length, "끝냄 알림 " + doneToast + "/" + doneOnce, "빈 내 일 " + mineEmpty].join(" "));
+    }
+    { // 메모 속 맨 주소도 링크(PC 와 같음), 메일 주소는 아님
+      const h1 = linkify("findcopyright.or.kr 로그인"), h2 = linkify("kim@naver.com 으로"), h3 = linkify("https://a.com/x 보기");
+      check("메모 맨 주소 링크", h1.includes('href="https://findcopyright.or.kr"') && !h2.includes("<a") && h3.includes('href="https://a.com/x"'), h1 + " / " + h2);
     }
     { // 오늘 카드 "오늘 알림 n": 견본의 오늘 알림(15:00) 수와 같고, 누르면 그 할 일로
       tab("전체"); await W(200);
