@@ -393,6 +393,7 @@ function view() {
     if (op.op === "back" && item.step > 0) { item.step--; sync(item); }
     if (op.op === "note") item.notes = item.notes ? item.notes.trimEnd() + "\n" + op.text : op.text;
     if (op.op === "skip") { const now = Math.min(item.step, item.steps.length - 1); item.na = [...(item.na || []).filter(o => o.s !== now), { s: now, why: op.reason || "" }]; if (item.step < item.steps.length - 1) { item.step++; sync(item); } else item.gone = true; }
+    if (op.op === "notesToProgress") { const moved = datedLines(item.notes); item.notes = (item.notes || "").split("\n").filter(l => !moved.includes(l)).join("\n"); item.prog = [...(item.prog || []), ...moved.map(l => { const m = l.match(/^\s*(\d{1,2})\s*[\/.]\s*(\d{1,2})\.?\s*(.*)$/); return { s: Math.min(item.step, item.steps.length - 1), t: Number(m[1]) + "/" + Number(m[2]) + "  " + m[3].trim() }; })]; }
     if (op.op === "progress") item.prog = [...(item.prog || []), { s: item.step, t: md(op.at || today()) + "  " + op.text }];
     if (op.op === "progressEdit" && (item.prog || [])[op.index]) { const pr = [...item.prog]; if (op.text) pr[op.index] = { ...pr[op.index], t: pr[op.index].t.split("  ")[0] + "  " + op.text }; else pr.splice(op.index, 1); item.prog = pr; }
     if (op.op === "edit" && item.steps.length < 2) { item.text = op.text; item.steps = [op.text]; }
@@ -474,7 +475,7 @@ const EN = {
   "지난 마감": "Overdue", "오늘 마감": "Due today", "이번 주 디데이": "D-days this week", "오늘 알림": "Reminders today", "오늘 소식": "News today", "오래 밀린 일": "Long overdue", "오늘로 옮겨 온 일": "Moved to today",
   "오늘은 숨기기": "Hide for today", "고정": "Pinned", "반복": "Repeats", "반복 · 오늘": "Repeats · today", "마감일": "Due date", "단계 나누기": "Split steps",
   "★ 중요": "★ Important", "중요 해제": "Unmark important", "단계 추가": "Add step", "메모 추가": "Add note", "복제": "Duplicate", "옮기기": "Move", "삭제": "Delete", "수정": "Edit",
-  "이전 단계": "Previous step", "메모": "Note", "추가": "Add", "진행 한 줄": "Progress", "업무 · 개인": "Work · Personal", "업무": "Work", "개인": "Personal", "해당 없음": "N/A", "이유(선택)": "Reason (optional)", "해당 없음으로 넘겼습니다": "Marked N/A", "지우기": "Delete", "진행 한 줄을 지웠습니다": "Progress line deleted", "진행 한 줄을 고쳤습니다": "Progress line edited", "지금 단계에 진행을 남겼습니다": "Progress added under the current step", "기타": "Other", "부제 없음": "No subgroup", "프로젝트": "Project", "부제": "Subgroup", "완료": "Done",
+  "이전 단계": "Previous step", "메모": "Note", "추가": "Add", "진행 한 줄": "Progress", "메모 → 진행": "Notes → progress", "메모 속 날짜 소식을 진행 한 줄로 옮겼습니다": "Dated note lines moved to progress", "업무 · 개인": "Work · Personal", "업무": "Work", "개인": "Personal", "해당 없음": "N/A", "이유(선택)": "Reason (optional)", "해당 없음으로 넘겼습니다": "Marked N/A", "지우기": "Delete", "진행 한 줄을 지웠습니다": "Progress line deleted", "진행 한 줄을 고쳤습니다": "Progress line edited", "지금 단계에 진행을 남겼습니다": "Progress added under the current step", "기타": "Other", "부제 없음": "No subgroup", "프로젝트": "Project", "부제": "Subgroup", "완료": "Done",
   "한 줄 남기기": "Add a line", "되돌리기": "Undo", "모두 오늘로": "All to today", "내일로": "To tomorrow",
   "오늘": "Today", "내일": "Tomorrow", "다음 7일": "Next 7 days", "나중에": "Later", "날짜 없음": "No date", "종일": "All day",
   "폰에는 오늘부터 2주 일정이 보입니다 · 더 먼 일정은 PC 일정 탭에서": "The phone shows 2 weeks from today · see further ahead in the PC Calendar tab",
@@ -690,6 +691,8 @@ function todayNews(x) {
   const p = (x.prog || []).filter(q => q.t.startsWith(t)).slice(-1)[0];
   return p ? p.t : (x.dated && x.dated.startsWith(t) ? x.dated : "");
 }
+// 메모에서 날짜로 시작하는 줄(10/19 …): PC TryDatedLine 과 같은 모양만
+function datedLines(notes) { return (notes || "").split("\n").filter(l => /^\s*\d{1,2}\s*[\/.]\s*\d{1,2}(?!\d)\.?\s*\S/.test(l)); }
 function newsTail(x) {
   const n = ((x.prog || []).filter(q => q.s === Math.min(x.step, x.steps.length - 1)).slice(-1)[0] || {}).t || x.dated || "";
   if (!n) return "";
@@ -781,6 +784,7 @@ function render() {
         html += `<div class="acts">` + (item.step > 0 ? `<button data-act="back">이전 단계</button>` : "")
           + (many && item.steps.length - item.step >= 2 ? `<button data-act="split">단계 나누기</button>` : "")
           + (state && state.team ? `<button data-act="assign">${item.who ? (isEn() ? "Assigned: " : "맡김: ") + esc(personName(item.who)) : T("맡기기")}</button>` : "")
+          + (datedLines(item.notes).length ? `<button data-act="n2p">${T("메모 → 진행")}</button>` : "")     /* 메모 속 날짜 소식을 진행 한 줄로(PC 와 같음) */
           + `<button data-act="skip">${T("해당 없음")}</button>`     /* 지금 단계를 하지 않고 넘김(주문 없음 등) */
           + `<button data-act="star">${item.star ? "중요 해제" : "★ 중요"}</button><button data-act="progress">진행 한 줄</button><button data-act="step">단계 추가</button><button data-act="note">메모 추가</button>`
           + `<button data-act="dup">복제</button><button data-act="moveto">옮기기</button>`
@@ -1636,6 +1640,7 @@ $("list").addEventListener("click", e => {
     if (a === "back") push({ op: "back", id }, "'" + item.steps[item.step - 1] + "' 단계로 되돌렸습니다");
     if (a === "note") ask("메모 추가", "메모", v => push({ op: "note", id, text: v }, "메모를 넣었습니다"));
     if (a === "skip") skipSheet(item);
+    if (a === "n2p") push({ op: "notesToProgress", id }, T("메모 속 날짜 소식을 진행 한 줄로 옮겼습니다"));
     if (a === "progress") ask("진행 한 줄", "예: 회신 없음, 내일 전화", v => push({ op: "progress", id, text: v, at: today() }, "지금 단계에 진행을 남겼습니다"));
     if (a === "step") addSteps(id);
     if (a === "split" && confirm("안 한 단계를 하나씩 따로 할 일로 나눌까요?")) { opened = null; push({ op: "split", id }, (item.steps.length - item.step) + "개 할 일로 나눴습니다"); }
@@ -1873,6 +1878,19 @@ async function selfTest() {
       switchPhoneProfile("work"); await W(150);
       const back = stateFile() === "planner-state.json" && !document.body.classList.contains("personal") && state && workState && state.todos.length === workState.todos.length;
       check("업무 / 개인(폰)", pf && separate && back, "pf=" + pf + " sep=" + separate + " back=" + back);
+    }
+    { // 메모 → 진행(폰): 날짜 줄만 진행 한 줄로, 날짜 없는 메모는 남음. 날짜 줄이 없으면 단추도 없음
+      const keepInbox = inbox.slice();
+      const s3 = state.todos.find(t => t.id === "s3"), keepNotes = s3.notes;
+      s3.notes = "작년 안내문 참고\n10/17 호텔에 견적 다시 요청"; opened = "s3"; render(); await W(100);
+      const btn = !!document.querySelector('.item[data-id="s3"] [data-act="n2p"]');
+      inbox.push({ op: "notesToProgress", id: "s3" });
+      const v = view().find(t => t.id === "s3");
+      const ok = btn && v.notes === "작년 안내문 참고" && (v.prog || []).some(q => q.t === "10/17  호텔에 견적 다시 요청");
+      inbox.length = 0; keepInbox.forEach(o => inbox.push(o)); s3.notes = keepNotes; render(); await W(100);
+      const noBtn = !document.querySelector('.item[data-id="s3"] [data-act="n2p"]');
+      opened = ""; render();
+      check("메모 → 진행(폰)", ok && noBtn, "btn=" + btn + " ok=" + ok + " noBtn=" + noBtn);
     }
     { // 해당 없음: 보낸 일(skip)을 화면에 바로 — 단계 하나 넘어가고 그 단계에 이유 칩, 마지막이면 사라짐
       const keepInbox = inbox.slice();
