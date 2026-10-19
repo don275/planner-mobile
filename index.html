@@ -165,7 +165,11 @@ body.xl .bchip { font-size: 11.2px; padding: 5px 10px; }     /* 아주 크게: �
   .bchip.late { background: color-mix(in srgb, var(--red) 16%, var(--card)); color: color-mix(in srgb, var(--red) 72%, var(--text)); }     /* 옅은 바탕 위 작은 글씨 대비 4.5(그냥 빨강은 약 4) */
   .bchip.today { background: color-mix(in srgb, var(--orange) 16%, var(--card)); color: color-mix(in srgb, var(--orange) 58%, var(--text)); }     /* 주황은 2.6 이었다 */
   .bchip.rolled { background: var(--tint); color: var(--sub); }
-  .bchip.calm { background: color-mix(in srgb, #1E8E3E 14%, var(--card)); color: #1E8E3E; }
+  .bchip.waiting { background: color-mix(in srgb, #7B4FD6 15%, var(--card)); color: color-mix(in srgb, #7B4FD6 45%, var(--text)); } .bchip.recheck { background: #7B4FD6; color: #fff; }
+.due.wait { background: color-mix(in srgb, #7B4FD6 15%, var(--card)); color: color-mix(in srgb, #7B4FD6 45%, var(--text)); font-weight: 700; } .due.wait.now { background: #7B4FD6; color: #fff; }
+.item.waiting .text { color: var(--sub); }
+#sheet .chips { flex-wrap: wrap; }     /* 시트 안 칩은 줄을 바꿔 다 보이게(기다림 · 해당 없음) */
+.bchip.calm { background: color-mix(in srgb, #1E8E3E 14%, var(--card)); color: #1E8E3E; }
   .item.flash { animation: flash 1.2s ease-out; }
   @keyframes flash { 0%, 40% { background: color-mix(in srgb, var(--accent) 18%, var(--card)); } 100% { background: transparent; } }
   .lday { margin: 10px 2px 12px; background: var(--card); border-radius: 16px; padding: 4px 14px 6px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
@@ -369,7 +373,7 @@ function sample() {
     { id: "s3", section: "가을 행사", text: "장소 확정 → 안내문 작성 → 참석자에게 발송", steps: ["장소 확정", "안내문 작성", "참석자에게 발송"], step: 1, due: plus(2), stepDues: [plus(-1), plus(2), plus(7)], notes: "작년 안내문 참고\n참석 예정 40명", repeat: false, prog: [{ s: 0, t: "10/14  호텔 2곳 견적 받음" }, { s: 1, t: "10/18  초안 대표님께 보냄, 회신 대기" }] },
     { id: "s4", section: "가을 행사", text: "인쇄물 견적 받기", steps: ["인쇄물 견적 받기"], step: 0, due: "", stepDues: [], notes: "", repeat: false, created: plus(-12), dated: "10/18  두 곳에 견적 요청함" },
     { id: "s5", section: "거래처", text: "계약서 수정 사항 확인", steps: ["계약서 수정 사항 확인"], step: 0, due: plus(-1), stepDues: [], notes: "", repeat: false, files: 2, dated: "10/18  수정본 메일 받음" },
-    { id: "s6", section: "거래처", text: "대표님 검토 → 전자 계약 발송", steps: ["대표님 검토", "전자 계약 발송"], step: 0, due: plus(9), stepDues: [], notes: "", repeat: false, star: true, remind: t + " 15:00" } ] };
+    { id: "s6", section: "거래처", text: "대표님 검토 → 전자 계약 발송", steps: ["대표님 검토", "전자 계약 발송"], step: 0, due: plus(9), stepDues: [], notes: "", repeat: false, star: true, remind: t + " 15:00", wait: "대표님 검토", waitUntil: plus(1), waitSince: plus(-1) } ] };
 }
 
 // PC 에서 받은 목록에 아직 안 넘어간 내 변경을 겹쳐서 보여 준다(PC 와 같은 규칙으로).
@@ -399,9 +403,12 @@ function view() {
     }
     const item = todos.find(x => x.id === op.id);
     if (!item) continue;
-    if (op.op === "check") { if (item.step < item.steps.length - 1) { item.step++; sync(item); } else item.gone = true; }
+    if (op.op === "check") { item.wait = ""; if (item.step < item.steps.length - 1) { item.step++; sync(item); } else item.gone = true; }
+    if (op.op === "wait") { item.wait = op.who; item.waitUntil = op.until || ""; item.waitSince = item.waitSince || today(); }
+    if (op.op === "unwait") { item.wait = ""; item.waitUntil = ""; }
     if (op.op === "back" && item.step > 0) { item.step--; sync(item); }
     if (op.op === "note") item.notes = item.notes ? item.notes.trimEnd() + "\n" + op.text : op.text;
+    if (op.op === "skip") item.wait = "";
     if (op.op === "skip") { const now = Math.min(item.step, item.steps.length - 1); item.na = [...(item.na || []).filter(o => o.s !== now), { s: now, why: op.reason || "" }]; if (item.step < item.steps.length - 1) { item.step++; sync(item); } else item.gone = true; }
     if (op.op === "notesToProgress") { const moved = datedLines(item.notes); item.notes = (item.notes || "").split("\n").filter(l => !moved.includes(l)).join("\n"); item.prog = [...(item.prog || []), ...moved.map(l => { const m = l.match(/^\s*(\d{1,2})\s*[\/.]\s*(\d{1,2})\.?\s*(.*)$/); return { s: Math.min(item.step, item.steps.length - 1), t: Number(m[1]) + "/" + Number(m[2]) + "  " + m[3].trim() }; })]; }
     if (op.op === "progress") item.prog = [...(item.prog || []), { s: item.step, t: md(op.at || today()) + "  " + op.text }];
@@ -485,7 +492,7 @@ const EN = {
   "지난 마감": "Overdue", "오늘 마감": "Due today", "이번 주 디데이": "D-days this week", "오늘 알림": "Reminders today", "오늘 소식": "News today", "오래 밀린 일": "Long overdue", "오늘로 옮겨 온 일": "Moved to today",
   "오늘은 숨기기": "Hide for today", "고정": "Pinned", "반복": "Repeats", "반복 · 오늘": "Repeats · today", "마감일": "Due date", "단계 나누기": "Split steps",
   "★ 중요": "★ Important", "중요 해제": "Unmark important", "단계 추가": "Add step", "메모 추가": "Add note", "복제": "Duplicate", "옮기기": "Move", "삭제": "Delete", "수정": "Edit",
-  "이전 단계": "Previous step", "메모": "Note", "추가": "Add", "진행 한 줄": "Progress", "메모 → 진행": "Notes → progress", "메모 속 날짜 소식을 진행 한 줄로 옮겼습니다": "Dated note lines moved to progress", "제안함": "Suggestions", "검토 기다림": "Waiting for review", "하기로 함": "Planned", "반영됨": "Done", "안 하기로 함": "Not planned", "PC 로 보내는 중": "Sending to PC", "AI 와 쓰다 남긴 '있으면 좋겠다' — 보고 결과를 알려 드립니다": "Ideas left while using AI — each gets reviewed", "아직 제안이 없습니다": "No suggestions yet", "AI 에게 '이럴 때 이런 게 있으면 좋겠다' 고 말하거나 아래에 적으세요.": "Tell the AI 'it would help if…', or write one below.", "무엇이 있으면 좋겠나요?": "What would help?", "남기기": "Send", "제안을 남겼습니다": "Suggestion sent", "업무 · 개인": "Work · Personal", "업무": "Work", "개인": "Personal", "해당 없음": "N/A", "이유(선택)": "Reason (optional)", "해당 없음으로 넘겼습니다": "Marked N/A", "지우기": "Delete", "진행 한 줄을 지웠습니다": "Progress line deleted", "진행 한 줄을 고쳤습니다": "Progress line edited", "지금 단계에 진행을 남겼습니다": "Progress added under the current step", "기타": "Other", "부제 없음": "No subgroup", "프로젝트": "Project", "부제": "Subgroup", "완료": "Done",
+  "이전 단계": "Previous step", "메모": "Note", "추가": "Add", "진행 한 줄": "Progress", "메모 → 진행": "Notes → progress", "메모 속 날짜 소식을 진행 한 줄로 옮겼습니다": "Dated note lines moved to progress", "다시 볼 것": "Check again", "기다리는 중": "Waiting", "⏳ 기다림": "⏳ Waiting", "⏳ 기다림 고치기": "⏳ Edit waiting", "기다림 끝": "Stop waiting", "기다림을 끝냈습니다": "Stopped waiting", "기다리는 중으로": "Waiting for…", "누구 · 무엇을": "Who · what", "언제 다시 볼까요": "When to check again", "기다리기": "Wait", "기다리는 중으로 옮겼습니다": "Marked as waiting", "대표님 확인": "Boss approval", "회신": "Reply", "입금": "Payment", "서류": "Documents", "오늘 오후": "Later today", "내일": "Tomorrow", "모레": "In 2 days", "다음 주 월": "Next Monday", "날짜 없이": "No date", "제안함": "Suggestions", "검토 기다림": "Waiting for review", "하기로 함": "Planned", "반영됨": "Done", "안 하기로 함": "Not planned", "PC 로 보내는 중": "Sending to PC", "AI 와 쓰다 남긴 '있으면 좋겠다' — 보고 결과를 알려 드립니다": "Ideas left while using AI — each gets reviewed", "아직 제안이 없습니다": "No suggestions yet", "AI 에게 '이럴 때 이런 게 있으면 좋겠다' 고 말하거나 아래에 적으세요.": "Tell the AI 'it would help if…', or write one below.", "무엇이 있으면 좋겠나요?": "What would help?", "남기기": "Send", "제안을 남겼습니다": "Suggestion sent", "업무 · 개인": "Work · Personal", "업무": "Work", "개인": "Personal", "해당 없음": "N/A", "이유(선택)": "Reason (optional)", "해당 없음으로 넘겼습니다": "Marked N/A", "지우기": "Delete", "진행 한 줄을 지웠습니다": "Progress line deleted", "진행 한 줄을 고쳤습니다": "Progress line edited", "지금 단계에 진행을 남겼습니다": "Progress added under the current step", "기타": "Other", "부제 없음": "No subgroup", "프로젝트": "Project", "부제": "Subgroup", "완료": "Done",
   "한 줄 남기기": "Add a line", "되돌리기": "Undo", "모두 오늘로": "All to today", "내일로": "To tomorrow",
   "오늘": "Today", "내일": "Tomorrow", "다음 7일": "Next 7 days", "나중에": "Later", "날짜 없음": "No date", "종일": "All day",
   "폰에는 오늘부터 2주 일정이 보입니다 · 더 먼 일정은 PC 일정 탭에서": "The phone shows 2 weeks from today · see further ahead in the PC Calendar tab",
@@ -544,7 +551,7 @@ function T(s) {
   for (const [ko, en] of EN_HEAD) if (t.startsWith(ko)) return en + t.slice(ko.length);
   return s;
 }
-const SKIP = ".text, .psec, .note, .news, [data-stepname], .ldetail, .ltitle, .lchip, .what, [data-project], .subh, #findText, textarea, input, select";
+const SKIP = ".text, .wwho, .psec, .note, .news, [data-stepname], .ldetail, .ltitle, .lchip, .what, [data-project], .subh, #findText, textarea, input, select";
 function trAll(root) {
   if (!isEn() || !root) return;
   if (root.nodeType === 3) { if (!root.parentElement || !root.parentElement.closest(SKIP + ", script, style")) { const v = T(root.data); if (v !== root.data) root.data = v; } return; }
@@ -595,10 +602,20 @@ function eventsHtml() {
 // 최근 2주 동안 끝낸 일
 // ───── 목록 맨 위 '오늘' 카드(PC 와 같게): 오래 밀린 일 · 지난 마감 · 오늘 마감 · 옮겨 온 일. 알약을 누르면 그 할 일로 ─────
 function carriedDays(x) { return x.lateFrom && x.due && x.due >= today() ? Math.round((Date.parse(today()) - Date.parse(x.lateFrom)) / 86400000) : 0; }
+// 기다리는 중(PC 와 같음): 대표님 확인 · 회신 대기. 다시 볼 날 전엔 오늘 몫에서 빠지고, 그날이 되면 '다시 볼 것'
+const waiting = x => !!x.wait && !(x.waitUntil && x.waitUntil <= today());
+const recheck = x => !!x.wait && !!x.waitUntil && x.waitUntil <= today();
+function waitLabel(x, html) {
+  const w = x.wait.length > 12 ? x.wait.slice(0, 12) + "…" : x.wait, who = html ? `<span class="wwho">${esc(w)}</span>` : w;     // 누구는 사용자 자료(번역 안 함)
+  if (!x.waitUntil) return "⏳ " + who;
+  return "⏳ " + who + " · " + (x.waitUntil <= today() ? (isEn() ? "check today" : "오늘 다시 보기") : (isEn() ? "check " + md(x.waitUntil) : md(x.waitUntil) + " 다시 보기"));
+}
 function briefMatch(kind) {
   const d = today();
+  if (kind === "waiting") return view().filter(waiting);
+  if (kind === "recheck") return view().filter(recheck);
   const wk = new Date(); wk.setDate(wk.getDate() + 6); const w = wk.getFullYear() + "-" + String(wk.getMonth() + 1).padStart(2, "0") + "-" + String(wk.getDate()).padStart(2, "0");
-  return view().filter(x => kind === "stuck" ? carriedDays(x) >= 3 : kind === "late" ? x.due && x.due < d && !x.repeat : kind === "today" ? x.due === d : kind === "week" ? x.due && x.due > d && x.due <= w && !x.repeat : kind === "nodate" ? !x.due && !x.repeat : kind === "team" ? !!x.fresh : kind === "remind" ? (x.remind || "").slice(0, 10) === d : kind === "news" ? !!todayNews(x) : carriedDays(x) > 0 && x.due === d);
+  return view().filter(x => (kind === "team" || kind === "remind" || kind === "news" || !waiting(x)) && (kind === "stuck" ? carriedDays(x) >= 3 : kind === "late" ? x.due && x.due < d && !x.repeat : kind === "today" ? x.due === d : kind === "week" ? x.due && x.due > d && x.due <= w && !x.repeat : kind === "nodate" ? !x.due && !x.repeat : kind === "team" ? !!x.fresh : kind === "remind" ? (x.remind || "").slice(0, 10) === d : kind === "news" ? !!todayNews(x) : carriedDays(x) > 0 && x.due === d));
 }
 // 홈 화면에 설치한 앱 아이콘 배지: 오늘 마감 + 지난 마감 수(PC 트레이 글과 같은 기준). 지원 안 하는 브라우저는 그냥 넘어간다
 let badgeShown = -1;
@@ -614,10 +631,12 @@ function briefHtml() {
   if (n("late")) chips.push(`<button class="bchip late" data-brief="late">지난 마감 ${n("late")}</button>`);
   if (n("today")) chips.push(`<button class="bchip today" data-brief="today">오늘 마감 ${n("today")}</button>`);
   if (n("rolled")) chips.push(`<button class="bchip rolled" data-brief="rolled">옮겨 온 일 ${n("rolled")}</button>`);
+  if (n("recheck")) chips.push(`<button class="bchip recheck" data-brief="recheck">${T("다시 볼 것")} ${n("recheck")}</button>`);     // 기다림의 다시 볼 날이 됨(PC 와 같음)
   if (!chips.length) chips.push(`<span class="bchip calm">오늘 마감인 일이 없습니다</span>`);
   if (n("team")) chips.unshift(`<button class="bchip team" data-brief="team">새로 받은 일 ${n("team")}</button>`);     // 팀: 어제 · 오늘 남이 맡긴 일(PC 와 같음)
   if (n("week")) chips.push(`<button class="bchip rolled" data-brief="week">이번 주 디데이 ${n("week")}</button>`);     // 오늘 몫 다음에 볼 일
   if (n("nodate")) chips.push(`<button class="bchip rolled" data-brief="nodate">날짜 없음 ${n("nodate")}</button>`);     // 날짜 없는 일(시간 나면 챙길 일, PC 와 같음)
+  if (n("waiting")) chips.push(`<button class="bchip waiting" data-brief="waiting">${T("기다리는 중")} ${n("waiting")}</button>`);     // 대표님 확인 · 회신 대기(오늘 몫에서 뺀 것)
   if (n("news")) chips.push(`<button class="bchip team" data-brief="news">오늘 소식 ${n("news")}</button>`);     // 오늘 붙은 진행 한 줄 · 메모 속 오늘 소식(PC · AI 와 같음)
   if (n("remind")) chips.push(`<button class="bchip rolled" data-brief="remind">오늘 알림 ${n("remind")}</button>`);     // 오늘 알림(PC · AI 와 같음): 누르면 이른 시각부터
   const evs = todayEvents();     // 오늘 구글 캘린더 일정(PC 와 같음): 누르면 일정 탭
@@ -764,21 +783,21 @@ function render() {
     $("connect").hidden = demo;
     return;
   }
-  const todos = view().filter(x => (filter === "mine" ? !!x.from : filter === "all" || filter === "next" || (x.due && x.due <= today())) && (!query || hits(x.section || "", x.sub || "", x.steps.join(" "), x.notes || "", (x.prog || []).map(q => q.t).join(" "), x.from || "", x.who ? personName(x.who) : "")));
+  const todos = view().filter(x => (filter === "mine" ? !!x.from : filter === "all" || filter === "next" || (x.due && x.due <= today() && !waiting(x)) || recheck(x)) && (!query || hits(x.section || "", x.sub || "", x.steps.join(" "), x.notes || "", (x.prog || []).map(q => q.t).join(" "), x.from || "", x.who ? personName(x.who) : "")));
   const order = [...new Set([...sectionOrder(), ...todos.map(x => x.section || "")])];
   const colors = (state && state.colors) || {}, pinned = (state && state.pinned) || [];
   let html = "";
-  const late = (filter === "today" || filter === "next") && !query ? todos.filter(x => x.due && x.due < today() && !x.repeat) : [];
+  const late = (filter === "today" || filter === "next") && !query ? todos.filter(x => x.due && x.due < today() && !x.repeat && !waiting(x)) : [];
   if (!query && filter !== "today" && load("briefHidden", "") !== today()) html += briefHtml();
   if (late.length) html += `<div class="latebar"><span>지난 마감 ${late.length}건</span><button data-late="0">모두 오늘로</button><button data-late="1">내일로</button></div>`;
   // 할 일 한 개(withSec: 다가오는 일 보기에서 어느 프로젝트 일인지 앞에 작게)
   const itemHtml = (item, withSec) => {
       let html = "";
       const due = dueLabel(item), many = item.steps.length > 1;
-      html += `<div class="item${opened === item.id ? " open" : ""}" data-id="${esc(item.id)}" data-sec="${esc(item.section || "")}" data-sub="${esc(item.sub || "")}"><button class="box${item.step > 0 ? " part" : ""}"${item.step > 0 ? ` style="--p:${Math.round(item.step * 100 / item.steps.length)}%"` : ""} data-check="${esc(item.id)}" aria-label="완료"></button><div class="body">`
+      html += `<div class="item${opened === item.id ? " open" : ""}${waiting(item) ? " waiting" : ""}" data-id="${esc(item.id)}" data-sec="${esc(item.section || "")}" data-sub="${esc(item.sub || "")}"><button class="box${item.step > 0 ? " part" : ""}"${item.step > 0 ? ` style="--p:${Math.round(item.step * 100 / item.steps.length)}%"` : ""} data-check="${esc(item.id)}" aria-label="완료"></button><div class="body">`
         + `<div class="text" data-open="${esc(item.id)}">${withSec ? `<span class="psec" style="${colors[item.section || ""] && headInk(colors[item.section || ""], isDark(), 0) ? "color:" + headInk(colors[item.section || ""], isDark(), 0) : ""}">${esc(item.section || "기타")}</span> ` : ""}${item.star ? `<span class="star">★</span> ` : ""}${mark(many ? item.steps[item.step] : item.text)}${item.who ? avatarHtml(item.who) : ""}</div><div class="meta" data-open="${esc(item.id)}">`
         + (many ? `<span class="prog"><i style="width:${Math.round((item.step + 1) * 100 / item.steps.length)}%"></i></span><span>${item.step + 1}/${item.steps.length}</span>` + (item.step < item.steps.length - 1 ? `<span>다음: ${esc(item.steps[item.step + 1])}</span>` : "") : "")
-        + (due ? `<span class="due ${due.cls}">${due.text}</span>` : withSec && ageDays(item) > 0 ? `<span class="due far age">${ageDays(item)}일째</span>` : "") + (item.remind ? `<span>알림 ${remindLabel(item.remind)}</span>` : "")
+        + (item.wait ? `<span class="due wait${recheck(item) ? " now" : ""}">${waitLabel(item, true)}</span>` : due ? `<span class="due ${due.cls}">${due.text}</span>` : withSec && ageDays(item) > 0 ? `<span class="due far age">${ageDays(item)}일째</span>` : "") + (item.remind ? `<span>알림 ${remindLabel(item.remind)}</span>` : "")
         + (item.files ? `<span>첨부 ${item.files}</span>` : "") + (item.notes && opened !== item.id ? `<span>메모</span>` : "")
         + (item.from ? `<span class="from">${isEn() ? "From " + esc(item.from) : esc(item.from) + "님이 맡김"}${whenAssigned(item.fromAt)}</span>` : "") + `</div>`;
       const nowNews = (item.prog || []).filter(q => q.s === Math.min(item.step, item.steps.length - 1)).slice(-1)[0];     // 진행 한 줄(PC 와 같음)
@@ -796,7 +815,8 @@ function render() {
           + (many && item.steps.length - item.step >= 2 ? `<button data-act="split">단계 나누기</button>` : "")
           + (state && state.team ? `<button data-act="assign">${item.who ? (isEn() ? "Assigned: " : "맡김: ") + esc(personName(item.who)) : T("맡기기")}</button>` : "")
           + (datedLines(item.notes).length ? `<button data-act="n2p">${T("메모 → 진행")}</button>` : "")     /* 메모 속 날짜 소식을 진행 한 줄로(PC 와 같음) */
-          + `<button data-act="skip">${T("해당 없음")}</button>`     /* 지금 단계를 하지 않고 넘김(주문 없음 등) */
+          + `<button data-act="skip">${T("해당 없음")}</button>`
+          + `<button data-act="wait">${item.wait ? T("⏳ 기다림 고치기") : T("⏳ 기다림")}</button>` + (item.wait ? `<button data-act="unwait">${T("기다림 끝")}</button>` : "")     /* 대표님 확인 · 회신 대기(PC 와 같음) */     /* 지금 단계를 하지 않고 넘김(주문 없음 등) */
           + `<button data-act="star">${item.star ? "중요 해제" : "★ 중요"}</button><button data-act="progress">진행 한 줄</button><button data-act="step">단계 추가</button><button data-act="note">메모 추가</button>`
           + `<button data-act="dup">복제</button><button data-act="moveto">옮기기</button>`
           + (many ? "" : `<button data-act="edit">수정</button>`) + `<button data-act="delete">삭제</button>`
@@ -979,6 +999,29 @@ function skipSheet(item) {
     const box = s.querySelector("#skipWhy");
     s.querySelectorAll("[data-why]").forEach(b => b.onclick = () => { box.value = b.dataset.why; });
     s.querySelector("#skipOk").onclick = () => { closeSheet(); push({ op: "skip", id: item.id, reason: box.value.replace(/　/g, " ").trim() }, T("해당 없음으로 넘겼습니다")); };
+  });
+}
+// 기다리는 중으로(PC 와 같음): 누구 · 무엇(칩 · 직접) + 언제 다시 볼지(칩)
+function waitSheet(item) {
+  const now = item.steps[Math.min(item.step, item.steps.length - 1)], lastNews = ((item.prog || []).slice(-1)[0] || {}).t || "";
+  const guess = item.wait || (/대표님/.test(now + lastNews) ? "대표님 확인" : /회신|답장/.test(now + lastNews) ? "회신" : /입금/.test(now + lastNews) ? "입금" : /서류/.test(now + lastNews) ? "서류" : "");
+  const t0 = today(), plus = n => day(new Date(Date.parse(t0) + n * 86400000)), dow = new Date(t0 + "T00:00").getDay(), toMon = ((1 - dow + 7) % 7) || 7;
+  const whens = [["오늘 오후", t0], ["내일", plus(1)], ["모레", plus(2)], ["다음 주 월", plus(toMon)], ["날짜 없이", ""]];
+  let until = item.wait ? (item.waitUntil || "") : plus(1);
+  if (until && !whens.some(w => w[1] === until)) whens.splice(4, 0, [md(until), until]);
+  const whoChips = ["대표님 확인", "회신", "입금", "서류"].map(w => `<button class="chip${guess === w ? " on" : ""}" data-who="${esc(w)}">${T(w)}</button>`).join("");
+  const whenChips = whens.map(([n, v]) => `<button class="chip${until === v ? " on" : ""}" data-when="${v}">${T(n)}</button>`).join("");
+  sheet(`<h2 id="waitH">${T("기다리는 중으로")}</h2><p class="hint">${esc(now)}</p><label>${T("누구 · 무엇을")}</label><div class="chips">${whoChips}</div><textarea id="waitWho" rows="1">${esc(guess)}</textarea>
+    <label>${T("언제 다시 볼까요")}</label><div class="chips">${whenChips}</div>
+    <div class="end"><button data-close>${T("취소")}</button><button class="primary" id="waitOk">${T("기다리기")}</button></div>`, s => {
+    const box = s.querySelector("#waitWho");
+    s.querySelectorAll("[data-who]").forEach(b => b.onclick = () => { box.value = b.dataset.who; s.querySelectorAll("[data-who]").forEach(o => o.classList.toggle("on", o === b)); });
+    s.querySelectorAll("[data-when]").forEach(b => b.onclick = () => { until = b.dataset.when; s.querySelectorAll("[data-when]").forEach(o => o.classList.toggle("on", o === b)); });
+    s.querySelector("#waitOk").onclick = () => {
+      const who = box.value.replace(/　/g, " ").replace(/\s+/g, " ").trim();
+      if (!who) { box.focus(); return; }
+      closeSheet(); push({ op: "wait", id: item.id, who, until }, T("기다리는 중으로 옮겼습니다"));
+    };
   });
 }
 // 진행 한 줄 고치기 · 지우기(PC 와 같음): 날짜는 그대로, 글만
@@ -1680,6 +1723,8 @@ $("list").addEventListener("click", e => {
     if (a === "back") push({ op: "back", id }, "'" + item.steps[item.step - 1] + "' 단계로 되돌렸습니다");
     if (a === "note") ask("메모 추가", "메모", v => push({ op: "note", id, text: v }, "메모를 넣었습니다"));
     if (a === "skip") skipSheet(item);
+    if (a === "wait") waitSheet(item);
+    if (a === "unwait") push({ op: "unwait", id: item.id }, T("기다림을 끝냈습니다"));
     if (a === "n2p") push({ op: "notesToProgress", id }, T("메모 속 날짜 소식을 진행 한 줄로 옮겼습니다"));
     if (a === "progress") ask("진행 한 줄", "예: 회신 없음, 내일 전화", v => push({ op: "progress", id, text: v, at: today() }, "지금 단계에 진행을 남겼습니다"));
     if (a === "step") addSteps(id);
@@ -1914,6 +1959,28 @@ async function selfTest() {
     { // 오늘 한 일 복사: 아직 남은 일 줄 끝에 최근 소식
       const rep = dayReport();
       check("오늘 한 일 복사에 남은 일 최근 소식", /계약서 수정 사항 확인 {2}· (최근|latest): 10\/18 수정본 메일 받음/.test(rep), rep.slice(-120));
+    }
+    { // 기다리는 중(폰): 보라 알약 · 흐린 글 · '기다리는 중' 알약, 지난 마감 일을 기다리게 하면 지난 마감에서 빠짐, 시트(누구 짐작 · 다시 볼 날) → op wait, 기다림 끝 → op unwait
+      const keepInbox = inbox.slice(); filter = "all"; opened = null; render(); await W(60);
+      const card6 = document.querySelector('.item[data-id="s6"]'), pill6 = card6 && card6.querySelector(".due.wait");
+      const shown = !!pill6 && pill6.textContent.includes(T("대표님 검토").slice(0, 4)) && card6.classList.contains("waiting") && !!document.querySelector('.bchip[data-brief="waiting"]');
+      const lateBefore = briefMatch("late").length;
+      push({ op: "wait", id: "s5", who: "회신", until: day(new Date(Date.parse(today()) + 86400000)) }); await W(60);
+      const lateAfter = briefMatch("late").length, wN = briefMatch("waiting").length;
+      push({ op: "wait", id: "s5", who: "회신", until: today() }); await W(60);
+      const back = briefMatch("recheck").some(x => x.id === "s5") && briefMatch("late").length === lateBefore && !!document.querySelector('.item[data-id="s5"] .due.wait.now');
+      opened = "s3"; render(); await W(60);
+      const wb = document.querySelector('.item[data-id="s3"] [data-act="wait"]'); wb && wb.click(); await W(80);
+      const guessOn = document.querySelector('#sheet [data-who].on'), guess = guessOn ? guessOn.dataset.who : "";
+      const noDate = [...document.querySelectorAll("#sheet [data-when]")].find(b => b.dataset.when === ""); noDate && noDate.click();
+      document.querySelector("#sheet #waitOk").click(); await W(80);
+      const op3 = inbox.filter(o => o.op === "wait" && o.id === "s3").slice(-1)[0];
+      opened = "s3"; render(); await W(60);
+      const ub = document.querySelector('.item[data-id="s3"] [data-act="unwait"]'); ub && ub.click(); await W(60);
+      const unw = inbox.some(o => o.op === "unwait" && o.id === "s3") && !view().find(x => x.id === "s3").wait;
+      inbox = keepInbox; save(ibKey(), inbox); opened = null; closeSheet(); render();
+      check("기다리는 중(폰)", shown && lateAfter === lateBefore - 1 && wN === 2 && back && guess === "대표님 확인" && !!op3 && op3.until === "" && unw,
+        "shown=" + shown + " late=" + lateBefore + ">" + lateAfter + " wN=" + wN + " back=" + back + " guess=" + guess + " op=" + JSON.stringify(op3) + " unw=" + unw);
     }
     { // 제안함(폰): 설정 › 제안함 · 검토 기다림 건수, 카드마다 상태 칩 · 이유, 남기면 PC 로 보낼 op "suggest" 가 생기고 맨 위에 '보내는 중'
       const keepInbox = inbox.slice();
