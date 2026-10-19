@@ -84,6 +84,10 @@ section.b0 { --sc: var(--red); } section.b1 { --sc: var(--orange); } section.b2,
   .more { margin-top: 8px; padding: 10px; border-radius: 10px; background: var(--tint); font-size: 13.5px; color: var(--sub); }
   .steps { margin: 0; padding: 0; list-style: none; }
   .steps li { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
+.news { margin-top: 4px; font-size: 12.5px; color: var(--sub); word-break: keep-all; overflow-wrap: anywhere; }
+.news::before { content: "↳ "; color: var(--faint); }
+.steps .newsline { margin: -1px 0 3px 22px; }
+.news.old { color: var(--faint); }
   .steps li span { flex: 1; min-width: 0; word-break: keep-all; overflow-wrap: anywhere; }
   .steps li.done span { text-decoration: line-through; color: var(--faint); }
   .steps li.now span { color: var(--text); font-weight: 700; }
@@ -343,7 +347,7 @@ function sample() {
     todos: [
     { id: "s1", section: "매일 하는 일", text: "주문 확인 → 출고 요청", steps: ["주문 확인", "출고 요청"], step: 0, due: t, stepDues: [], notes: "", repeat: true },
     { id: "s2", section: "매일 하는 일", text: "문의 메일 답장", steps: ["문의 메일 답장"], step: 0, due: t, stepDues: [], notes: "", repeat: true },
-    { id: "s3", section: "가을 행사", text: "장소 확정 → 안내문 작성 → 참석자에게 발송", steps: ["장소 확정", "안내문 작성", "참석자에게 발송"], step: 1, due: plus(2), stepDues: [plus(-1), plus(2), plus(7)], notes: "작년 안내문 참고\n참석 예정 40명", repeat: false },
+    { id: "s3", section: "가을 행사", text: "장소 확정 → 안내문 작성 → 참석자에게 발송", steps: ["장소 확정", "안내문 작성", "참석자에게 발송"], step: 1, due: plus(2), stepDues: [plus(-1), plus(2), plus(7)], notes: "작년 안내문 참고\n참석 예정 40명", repeat: false, prog: [{ s: 0, t: "10/14  호텔 2곳 견적 받음" }, { s: 1, t: "10/18  초안 대표님께 보냄, 회신 대기" }] },
     { id: "s4", section: "가을 행사", text: "인쇄물 견적 받기", steps: ["인쇄물 견적 받기"], step: 0, due: "", stepDues: [], notes: "", repeat: false, created: plus(-12) },
     { id: "s5", section: "거래처", text: "계약서 수정 사항 확인", steps: ["계약서 수정 사항 확인"], step: 0, due: plus(-1), stepDues: [], notes: "", repeat: false, files: 2 },
     { id: "s6", section: "거래처", text: "대표님 검토 → 전자 계약 발송", steps: ["대표님 검토", "전자 계약 발송"], step: 0, due: plus(9), stepDues: [], notes: "", repeat: false, star: true, remind: t + " 15:00" } ] };
@@ -379,6 +383,7 @@ function view() {
     if (op.op === "check") { if (item.step < item.steps.length - 1) { item.step++; sync(item); } else item.gone = true; }
     if (op.op === "back" && item.step > 0) { item.step--; sync(item); }
     if (op.op === "note") item.notes = item.notes ? item.notes.trimEnd() + "\n" + op.text : op.text;
+    if (op.op === "progress") item.prog = [...(item.prog || []), { s: item.step, t: md(op.at || today()) + "  " + op.text }];
     if (op.op === "edit" && item.steps.length < 2) { item.text = op.text; item.steps = [op.text]; }
     if (op.op === "editStep" && op.step < item.steps.length) item.steps[op.step] = op.text;
     if (op.op === "delete") item.gone = true;
@@ -458,7 +463,7 @@ const EN = {
   "지난 마감": "Overdue", "오늘 마감": "Due today", "이번 주 디데이": "D-days this week", "오늘 알림": "Reminders today", "오래 밀린 일": "Long overdue", "오늘로 옮겨 온 일": "Moved to today",
   "오늘은 숨기기": "Hide for today", "고정": "Pinned", "반복": "Repeats", "반복 · 오늘": "Repeats · today", "마감일": "Due date", "단계 나누기": "Split steps",
   "★ 중요": "★ Important", "중요 해제": "Unmark important", "단계 추가": "Add step", "메모 추가": "Add note", "복제": "Duplicate", "옮기기": "Move", "삭제": "Delete", "수정": "Edit",
-  "이전 단계": "Previous step", "메모": "Note", "추가": "Add", "기타": "Other", "부제 없음": "No subgroup", "프로젝트": "Project", "부제": "Subgroup", "완료": "Done",
+  "이전 단계": "Previous step", "메모": "Note", "추가": "Add", "진행 한 줄": "Progress", "지금 단계에 진행을 남겼습니다": "Progress added under the current step", "기타": "Other", "부제 없음": "No subgroup", "프로젝트": "Project", "부제": "Subgroup", "완료": "Done",
   "한 줄 남기기": "Add a line", "되돌리기": "Undo", "모두 오늘로": "All to today", "내일로": "To tomorrow",
   "오늘": "Today", "내일": "Tomorrow", "다음 7일": "Next 7 days", "나중에": "Later", "날짜 없음": "No date", "종일": "All day",
   "폰에는 오늘부터 2주 일정이 보입니다 · 더 먼 일정은 PC 일정 탭에서": "The phone shows 2 weeks from today · see further ahead in the PC Calendar tab",
@@ -517,7 +522,7 @@ function T(s) {
   for (const [ko, en] of EN_HEAD) if (t.startsWith(ko)) return en + t.slice(ko.length);
   return s;
 }
-const SKIP = ".text, .psec, .note, [data-stepname], .ldetail, .ltitle, .lchip, .what, [data-project], .subh, #findText, textarea, input, select";
+const SKIP = ".text, .psec, .note, .news, [data-stepname], .ldetail, .ltitle, .lchip, .what, [data-project], .subh, #findText, textarea, input, select";
 function trAll(root) {
   if (!isEn() || !root) return;
   if (root.nodeType === 3) { if (!root.parentElement || !root.parentElement.closest(SKIP + ", script, style")) { const v = T(root.data); if (v !== root.data) root.data = v; } return; }
@@ -737,15 +742,19 @@ function render() {
         + (due ? `<span class="due ${due.cls}">${due.text}</span>` : withSec && ageDays(item) > 0 ? `<span class="due far age">${ageDays(item)}일째</span>` : "") + (item.remind ? `<span>알림 ${remindLabel(item.remind)}</span>` : "")
         + (item.files ? `<span>첨부 ${item.files}</span>` : "") + (item.notes && opened !== item.id ? `<span>메모</span>` : "")
         + (item.from ? `<span class="from">${isEn() ? "From " + esc(item.from) : esc(item.from) + "님이 맡김"}${whenAssigned(item.fromAt)}</span>` : "") + `</div>`;
+      const nowNews = (item.prog || []).filter(q => q.s === Math.min(item.step, item.steps.length - 1)).slice(-1)[0];     // 진행 한 줄(PC 와 같음)
+      if (nowNews && opened !== item.id) html += `<div class="news">${linkify(nowNews.t)}</div>`;
       if (opened === item.id) {
         html += `<div class="more">`;
         if (many) html += `<ul class="steps" data-steps="${esc(item.id)}">` + item.steps.map((s, i) => `<li class="${i < item.step ? "done" : i === item.step ? "now" : ""}"${i >= item.step ? ` data-stepi="${i}"` : ""}><span data-stepname="${i}">${i + 1}. ${esc(s)}</span>`
-          + (i >= item.step ? `<button data-stepdue="${i}">${item.stepDues[i] ? "~" + md(item.stepDues[i]) : "마감일"}</button>` : "") + `</li>`).join("") + `</ul>`;
+          + (i >= item.step ? `<button data-stepdue="${i}">${item.stepDues[i] ? "~" + md(item.stepDues[i]) : "마감일"}</button>` : "") + `</li>`
+          + (item.prog || []).filter(q => q.s === i).map(q => `<li class="newsline"><div class="news${i < item.step ? " old" : ""}">${linkify(q.t)}</div></li>`).join("")).join("") + `</ul>`;
+        if (!many) html += (item.prog || []).map(q => `<div class="news">${linkify(q.t)}</div>`).join("");
         if (item.notes) html += `<div class="note">${linkify(item.notes)}</div>`;
         html += `<div class="acts">` + (item.step > 0 ? `<button data-act="back">이전 단계</button>` : "")
           + (many && item.steps.length - item.step >= 2 ? `<button data-act="split">단계 나누기</button>` : "")
           + (state && state.team ? `<button data-act="assign">${item.who ? (isEn() ? "Assigned: " : "맡김: ") + esc(personName(item.who)) : T("맡기기")}</button>` : "")
-          + `<button data-act="star">${item.star ? "중요 해제" : "★ 중요"}</button><button data-act="step">단계 추가</button><button data-act="note">메모 추가</button>`
+          + `<button data-act="star">${item.star ? "중요 해제" : "★ 중요"}</button><button data-act="progress">진행 한 줄</button><button data-act="step">단계 추가</button><button data-act="note">메모 추가</button>`
           + `<button data-act="dup">복제</button><button data-act="moveto">옮기기</button>`
           + (many ? "" : `<button data-act="edit">수정</button>`) + `<button data-act="delete">삭제</button>`
           + (many ? "" : `<button data-act="due">${item.due ? "마감 " + md(item.due) : "마감일"}</button>`) + `</div></div>`;
@@ -1562,6 +1571,7 @@ $("list").addEventListener("click", e => {
     const a = act.dataset.act;
     if (a === "back") push({ op: "back", id }, "'" + item.steps[item.step - 1] + "' 단계로 되돌렸습니다");
     if (a === "note") ask("메모 추가", "메모", v => push({ op: "note", id, text: v }, "메모를 넣었습니다"));
+    if (a === "progress") ask("진행 한 줄", "예: 회신 없음, 내일 전화", v => push({ op: "progress", id, text: v, at: today() }, "지금 단계에 진행을 남겼습니다"));
     if (a === "step") addSteps(id);
     if (a === "split" && confirm("안 한 단계를 하나씩 따로 할 일로 나눌까요?")) { opened = null; push({ op: "split", id }, (item.steps.length - item.step) + "개 할 일로 나눴습니다"); }
     if (a === "dup") { const newId = "m" + newKey(); opened = newId; push({ op: "dup", id, newId }, "복제했습니다"); }
@@ -1761,6 +1771,14 @@ async function selfTest() {
       opened = null; delete state.team; state.todos.splice(t0); render(); await W(150);
       const gone = $("mineChip").hidden;
       check("팀: 내 일 칩 · 받은 일만 · 맡김 · 동그라미 · 맡기기 단추 · 알약 대비 · 새 일 알림 한 번", mineEmpty && doneToast && doneOnce && projAssign && shareWho && nameFind && boardOk && freshToast && toastOnce && teamRatio >= 4.5 && chipOk && avOk && shown.length === 1 && shown[0] === "tm-in" && fromTxt.includes("최지원") && fromTxt.includes("오늘") && !!btn && btn.textContent.includes("최지원") && gone, [chipOk, avOk, shown.join("|"), fromTxt, btn && btn.textContent, gone, "대비 " + teamRatio.toFixed(1), "알림 " + freshToast + "/" + toastOnce, "현황 " + boardOk, "현황 대비 최소 " + (boardRatios.length ? Math.min(...boardRatios).toFixed(1) : "-"), "이름 찾기 " + byName, "복사 " + shareWho, "프로젝트 맡기기 " + sent.length, "끝냄 알림 " + doneToast + "/" + doneOnce, "빈 내 일 " + mineEmpty].join(" "));
+    }
+    { // 진행 한 줄: 접힌 카드에 지금 단계의 마지막 소식, 펼치면 단계 아래 · 지난 단계 것은 흐리게
+      tab("전체"); opened = ""; render(); await W(150);
+      const card = document.querySelector('.item[data-id="s3"]'), shown = card ? (card.querySelector(".news") || {}).textContent || "" : "";
+      opened = "s3"; render(); await W(150);
+      const lines = [...document.querySelectorAll('.item[data-id="s3"] .steps .news')].map(e => e.className + ":" + e.textContent);
+      opened = ""; render();
+      check("진행 한 줄(접힘 · 펼침)", shown.includes("회신 대기") && !shown.includes("호텔") && lines.length === 2 && lines[0].includes("old") && !lines[1].includes("old"), shown + " / " + lines.join(" | "));
     }
     { // 메모 속 맨 주소도 링크(PC 와 같음), 메일 주소는 아님
       const h1 = linkify("findcopyright.or.kr 로그인"), h2 = linkify("kim@naver.com 으로"), h3 = linkify("https://a.com/x 보기");
