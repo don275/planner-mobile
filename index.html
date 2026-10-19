@@ -679,7 +679,8 @@ function weekReport() {
 function dayReport() {
   const d = today(), logs = allLogs().filter(x => x.date === d);
   const en = isEn();     // English 면 머리말 · 날짜도 영어(PC 2.2.106 과 같음, 할 일 이름은 그대로)
-  let out = dayTitle(d).split(" · ")[0] + (en ? " · done " + logs.length : " 한 일 " + logs.length + "건") + logGroups(logs, false);
+  const na = logs.filter(l => / — (해당 없음|N\/A)/.test(l.title || "")).length;     // 해당 없음은 한 일 수에서 빼고 따로(PC 와 같음)
+  let out = dayTitle(d).split(" · ")[0] + (en ? " · done " + (logs.length - na) + (na ? " · N/A " + na : "") : " 한 일 " + (logs.length - na) + "건" + (na ? " · 해당 없음 " + na + "건" : "")) + logGroups(logs, false);
   const left = view().filter(x => x.due && x.due <= d && !x.repeat);
   if (left.length) out += (en ? "\n\nStill open " + left.length : "\n\n아직 남은 일 " + left.length + "건") + left.map(x => "\n- " + (x.section ? "[" + x.section + (x.sub ? " › " + x.sub : "") + "] " : "") + x.steps[Math.min(x.step, x.steps.length - 1)] + newsTail(x)).join("");
   return out;
@@ -1865,6 +1866,11 @@ async function selfTest() {
       const nc = document.querySelector('[data-brief="news"]'), want = briefMatch("news").length;
       s6.prog = keep6; render();
       check("오늘 카드 오늘 소식 n", !!nc && want === 1 && nc.textContent.endsWith(" 1"), nc ? nc.textContent : "없음");
+    }
+    { // 오늘 한 일 복사: 해당 없음은 한 일 수에서 빼고 따로
+      const keepLogs = state.logs; state.logs = [...(state.logs || []), { date: today(), section: "시험", sub: "", title: "주문 시트 전송 — 해당 없음(주문 없음)" }, { date: today(), section: "시험", sub: "", title: "주문 확인" }];
+      const done = (keepLogs || []).filter(l => l.date === today()).length + 1, rep2 = dayReport(); state.logs = keepLogs;
+      check("오늘 한 일 복사 해당 없음 따로", rep2.includes((isEn() ? "done " : "한 일 ") + done) && rep2.includes(isEn() ? "N/A 1" : "해당 없음 1건"), rep2.slice(0, 60));
     }
     { // 오늘 한 일 복사: 아직 남은 일 줄 끝에 최근 소식
       const rep = dayReport();
