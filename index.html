@@ -455,7 +455,7 @@ const isEn = () => { const l = load("look", {}).lang; return l === "en" || (!l &
 const EN = {
   "전체": "All", "내 일": "Mine", "팀 현황": "Team status", "나에게 맡겨진 일이 없습니다": "No tasks assigned to you", "누가 일을 맡기면 여기에 모입니다": "When someone assigns you a task, it shows up here", "이 프로젝트 맡기기": "Assign this project", "남은 일을 한 사람에게 한꺼번에": "All its open to-dos to one person", "맡길 일이 없습니다": "Nothing to assign", "팀 (Test)": "Team (Test)", "오늘 일정": "Today's events", "새로 받은 일": "New from team", "누구에게 맡길까요?": "Assign to whom?", "맡기기": "Assign", "맡기지 않음": "Unassign", "맡기기를 풀었습니다": "Unassigned", "날짜순": "By date", "날짜순 ↑": "By date ↑", "일정": "Calendar", "기록": "Log", "검색": "Search", "문구": "Phrases", "설정": "Settings",
   "견본 자료입니다": "Sample data", "구글 연결": "Connect Google", "구글에 연결하면 내 할 일이 보입니다": "Connect Google to see your to-dos",
-  "지난 마감": "Overdue", "오늘 마감": "Due today", "이번 주 디데이": "D-days this week", "오래 밀린 일": "Long overdue", "오늘로 옮겨 온 일": "Moved to today",
+  "지난 마감": "Overdue", "오늘 마감": "Due today", "이번 주 디데이": "D-days this week", "오늘 알림": "Reminders today", "오래 밀린 일": "Long overdue", "오늘로 옮겨 온 일": "Moved to today",
   "오늘은 숨기기": "Hide for today", "고정": "Pinned", "반복": "Repeats", "반복 · 오늘": "Repeats · today", "마감일": "Due date", "단계 나누기": "Split steps",
   "★ 중요": "★ Important", "중요 해제": "Unmark important", "단계 추가": "Add step", "메모 추가": "Add note", "복제": "Duplicate", "옮기기": "Move", "삭제": "Delete", "수정": "Edit",
   "이전 단계": "Previous step", "메모": "Note", "추가": "Add", "기타": "Other", "부제 없음": "No subgroup", "프로젝트": "Project", "부제": "Subgroup", "완료": "Done",
@@ -571,7 +571,7 @@ function carriedDays(x) { return x.lateFrom && x.due && x.due >= today() ? Math.
 function briefMatch(kind) {
   const d = today();
   const wk = new Date(); wk.setDate(wk.getDate() + 6); const w = wk.getFullYear() + "-" + String(wk.getMonth() + 1).padStart(2, "0") + "-" + String(wk.getDate()).padStart(2, "0");
-  return view().filter(x => kind === "stuck" ? carriedDays(x) >= 3 : kind === "late" ? x.due && x.due < d && !x.repeat : kind === "today" ? x.due === d : kind === "week" ? x.due && x.due > d && x.due <= w && !x.repeat : kind === "nodate" ? !x.due && !x.repeat : kind === "team" ? !!x.fresh : carriedDays(x) > 0 && x.due === d);
+  return view().filter(x => kind === "stuck" ? carriedDays(x) >= 3 : kind === "late" ? x.due && x.due < d && !x.repeat : kind === "today" ? x.due === d : kind === "week" ? x.due && x.due > d && x.due <= w && !x.repeat : kind === "nodate" ? !x.due && !x.repeat : kind === "team" ? !!x.fresh : kind === "remind" ? (x.remind || "").slice(0, 10) === d : carriedDays(x) > 0 && x.due === d);
 }
 // 홈 화면에 설치한 앱 아이콘 배지: 오늘 마감 + 지난 마감 수(PC 트레이 글과 같은 기준). 지원 안 하는 브라우저는 그냥 넘어간다
 let badgeShown = -1;
@@ -591,6 +591,7 @@ function briefHtml() {
   if (n("team")) chips.unshift(`<button class="bchip team" data-brief="team">새로 받은 일 ${n("team")}</button>`);     // 팀: 어제 · 오늘 남이 맡긴 일(PC 와 같음)
   if (n("week")) chips.push(`<button class="bchip rolled" data-brief="week">이번 주 디데이 ${n("week")}</button>`);     // 오늘 몫 다음에 볼 일
   if (n("nodate")) chips.push(`<button class="bchip rolled" data-brief="nodate">날짜 없음 ${n("nodate")}</button>`);     // 날짜 없는 일(시간 나면 챙길 일, PC 와 같음)
+  if (n("remind")) chips.push(`<button class="bchip rolled" data-brief="remind">오늘 알림 ${n("remind")}</button>`);     // 오늘 알림(PC · AI 와 같음): 누르면 이른 시각부터
   const evs = todayEvents();     // 오늘 구글 캘린더 일정(PC 와 같음): 누르면 일정 탭
   if (evs.length) chips.push(`<button class="bchip team" data-brief="events">오늘 일정 ${evs.length}</button>`);
   return `<div class="brief"><div class="bhead"><b>오늘 ${dayTitle(today()).replace(" · 오늘", "")}</b><button class="bx" data-briefx aria-label="오늘은 숨기기">✕</button></div><div class="bchips">${chips.join("")}</div></div>`;
@@ -602,7 +603,7 @@ function todayEvents() {
 let briefAt = {}, briefPicked = "";     // 시험: 알약이 마지막으로 고른 할 일(반짝임 표시는 다시 그리면 사라져서)
 function pickBrief(kind) {
   if (kind === "events") { document.querySelector('[data-filter="events"]').click(); return; }
-  const ids = (kind === "nodate" ? briefMatch(kind).sort((a, b) => ageDays(b) - ageDays(a)) : briefMatch(kind)).map(x => x.id), els =     /* 날짜 없음은 오래 묵은 것부터(PC 와 같음) */ ids.map(id => document.querySelector(`.item[data-id="${CSS.escape(id)}"]`)).filter(Boolean);
+  const ids = (kind === "nodate" ? briefMatch(kind).sort((a, b) => ageDays(b) - ageDays(a)) : kind === "remind" ? briefMatch(kind).sort((a, b) => (a.remind || "").localeCompare(b.remind || "")) : briefMatch(kind)).map(x => x.id), els =     /* 날짜 없음은 오래 묵은 것부터(PC 와 같음) */ ids.map(id => document.querySelector(`.item[data-id="${CSS.escape(id)}"]`)).filter(Boolean);
   // [오늘] 탭에서 이번 주 디데이 등을 누르면 [전체] 로 바꿔 다시 찾는다(PC 와 같게)
   if (!els.length && filter === "today" && !query) { document.querySelector('[data-filter="all"]').click(); setTimeout(() => pickBrief(kind), 50); return; }
   if (!els.length) { toast("보이는 목록에 없습니다(검색 · 걸러 보기를 풀어 보세요)"); return; }
@@ -1760,6 +1761,13 @@ async function selfTest() {
       opened = null; delete state.team; state.todos.splice(t0); render(); await W(150);
       const gone = $("mineChip").hidden;
       check("팀: 내 일 칩 · 받은 일만 · 맡김 · 동그라미 · 맡기기 단추 · 알약 대비 · 새 일 알림 한 번", mineEmpty && doneToast && doneOnce && projAssign && shareWho && nameFind && boardOk && freshToast && toastOnce && teamRatio >= 4.5 && chipOk && avOk && shown.length === 1 && shown[0] === "tm-in" && fromTxt.includes("최지원") && fromTxt.includes("오늘") && !!btn && btn.textContent.includes("최지원") && gone, [chipOk, avOk, shown.join("|"), fromTxt, btn && btn.textContent, gone, "대비 " + teamRatio.toFixed(1), "알림 " + freshToast + "/" + toastOnce, "현황 " + boardOk, "현황 대비 최소 " + (boardRatios.length ? Math.min(...boardRatios).toFixed(1) : "-"), "이름 찾기 " + byName, "복사 " + shareWho, "프로젝트 맡기기 " + sent.length, "끝냄 알림 " + doneToast + "/" + doneOnce, "빈 내 일 " + mineEmpty].join(" "));
+    }
+    { // 오늘 카드 "오늘 알림 n": 견본의 오늘 알림(15:00) 수와 같고, 누르면 그 할 일로
+      tab("전체"); await W(200);
+      const rmChip = document.querySelector('[data-brief="remind"]'), rn = briefMatch("remind").length;
+      const rmText = rmChip ? rmChip.textContent : "";
+      if (rmChip) { rmChip.click(); await W(300); }
+      check("오늘 카드 오늘 알림 → 그 할 일", rn >= 1 && rmText.endsWith(" " + rn) && briefPicked === briefMatch("remind")[0].id, rmText + " / " + briefPicked);
     }
     { // 오늘 카드 "오늘 일정 n": 견본의 오늘 일정(주간 회의) 수와 같고, 누르면 일정 탭
       tab("전체"); await W(200);
