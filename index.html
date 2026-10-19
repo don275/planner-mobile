@@ -803,14 +803,22 @@ function toast(text, op) {
 function push(op, said) { op.key = op.key || newKey(); op.at = new Date().toISOString(); inbox.push(op); save("inbox", inbox); render(); send(); if (said) toast(said, op); }
 // 맨 위 상태 글: 연결 문제, 아니면 PC 가 3분 넘게 못 받은 변경 수(PC 플래너가 꺼져 있을 때). 누르면 까닭
 function pendingOld() { const cut = Date.now() - 3 * 60000; return inbox.filter(o => o.at && Date.parse(o.at) < cut).length; }
+// PC 가 보낸 목록이 하루 넘게 묵었으면 며칠(PC 가 꺼져 있었다): 0 이면 싱싱함
+function staleDays() {
+  const u = state && state.updated && Date.parse(state.updated); if (!u || isNaN(u)) return 0;
+  const h = (Date.now() - u) / 3600000; return h >= 24 ? Math.floor(h / 24) : 0;
+}
 function stateText() {
   if (problem) return problem;
-  const n = demo ? 0 : pendingOld(); if (!n) return "";
-  return isEn() ? "PC wait " + inbox.length : "PC 대기 " + inbox.length;
+  const n = demo ? 0 : pendingOld();
+  if (n) return isEn() ? "PC wait " + inbox.length : "PC 대기 " + inbox.length;
+  const old = demo ? 0 : staleDays();     // 맨 위에 바로: 폰 목록이 PC 에서 며칠 전 것인지
+  return old ? (isEn() ? "PC " + old + "d ago" : "PC " + old + "일 전") : "";
 }
 $("state").addEventListener("click", () => {
   if (problem) { toast(isEn() ? "Reconnecting…" : "다시 연결하는 중…"); refresh(); return; }     // 연결 안 됨: 누르면 바로 다시(20초 기다리지 않게)
   if (!$("state").textContent) return;
+  if (!pendingOld() && staleDays()) { toast(isEn() ? "This list is from the PC " + staleDays() + " day(s) ago. Turn on the planner on the PC to refresh it." : "PC 에서 " + staleDays() + "일 전에 받은 목록입니다. PC 에서 플래너를 켜면 새로 받습니다."); return; }
   toast(isEn() ? "Your changes are saved. They show up on the PC once the planner there is running." : "바꾼 것은 저장돼 있습니다. PC 에서 플래너가 켜지면 반영됩니다.");
 });
 
@@ -1893,6 +1901,13 @@ async function selfTest() {
     state.updated = undefined; $("settings").click(); await W(250); const none = !document.getElementById("fromPc"); closeSheet();
     state.updated = keepU;
     check("설정에 PC 에서 받은 목록 때", /10\/19 16:41/.test(note) && none, note);
+  }
+  { // PC 목록이 하루 넘게 묵으면 맨 위에 'PC n일 전', 싱싱하면 안 보임
+    const keepU = state.updated, keepDemo = demo, keepInbox = inbox; demo = false; inbox = [];
+    state.updated = new Date(Date.now() - 50 * 3600000).toISOString(); const oldTxt = stateText();
+    state.updated = new Date(Date.now() - 2 * 3600000).toISOString(); const freshTxt = stateText();
+    state.updated = keepU; demo = keepDemo; inbox = keepInbox; render();
+    check("PC 목록이 묵으면 맨 위에 'PC n일 전'", oldTxt === "PC 2일 전" && freshTxt === "", oldTxt + "/" + freshTxt);
   }
   { // PC 반영 대기: 3분 넘게 못 받은 변경이 있으면 맨 위에 수, 방금 것만 있으면 안 보임
     const keepInbox = inbox, keepDemo = demo; demo = false;
