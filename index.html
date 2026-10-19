@@ -1610,7 +1610,8 @@ refresh().finally(() => { booting = false; render(); if (demo && selftestOn) sel
 // 폰 자체 시험(?demo&selftest): 탭마다 열어 보고(빠뜨리는 탭이 없게) 결과를 화면 맨 위 #selftest 에 적는다. 견본 자료만 쓴다.
 async function selfTest() {
   const W = ms => new Promise(r => setTimeout(r, ms));
-  const tab = name => { const b = [...document.querySelectorAll("button")].find(x => x.textContent.trim() === name); if (b) b.click(); return !!b; };
+  const tabMiss = new Set();     // 시험이 누르려던 단추를 못 찾으면 그 시험이 조용히 빈 채로 지나가지 않게(맨 끝에서 검사)
+  const tab = name => { const b = [...document.querySelectorAll("button")].find(x => x.textContent.trim() === name); if (b) b.click(); else tabMiss.add(name); return !!b; };
   const out = [], errs = [];
   window.addEventListener("error", e => errs.push(e.message));
   upRev = false; save("viewRev", false);     // 전에 손으로 눌러 둔 [날짜순] 거꾸로가 남아 있으면 날짜순 묶음 시험이 흔들렸다
@@ -1762,7 +1763,7 @@ async function selfTest() {
     check("기록: 내용으로도 찾기", found === 1, found + "건");
     // 탭마다 옆으로 넘치는 것(좁은 폰에서 가로 스크롤) 없는지
     const wideTabs = [];
-    for (const nm of ["전체", "오늘", "일정", "기록"]) { tab(nm); await W(250); if (document.documentElement.scrollWidth > window.innerWidth + 1) wideTabs.push(nm + " " + document.documentElement.scrollWidth); }
+    for (const nm of ["전체", "날짜순", "일정", "기록"]) { tab(nm);     /* [오늘] 탭은 2.2.88 에 빠져 날짜순으로 */ await W(250); if (document.documentElement.scrollWidth > window.innerWidth + 1) wideTabs.push(nm + " " + document.documentElement.scrollWidth); }
     check("옆으로 넘침 없음", wideTabs.length === 0, wideTabs.join(", ") || window.innerWidth + "px");
     tab("전체"); await W(300);
     // 다섯 흐름: 추가 · 체크 · 끌기(순서 바꾸기) · 시트 스크롤(열기는 위에서)
@@ -2005,6 +2006,7 @@ async function selfTest() {
     const wordsOk = !!w1 && w1.text === "Send the quote" && !!w2 && w2.due === later(1) && w2.text === "Call Kim" && !w3;
     check("English 화면(탭 · 카드 · 날짜순 · 일정 · 기록 · 설정)", chipsOk && wordsOk && reportOk && leftKo.size === 0 && pillOver === 0, (leftKo.size ? [...leftKo].slice(0, 4).join(" | ") : "") + " 알약 겹침 " + pillOver + (chipsOk ? "" : " chips") + (wordsOk ? "" : " words") + (reportOk ? "" : " report:" + rep.slice(0, 60)));
   } catch (e) { check("English 화면(탭 · 카드 · 날짜순 · 일정 · 기록 · 설정)", false, e.message); }
+  check("시험이 누른 탭 단추가 모두 있음", tabMiss.size === 0, [...tabMiss].join(", "));
   const box = document.createElement("pre"); box.id = "selftest";
   box.style.cssText = "position:fixed;left:0;right:0;top:0;z-index:99;margin:0;padding:8px;font-size:11px;background:#fff;color:#000;white-space:pre-wrap";
   box.textContent = out.join("\n"); document.body.appendChild(box);
