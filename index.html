@@ -88,6 +88,7 @@ section.b0 { --sc: var(--red); } section.b1 { --sc: var(--orange); } section.b2,
 .news::before { content: "↳ "; color: var(--faint); }
 .steps .newsline { margin: -1px 0 3px 22px; }
 .news.old { color: var(--faint); }
+.news.memo::before { content: "✎ "; }
   .steps li span { flex: 1; min-width: 0; word-break: keep-all; overflow-wrap: anywhere; }
   .steps li.done span { text-decoration: line-through; color: var(--faint); }
   .steps li.now span { color: var(--text); font-weight: 700; }
@@ -348,7 +349,7 @@ function sample() {
     { id: "s1", section: "매일 하는 일", text: "주문 확인 → 출고 요청", steps: ["주문 확인", "출고 요청"], step: 0, due: t, stepDues: [], notes: "", repeat: true },
     { id: "s2", section: "매일 하는 일", text: "문의 메일 답장", steps: ["문의 메일 답장"], step: 0, due: t, stepDues: [], notes: "", repeat: true },
     { id: "s3", section: "가을 행사", text: "장소 확정 → 안내문 작성 → 참석자에게 발송", steps: ["장소 확정", "안내문 작성", "참석자에게 발송"], step: 1, due: plus(2), stepDues: [plus(-1), plus(2), plus(7)], notes: "작년 안내문 참고\n참석 예정 40명", repeat: false, prog: [{ s: 0, t: "10/14  호텔 2곳 견적 받음" }, { s: 1, t: "10/18  초안 대표님께 보냄, 회신 대기" }] },
-    { id: "s4", section: "가을 행사", text: "인쇄물 견적 받기", steps: ["인쇄물 견적 받기"], step: 0, due: "", stepDues: [], notes: "", repeat: false, created: plus(-12) },
+    { id: "s4", section: "가을 행사", text: "인쇄물 견적 받기", steps: ["인쇄물 견적 받기"], step: 0, due: "", stepDues: [], notes: "", repeat: false, created: plus(-12), dated: "10/18  두 곳에 견적 요청함" },
     { id: "s5", section: "거래처", text: "계약서 수정 사항 확인", steps: ["계약서 수정 사항 확인"], step: 0, due: plus(-1), stepDues: [], notes: "", repeat: false, files: 2 },
     { id: "s6", section: "거래처", text: "대표님 검토 → 전자 계약 발송", steps: ["대표님 검토", "전자 계약 발송"], step: 0, due: plus(9), stepDues: [], notes: "", repeat: false, star: true, remind: t + " 15:00" } ] };
 }
@@ -744,6 +745,7 @@ function render() {
         + (item.from ? `<span class="from">${isEn() ? "From " + esc(item.from) : esc(item.from) + "님이 맡김"}${whenAssigned(item.fromAt)}</span>` : "") + `</div>`;
       const nowNews = (item.prog || []).filter(q => q.s === Math.min(item.step, item.steps.length - 1)).slice(-1)[0];     // 진행 한 줄(PC 와 같음)
       if (nowNews && opened !== item.id) html += `<div class="news">${linkify(nowNews.t)}</div>`;
+      else if (!nowNews && item.dated && opened !== item.id) html += `<div class="news memo">${linkify(item.dated)}</div>`;     // 진행 한 줄이 없으면 메모 속 최근 날짜 소식(PC 와 같음)
       if (opened === item.id) {
         html += `<div class="more">`;
         if (many) html += `<ul class="steps" data-steps="${esc(item.id)}">` + item.steps.map((s, i) => `<li class="${i < item.step ? "done" : i === item.step ? "now" : ""}"${i >= item.step ? ` data-stepi="${i}"` : ""}><span data-stepname="${i}">${i + 1}. ${esc(s)}</span>`
@@ -1779,6 +1781,11 @@ async function selfTest() {
       const lines = [...document.querySelectorAll('.item[data-id="s3"] .steps .news')].map(e => e.className + ":" + e.textContent);
       opened = ""; render();
       check("진행 한 줄(접힘 · 펼침)", shown.includes("회신 대기") && !shown.includes("호텔") && lines.length === 2 && lines[0].includes("old") && !lines[1].includes("old"), shown + " / " + lines.join(" | "));
+    }
+    { // 진행 한 줄이 없으면 메모 속 최근 날짜 소식(PC 가 보낸 dated)
+      tab("전체"); opened = ""; render(); await W(150);
+      const m4 = document.querySelector('.item[data-id="s4"] .news.memo');
+      check("메모 속 최근 소식(진행 한 줄 없을 때)", !!m4 && m4.textContent.includes("견적 요청함") && !document.querySelector('.item[data-id="s3"] .news.memo'), m4 ? m4.textContent : "없음");
     }
     { // 메모 속 맨 주소도 링크(PC 와 같음), 메일 주소는 아님
       const h1 = linkify("findcopyright.or.kr 로그인"), h2 = linkify("kim@naver.com 으로"), h3 = linkify("https://a.com/x 보기");
