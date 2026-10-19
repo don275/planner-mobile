@@ -88,6 +88,8 @@ section.b0 { --sc: var(--red); } section.b1 { --sc: var(--orange); } section.b2,
 .news::before { content: "↳ "; color: var(--faint); }
 .steps .newsline { margin: -1px 0 3px 22px; }
 .news.old { color: var(--faint); }
+.steps li.na span { text-decoration: none; color: var(--faint); }
+.nachip { font-style: normal; font-size: 11.5px; padding: 1px 8px; border-radius: 999px; background: var(--track, #f1f3f4); color: var(--sub); white-space: nowrap; }
 .news.memo::before { content: "✎ "; }
   .steps li span { flex: 1; min-width: 0; word-break: keep-all; overflow-wrap: anywhere; }
   .steps li.done span { text-decoration: line-through; color: var(--faint); }
@@ -384,6 +386,7 @@ function view() {
     if (op.op === "check") { if (item.step < item.steps.length - 1) { item.step++; sync(item); } else item.gone = true; }
     if (op.op === "back" && item.step > 0) { item.step--; sync(item); }
     if (op.op === "note") item.notes = item.notes ? item.notes.trimEnd() + "\n" + op.text : op.text;
+    if (op.op === "skip") { const now = Math.min(item.step, item.steps.length - 1); item.na = [...(item.na || []).filter(o => o.s !== now), { s: now, why: op.reason || "" }]; if (item.step < item.steps.length - 1) { item.step++; sync(item); } else item.gone = true; }
     if (op.op === "progress") item.prog = [...(item.prog || []), { s: item.step, t: md(op.at || today()) + "  " + op.text }];
     if (op.op === "progressEdit" && (item.prog || [])[op.index]) { const pr = [...item.prog]; if (op.text) pr[op.index] = { ...pr[op.index], t: pr[op.index].t.split("  ")[0] + "  " + op.text }; else pr.splice(op.index, 1); item.prog = pr; }
     if (op.op === "edit" && item.steps.length < 2) { item.text = op.text; item.steps = [op.text]; }
@@ -465,7 +468,7 @@ const EN = {
   "지난 마감": "Overdue", "오늘 마감": "Due today", "이번 주 디데이": "D-days this week", "오늘 알림": "Reminders today", "오늘 소식": "News today", "오래 밀린 일": "Long overdue", "오늘로 옮겨 온 일": "Moved to today",
   "오늘은 숨기기": "Hide for today", "고정": "Pinned", "반복": "Repeats", "반복 · 오늘": "Repeats · today", "마감일": "Due date", "단계 나누기": "Split steps",
   "★ 중요": "★ Important", "중요 해제": "Unmark important", "단계 추가": "Add step", "메모 추가": "Add note", "복제": "Duplicate", "옮기기": "Move", "삭제": "Delete", "수정": "Edit",
-  "이전 단계": "Previous step", "메모": "Note", "추가": "Add", "진행 한 줄": "Progress", "지우기": "Delete", "진행 한 줄을 지웠습니다": "Progress line deleted", "진행 한 줄을 고쳤습니다": "Progress line edited", "지금 단계에 진행을 남겼습니다": "Progress added under the current step", "기타": "Other", "부제 없음": "No subgroup", "프로젝트": "Project", "부제": "Subgroup", "완료": "Done",
+  "이전 단계": "Previous step", "메모": "Note", "추가": "Add", "진행 한 줄": "Progress", "해당 없음": "N/A", "이유(선택)": "Reason (optional)", "해당 없음으로 넘겼습니다": "Marked N/A", "지우기": "Delete", "진행 한 줄을 지웠습니다": "Progress line deleted", "진행 한 줄을 고쳤습니다": "Progress line edited", "지금 단계에 진행을 남겼습니다": "Progress added under the current step", "기타": "Other", "부제 없음": "No subgroup", "프로젝트": "Project", "부제": "Subgroup", "완료": "Done",
   "한 줄 남기기": "Add a line", "되돌리기": "Undo", "모두 오늘로": "All to today", "내일로": "To tomorrow",
   "오늘": "Today", "내일": "Tomorrow", "다음 7일": "Next 7 days", "나중에": "Later", "날짜 없음": "No date", "종일": "All day",
   "폰에는 오늘부터 2주 일정이 보입니다 · 더 먼 일정은 PC 일정 탭에서": "The phone shows 2 weeks from today · see further ahead in the PC Calendar tab",
@@ -763,7 +766,8 @@ function render() {
       else if (!nowNews && item.dated && opened !== item.id) html += `<div class="news memo">${linkify(item.dated)}</div>`;     // 진행 한 줄이 없으면 메모 속 최근 날짜 소식(PC 와 같음)
       if (opened === item.id) {
         html += `<div class="more">`;
-        if (many) html += `<ul class="steps" data-steps="${esc(item.id)}">` + item.steps.map((s, i) => `<li class="${i < item.step ? "done" : i === item.step ? "now" : ""}"${i >= item.step ? ` data-stepi="${i}"` : ""}><span data-stepname="${i}">${i + 1}. ${esc(s)}</span>`
+        const naMap = Object.fromEntries((item.na || []).map(o => [o.s, o.why]));     // 해당 없음으로 넘긴 단계(PC 와 같음)
+        if (many) html += `<ul class="steps" data-steps="${esc(item.id)}">` + item.steps.map((s, i) => `<li class="${i in naMap && i < item.step ? "done na" : i < item.step ? "done" : i === item.step ? "now" : ""}"${i >= item.step ? ` data-stepi="${i}"` : ""}><span data-stepname="${i}">${i + 1}. ${esc(s)}</span>${i in naMap && i < item.step ? `<em class="nachip">${T("해당 없음")}${naMap[i] ? " · " + esc(naMap[i]) : ""}</em>` : ""}`
           + (i >= item.step ? `<button data-stepdue="${i}">${item.stepDues[i] ? "~" + md(item.stepDues[i]) : "마감일"}</button>` : "") + `</li>`
           + (item.prog || []).map((q, k) => ({ q, k })).filter(o => o.q.s === i).map(o => `<li class="newsline"><div class="news${i < item.step ? " old" : ""}" data-prog="${o.k}">${linkify(o.q.t)}</div></li>`).join("")).join("") + `</ul>`;
         if (!many) html += (item.prog || []).map((q, k) => `<div class="news" data-prog="${k}">${linkify(q.t)}</div>`).join("");     /* 누르면 고치기 · 지우기 */
@@ -771,6 +775,7 @@ function render() {
         html += `<div class="acts">` + (item.step > 0 ? `<button data-act="back">이전 단계</button>` : "")
           + (many && item.steps.length - item.step >= 2 ? `<button data-act="split">단계 나누기</button>` : "")
           + (state && state.team ? `<button data-act="assign">${item.who ? (isEn() ? "Assigned: " : "맡김: ") + esc(personName(item.who)) : T("맡기기")}</button>` : "")
+          + `<button data-act="skip">${T("해당 없음")}</button>`     /* 지금 단계를 하지 않고 넘김(주문 없음 등) */
           + `<button data-act="star">${item.star ? "중요 해제" : "★ 중요"}</button><button data-act="progress">진행 한 줄</button><button data-act="step">단계 추가</button><button data-act="note">메모 추가</button>`
           + `<button data-act="dup">복제</button><button data-act="moveto">옮기기</button>`
           + (many ? "" : `<button data-act="edit">수정</button>`) + `<button data-act="delete">삭제</button>`
@@ -942,6 +947,17 @@ function addSteps(id) {
     s.querySelector("#stepAdd").onclick = go;
     box.addEventListener("keydown", e => { if (e.key === "Enter" && !e.isComposing) { e.preventDefault(); go(); } });
     s.querySelector("#stepDone").onclick = () => { closeSheet(); if (added) toast(added + "개 단계를 넣었습니다"); };
+  });
+}
+// 해당 없음(PC 와 같음): 이유 한마디(자주 쓴 말 칩 · 직접 적기 · 비워도 됨)
+function skipSheet(item) {
+  const name = item.steps[Math.min(item.step, item.steps.length - 1)];
+  const picks = ["주문 없음", "재고 충분", "대표님 부재", "이미 처리됨"].map(w => `<button class="chip" data-why="${esc(w)}">${esc(w)}</button>`).join("");
+  sheet(`<h2>${T("해당 없음")}</h2><p class="hint">${esc(name)}</p><div class="chips">${picks}</div><textarea id="skipWhy" rows="2" placeholder="${T("이유(선택)")}"></textarea>
+    <div class="end"><button data-close>${T("취소")}</button><button class="primary" id="skipOk">${T("해당 없음")}</button></div>`, s => {
+    const box = s.querySelector("#skipWhy");
+    s.querySelectorAll("[data-why]").forEach(b => b.onclick = () => { box.value = b.dataset.why; });
+    s.querySelector("#skipOk").onclick = () => { closeSheet(); push({ op: "skip", id: item.id, reason: box.value.replace(/　/g, " ").trim() }, T("해당 없음으로 넘겼습니다")); };
   });
 }
 // 진행 한 줄 고치기 · 지우기(PC 와 같음): 날짜는 그대로, 글만
@@ -1601,6 +1617,7 @@ $("list").addEventListener("click", e => {
     const a = act.dataset.act;
     if (a === "back") push({ op: "back", id }, "'" + item.steps[item.step - 1] + "' 단계로 되돌렸습니다");
     if (a === "note") ask("메모 추가", "메모", v => push({ op: "note", id, text: v }, "메모를 넣었습니다"));
+    if (a === "skip") skipSheet(item);
     if (a === "progress") ask("진행 한 줄", "예: 회신 없음, 내일 전화", v => push({ op: "progress", id, text: v, at: today() }, "지금 단계에 진행을 남겼습니다"));
     if (a === "step") addSteps(id);
     if (a === "split" && confirm("안 한 단계를 하나씩 따로 할 일로 나눌까요?")) { opened = null; push({ op: "split", id }, (item.steps.length - item.step) + "개 할 일로 나눴습니다"); }
@@ -1830,6 +1847,17 @@ async function selfTest() {
       const rep = dayReport();
       check("오늘 한 일 복사에 남은 일 최근 소식", /계약서 수정 사항 확인 {2}· (최근|latest): 10\/18 수정본 메일 받음/.test(rep), rep.slice(-120));
     }
+    { // 해당 없음: 보낸 일(skip)을 화면에 바로 — 단계 하나 넘어가고 그 단계에 이유 칩, 마지막이면 사라짐
+      const keepInbox = inbox.slice();
+      inbox.push({ op: "skip", id: "s1", reason: "주문 없음" });
+      const s1v = view().find(t => t.id === "s1");
+      const moved = s1v && s1v.step === 1 && (s1v.na || []).some(o => o.s === 0 && o.why === "주문 없음");
+      inbox.push({ op: "skip", id: "s1", reason: "" });
+      const gone = !view().find(t => t.id === "s1");
+      inbox.length = 0; keepInbox.forEach(o => inbox.push(o));
+      opened = "s3"; render(); await W(100); const hasBtn = !!document.querySelector('.item[data-id="s3"] [data-act="skip"]'); opened = ""; render();
+      check("해당 없음(폰)", moved && gone && hasBtn, "moved=" + moved + " gone=" + gone + " btn=" + hasBtn);
+    }
     { // 검색: 진행 한 줄에만 있는 말로도 찾음
       tab("전체"); query = "호텔"; render(); await W(150);
       const foundS3 = !!document.querySelector('.item[data-id="s3"]'), others = document.querySelectorAll(".board .item").length;
@@ -1903,9 +1931,10 @@ async function selfTest() {
       // 위의 것(b)을 아래 것(a) 밑으로 끌어내린다: 위로 끌면 키 작은 폰에서 놓는 자리가 위쪽 막대 밑이 될 수 있다
       const x = rb.left + rb.width / 2, y0 = rb.top + rb.height / 2, y1 = a.getBoundingClientRect().bottom + 14, el = document.elementFromPoint(x, y0);     /* 카드 전체 아래(소식 줄이 붙어도) */
       const fire = (t, yy) => el.dispatchEvent(new PointerEvent(t, { bubbles: true, cancelable: true, clientX: x, clientY: yy, pointerId: 1, pointerType: "touch", isPrimary: true, button: 0, buttons: t === "pointerup" ? 0 : 1 }));
-      fire("pointerdown", y0); await W(700);
-      for (let yy = y0; yy <= y1; yy += 7) { fire("pointermove", yy); await W(30); }
-      fire("pointerup", y1); await W(700);
+      // PC 가 바쁠 때(배포 시험) 길게 누르기가 덜 잡혀 가끔 안 끌림: 넉넉히 기다리고, 안 바뀌었으면 한 번 더
+      const drag = async () => { fire("pointerdown", y0); await W(950); for (let yy = y0; yy <= y1; yy += 7) { fire("pointermove", yy); await W(35); } fire("pointerup", y1); await W(800); };
+      await drag();
+      if ([...document.querySelectorAll(".item .text")].map(x => x.textContent).join("|") === before) await drag();
       check("흐름: 끌어서 순서 바꾸기", [...document.querySelectorAll(".item .text")].map(x => x.textContent).join("|") !== before);
     } else check("흐름: 끌어서 순서 바꾸기", false, "할 일이 2개 미만");
     const setBtn = document.querySelectorAll("header button")[1]; if (setBtn) setBtn.click(); await W(500);
