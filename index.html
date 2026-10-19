@@ -571,7 +571,8 @@ function startTr() {
 }
 // 날짜순 묶음(PC [날짜순] 과 같음): 0 지남 · 오늘, 1 내일, 2 이번 주, 3 다음 주 이후, 4 디데이 없음
 const later = n => day(new Date(Date.parse(today()) + n * 86400000));
-const upBucket = x => !x.due ? 4 : x.due <= today() ? 0 : x.due === later(1) ? 1 : x.due <= later(6) ? 2 : 3;
+const upDay = x => x.wait && !(x.waitUntil && x.waitUntil <= today()) ? (x.waitUntil || "") : x.due;     // 기다리는 일은 다시 볼 날로(PC 와 같음)
+const upBucket = x => { const d = upDay(x); return !d ? 4 : d <= today() ? 0 : d === later(1) ? 1 : d <= later(6) ? 2 : 3; };
 // 날짜순 · 날짜 없음 줄: 며칠째 묵었는지(순서 근거). PC 에서 만든 날(created)이 와야 보인다
 const ageDays = x => x.due || x.repeat || !x.created ? 0 : Math.max(0, Math.round((Date.parse(today()) - Date.parse(String(x.created).slice(0, 10))) / 86400000));
 const upName = k => ["오늘", "내일", "다음 7일", "나중에", "날짜 없음"][k];     // TickTick 처럼(사장님 선택)
@@ -832,7 +833,7 @@ function render() {
   $("mineChip").hidden = !team; $("mineChip").textContent = T("내 일") + " " + view().filter(x => x.from).length;
   if (!team && filter === "mine") filter = "all";
   if (filter === "next" || filter === "mine") {
-    const sorted = todos.map((x, i) => [x, i]).sort((a, b) => upBucket(a[0]) - upBucket(b[0]) || (a[0].due || "").localeCompare(b[0].due || "")
+    const sorted = todos.map((x, i) => [x, i]).sort((a, b) => upBucket(a[0]) - upBucket(b[0]) || (upDay(a[0]) || "").localeCompare(upDay(b[0]) || "")
       || (b[0].star ? 1 : 0) - (a[0].star ? 1 : 0) || (upBucket(a[0]) === 4 ? (a[0].created || "9999").localeCompare(b[0].created || "9999") : 0) || a[1] - b[1]).map(p => p[0]);     // 날짜 없음: ★ 먼저, 그다음 오래 묵은 순
     for (const k of upRev && filter === "next" ? [4, 3, 2, 1, 0] : [0, 1, 2, 3, 4]) {
       const its = sorted.filter(x => upBucket(x) === k);
@@ -1967,7 +1968,7 @@ async function selfTest() {
     { // 기다리는 중(폰): 보라 알약 · 흐린 글 · '기다리는 중' 알약, 지난 마감 일을 기다리게 하면 지난 마감에서 빠짐, 시트(누구 짐작 · 다시 볼 날) → op wait, 기다림 끝 → op unwait
       const keepInbox = inbox.slice(); filter = "all"; opened = null; render(); await W(60);
       const card6 = document.querySelector('.item[data-id="s6"]'), pill6 = card6 && card6.querySelector(".due.wait");
-      const shown = !!pill6 && pill6.textContent.includes(T("대표님 검토").slice(0, 4)) && card6.classList.contains("waiting") && !!document.querySelector('.bchip[data-brief="waiting"]');
+      const shown = !!pill6 && pill6.textContent.includes(T("대표님 검토").slice(0, 4)) && card6.classList.contains("waiting") && !!document.querySelector('.bchip[data-brief="waiting"]') && upBucket(view().find(x => x.id === "s6")) === 1;     /* 날짜순은 다시 볼 날(내일) 묶음 */
       const lateBefore = briefMatch("late").length;
       push({ op: "wait", id: "s5", who: "회신", until: day(new Date(Date.parse(today()) + 86400000)) }); await W(60);
       const lateAfter = briefMatch("late").length, wN = briefMatch("waiting").length;
