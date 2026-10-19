@@ -1009,12 +1009,13 @@ function skipSheet(item) {
 // 기다리는 중으로(PC 와 같음): 누구 · 무엇(칩 · 직접) + 언제 다시 볼지(칩)
 function waitSheet(item) {
   const now = item.steps[Math.min(item.step, item.steps.length - 1)], lastNews = ((item.prog || []).slice(-1)[0] || {}).t || "";
-  const guess = item.wait || (/대표님/.test(now + lastNews) ? "대표님 확인" : /회신|답장/.test(now + lastNews) ? "회신" : /입금/.test(now + lastNews) ? "입금" : /서류/.test(now + lastNews) ? "서류" : "");
+  const g0 = /대표님|boss/i.test(now + lastNews) ? "대표님 확인" : /회신|답장|reply/i.test(now + lastNews) ? "회신" : /입금|payment/i.test(now + lastNews) ? "입금" : /서류|document/i.test(now + lastNews) ? "서류" : "";
+  const guess = item.wait || (g0 ? T(g0) : "");     // 영어 화면이면 칩과 같은 영어 말(PC 와 같음)
   const t0 = today(), plus = n => day(new Date(Date.parse(t0) + n * 86400000)), dow = new Date(t0 + "T00:00").getDay(), toMon = ((1 - dow + 7) % 7) || 7;
   const whens = [["오늘 오후", t0], ["내일", plus(1)], ["모레", plus(2)], ["다음 주 월", plus(toMon)], ["날짜 없이", ""]];
   let until = item.wait ? (item.waitUntil || "") : plus(1);
   if (until && !whens.some(w => w[1] === until)) whens.splice(4, 0, [md(until), until]);
-  const whoChips = ["대표님 확인", "회신", "입금", "서류"].map(w => `<button class="chip${guess === w ? " on" : ""}" data-who="${esc(w)}">${T(w)}</button>`).join("");
+  const whoChips = ["대표님 확인", "회신", "입금", "서류"].map(w => `<button class="chip${guess === T(w) ? " on" : ""}" data-who="${esc(T(w))}">${T(w)}</button>`).join("");
   const whenChips = whens.map(([n, v]) => `<button class="chip${until === v ? " on" : ""}" data-when="${v}">${T(n)}</button>`).join("");
   sheet(`<h2 id="waitH">${T("기다리는 중으로")}</h2><p class="hint">${esc(now)}</p><label>${T("누구 · 무엇을")}</label><div class="chips">${whoChips}</div><textarea id="waitWho" rows="1">${esc(guess)}</textarea>
     <label>${T("언제 다시 볼까요")}</label><div class="chips">${whenChips}</div>
@@ -1977,15 +1978,21 @@ async function selfTest() {
       const back = briefMatch("recheck").some(x => x.id === "s5") && briefMatch("late").length === lateBefore && !!document.querySelector('.item[data-id="s5"] .due.wait.now');
       opened = "s3"; render(); await W(60);
       const wb = document.querySelector('.item[data-id="s3"] [data-act="wait"]'); wb && wb.click(); await W(80);
-      const guessOn = document.querySelector('#sheet [data-who].on'), guess = guessOn ? guessOn.dataset.who : "";
+      const guessOn = document.querySelector('#sheet [data-who].on'), guess = guessOn ? guessOn.dataset.who : "", boxSame = document.querySelector("#sheet #waitWho").value === guess;
       const noDate = [...document.querySelectorAll("#sheet [data-when]")].find(b => b.dataset.when === ""); noDate && noDate.click();
       document.querySelector("#sheet #waitOk").click(); await W(80);
       const op3 = inbox.filter(o => o.op === "wait" && o.id === "s3").slice(-1)[0];
       opened = "s3"; render(); await W(60);
       const ub = document.querySelector('.item[data-id="s3"] [data-act="unwait"]'); ub && ub.click(); await W(60);
       const unw = inbox.some(o => o.op === "unwait" && o.id === "s3") && !view().find(x => x.id === "s3").wait;
+      // 영어 화면: 짐작한 누구가 칩과 같은 영어 말(Boss approval)이고 칸에도 그대로
+      const lkW = load("look", {}); save("look", { ...lkW, lang: "en" }); closeSheet();
+      waitSheet(view().find(x => x.id === "s3")); await W(60);
+      const enOn = document.querySelector('#sheet [data-who].on'), enOk = !!enOn && enOn.dataset.who === "Boss approval" && document.querySelector("#sheet #waitWho").value === "Boss approval";
+      save("look", lkW); closeSheet();
       inbox = keepInbox; save(ibKey(), inbox); opened = null; closeSheet(); render();
-      check("기다리는 중(폰)", shown && lateAfter === lateBefore - 1 && wN === 2 && back && guess === "대표님 확인" && !!op3 && op3.until === "" && unw,
+      check("기다리는 중(폰) 영어 짐작", enOk, "on=" + (enOn && enOn.dataset.who) + " box=" + document.querySelector("#waitWho")?.value);
+      check("기다리는 중(폰)", shown && lateAfter === lateBefore - 1 && wN === 2 && back && guess === T("대표님 확인") && boxSame && !!op3 && op3.until === "" && unw,
         "shown=" + shown + " late=" + lateBefore + ">" + lateAfter + " wN=" + wN + " back=" + back + " guess=" + guess + " op=" + JSON.stringify(op3) + " unw=" + unw);
     }
     { // 제안함(폰): 설정 › 제안함 · 검토 기다림 건수, 카드마다 상태 칩 · 이유, 남기면 PC 로 보낼 op "suggest" 가 생기고 맨 위에 '보내는 중'
