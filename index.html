@@ -462,7 +462,7 @@ const isEn = () => { const l = load("look", {}).lang; return l === "en" || (!l &
 const EN = {
   "전체": "All", "내 일": "Mine", "팀 현황": "Team status", "나에게 맡겨진 일이 없습니다": "No tasks assigned to you", "누가 일을 맡기면 여기에 모입니다": "When someone assigns you a task, it shows up here", "이 프로젝트 맡기기": "Assign this project", "남은 일을 한 사람에게 한꺼번에": "All its open to-dos to one person", "맡길 일이 없습니다": "Nothing to assign", "팀 (Test)": "Team (Test)", "오늘 일정": "Today's events", "새로 받은 일": "New from team", "누구에게 맡길까요?": "Assign to whom?", "맡기기": "Assign", "맡기지 않음": "Unassign", "맡기기를 풀었습니다": "Unassigned", "날짜순": "By date", "날짜순 ↑": "By date ↑", "일정": "Calendar", "기록": "Log", "검색": "Search", "문구": "Phrases", "설정": "Settings",
   "견본 자료입니다": "Sample data", "구글 연결": "Connect Google", "구글에 연결하면 내 할 일이 보입니다": "Connect Google to see your to-dos",
-  "지난 마감": "Overdue", "오늘 마감": "Due today", "이번 주 디데이": "D-days this week", "오늘 알림": "Reminders today", "오래 밀린 일": "Long overdue", "오늘로 옮겨 온 일": "Moved to today",
+  "지난 마감": "Overdue", "오늘 마감": "Due today", "이번 주 디데이": "D-days this week", "오늘 알림": "Reminders today", "오늘 소식": "News today", "오래 밀린 일": "Long overdue", "오늘로 옮겨 온 일": "Moved to today",
   "오늘은 숨기기": "Hide for today", "고정": "Pinned", "반복": "Repeats", "반복 · 오늘": "Repeats · today", "마감일": "Due date", "단계 나누기": "Split steps",
   "★ 중요": "★ Important", "중요 해제": "Unmark important", "단계 추가": "Add step", "메모 추가": "Add note", "복제": "Duplicate", "옮기기": "Move", "삭제": "Delete", "수정": "Edit",
   "이전 단계": "Previous step", "메모": "Note", "추가": "Add", "진행 한 줄": "Progress", "지우기": "Delete", "진행 한 줄을 지웠습니다": "Progress line deleted", "진행 한 줄을 고쳤습니다": "Progress line edited", "지금 단계에 진행을 남겼습니다": "Progress added under the current step", "기타": "Other", "부제 없음": "No subgroup", "프로젝트": "Project", "부제": "Subgroup", "완료": "Done",
@@ -578,7 +578,7 @@ function carriedDays(x) { return x.lateFrom && x.due && x.due >= today() ? Math.
 function briefMatch(kind) {
   const d = today();
   const wk = new Date(); wk.setDate(wk.getDate() + 6); const w = wk.getFullYear() + "-" + String(wk.getMonth() + 1).padStart(2, "0") + "-" + String(wk.getDate()).padStart(2, "0");
-  return view().filter(x => kind === "stuck" ? carriedDays(x) >= 3 : kind === "late" ? x.due && x.due < d && !x.repeat : kind === "today" ? x.due === d : kind === "week" ? x.due && x.due > d && x.due <= w && !x.repeat : kind === "nodate" ? !x.due && !x.repeat : kind === "team" ? !!x.fresh : kind === "remind" ? (x.remind || "").slice(0, 10) === d : carriedDays(x) > 0 && x.due === d);
+  return view().filter(x => kind === "stuck" ? carriedDays(x) >= 3 : kind === "late" ? x.due && x.due < d && !x.repeat : kind === "today" ? x.due === d : kind === "week" ? x.due && x.due > d && x.due <= w && !x.repeat : kind === "nodate" ? !x.due && !x.repeat : kind === "team" ? !!x.fresh : kind === "remind" ? (x.remind || "").slice(0, 10) === d : kind === "news" ? !!todayNews(x) : carriedDays(x) > 0 && x.due === d);
 }
 // 홈 화면에 설치한 앱 아이콘 배지: 오늘 마감 + 지난 마감 수(PC 트레이 글과 같은 기준). 지원 안 하는 브라우저는 그냥 넘어간다
 let badgeShown = -1;
@@ -598,6 +598,7 @@ function briefHtml() {
   if (n("team")) chips.unshift(`<button class="bchip team" data-brief="team">새로 받은 일 ${n("team")}</button>`);     // 팀: 어제 · 오늘 남이 맡긴 일(PC 와 같음)
   if (n("week")) chips.push(`<button class="bchip rolled" data-brief="week">이번 주 디데이 ${n("week")}</button>`);     // 오늘 몫 다음에 볼 일
   if (n("nodate")) chips.push(`<button class="bchip rolled" data-brief="nodate">날짜 없음 ${n("nodate")}</button>`);     // 날짜 없는 일(시간 나면 챙길 일, PC 와 같음)
+  if (n("news")) chips.push(`<button class="bchip team" data-brief="news">오늘 소식 ${n("news")}</button>`);     // 오늘 붙은 진행 한 줄 · 메모 속 오늘 소식(PC · AI 와 같음)
   if (n("remind")) chips.push(`<button class="bchip rolled" data-brief="remind">오늘 알림 ${n("remind")}</button>`);     // 오늘 알림(PC · AI 와 같음): 누르면 이른 시각부터
   const evs = todayEvents();     // 오늘 구글 캘린더 일정(PC 와 같음): 누르면 일정 탭
   if (evs.length) chips.push(`<button class="bchip team" data-brief="events">오늘 일정 ${evs.length}</button>`);
@@ -674,6 +675,12 @@ function dayReport() {
   return out;
 }
 // 남은 일 줄 끝에 최근 소식(PC 주간 요약과 같음): 진행 한 줄, 없으면 메모 속 최근 날짜 소식, 길면 줄임
+// 오늘 생긴 소식(PC TodayNews 와 같음): 지금 단계 아니어도 오늘 붙은 진행 한 줄, 없으면 메모 속 최근 소식이 오늘 날짜
+function todayNews(x) {
+  const t = md(today()) + "  ";
+  const p = (x.prog || []).filter(q => q.t.startsWith(t)).slice(-1)[0];
+  return p ? p.t : (x.dated && x.dated.startsWith(t) ? x.dated : "");
+}
 function newsTail(x) {
   const n = ((x.prog || []).filter(q => q.s === Math.min(x.step, x.steps.length - 1)).slice(-1)[0] || {}).t || x.dated || "";
   if (!n) return "";
@@ -1812,6 +1819,13 @@ async function selfTest() {
       inbox.length = 0; keepInbox.forEach(o => inbox.push(o));
       check("진행 한 줄 고치기 · 지우기(폰)", afterEdit.endsWith("10/18  회신 받음") && afterDel === "10/18  회신 받음", afterEdit + " / " + afterDel);
     }
+    { // 오늘 소식 알약: 오늘 날짜 진행 한 줄이 있는 일만(견본 s6 에 오늘 소식을 잠깐 붙여 봄)
+      const s6 = state.todos.find(t => t.id === "s6"), keep6 = s6.prog;
+      s6.prog = [{ s: 0, t: md(today()) + "  대표님 검토 중" }]; tab("전체"); render(); await W(150);
+      const nc = document.querySelector('[data-brief="news"]'), want = briefMatch("news").length;
+      s6.prog = keep6; render();
+      check("오늘 카드 오늘 소식 n", !!nc && want === 1 && nc.textContent.endsWith(" 1"), nc ? nc.textContent : "없음");
+    }
     { // 오늘 한 일 복사: 아직 남은 일 줄 끝에 최근 소식
       const rep = dayReport();
       check("오늘 한 일 복사에 남은 일 최근 소식", /계약서 수정 사항 확인 {2}· (최근|latest): 10\/18 수정본 메일 받음/.test(rep), rep.slice(-120));
@@ -1887,7 +1901,7 @@ async function selfTest() {
       const ra = a.querySelector(".text").getBoundingClientRect(), rb = b.querySelector(".text").getBoundingClientRect();
       const before = [...document.querySelectorAll(".item .text")].map(x => x.textContent).join("|");
       // 위의 것(b)을 아래 것(a) 밑으로 끌어내린다: 위로 끌면 키 작은 폰에서 놓는 자리가 위쪽 막대 밑이 될 수 있다
-      const x = rb.left + rb.width / 2, y0 = rb.top + rb.height / 2, y1 = ra.bottom + 20, el = document.elementFromPoint(x, y0);
+      const x = rb.left + rb.width / 2, y0 = rb.top + rb.height / 2, y1 = a.getBoundingClientRect().bottom + 14, el = document.elementFromPoint(x, y0);     /* 카드 전체 아래(소식 줄이 붙어도) */
       const fire = (t, yy) => el.dispatchEvent(new PointerEvent(t, { bubbles: true, cancelable: true, clientX: x, clientY: yy, pointerId: 1, pointerType: "touch", isPrimary: true, button: 0, buttons: t === "pointerup" ? 0 : 1 }));
       fire("pointerdown", y0); await W(700);
       for (let yy = y0; yy <= y1; yy += 7) { fire("pointermove", yy); await W(30); }
