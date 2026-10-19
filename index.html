@@ -726,7 +726,7 @@ function render() {
     $("connect").hidden = demo;
     return;
   }
-  const todos = view().filter(x => (filter === "mine" ? !!x.from : filter === "all" || filter === "next" || (x.due && x.due <= today())) && (!query || hits(x.section || "", x.sub || "", x.steps.join(" "), x.notes || "", x.from || "", x.who ? personName(x.who) : "")));
+  const todos = view().filter(x => (filter === "mine" ? !!x.from : filter === "all" || filter === "next" || (x.due && x.due <= today())) && (!query || hits(x.section || "", x.sub || "", x.steps.join(" "), x.notes || "", (x.prog || []).map(q => q.t).join(" "), x.from || "", x.who ? personName(x.who) : "")));
   const order = [...new Set([...sectionOrder(), ...todos.map(x => x.section || "")])];
   const colors = (state && state.colors) || {}, pinned = (state && state.pinned) || [];
   let html = "";
@@ -1781,6 +1781,12 @@ async function selfTest() {
       const lines = [...document.querySelectorAll('.item[data-id="s3"] .steps .news')].map(e => e.className + ":" + e.textContent);
       opened = ""; render();
       check("진행 한 줄(접힘 · 펼침)", shown.includes("회신 대기") && !shown.includes("호텔") && lines.length === 2 && lines[0].includes("old") && !lines[1].includes("old"), shown + " / " + lines.join(" | "));
+    }
+    { // 검색: 진행 한 줄에만 있는 말로도 찾음
+      tab("전체"); query = "호텔"; render(); await W(150);
+      const foundS3 = !!document.querySelector('.item[data-id="s3"]'), others = document.querySelectorAll(".board .item").length;
+      query = ""; render(); await W(100);
+      check("검색이 진행 한 줄도 찾음", foundS3 && others === 1, others + "개");
     }
     { // 진행 한 줄이 없으면 메모 속 최근 날짜 소식(PC 가 보낸 dated)
       tab("전체"); opened = ""; render(); await W(150);
