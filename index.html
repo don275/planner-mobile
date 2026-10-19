@@ -710,8 +710,11 @@ function dayReport() {
   const en = isEn();     // English 면 머리말 · 날짜도 영어(PC 2.2.106 과 같음, 할 일 이름은 그대로)
   const na = logs.filter(l => / — (해당 없음|N\/A)/.test(l.title || "")).length;     // 해당 없음은 한 일 수에서 빼고 따로(PC 와 같음)
   let out = dayTitle(d).split(" · ")[0] + (en ? " · done " + (logs.length - na) + (na ? " · N/A " + na : "") : " 한 일 " + (logs.length - na) + "건" + (na ? " · 해당 없음 " + na + "건" : "")) + logGroups(logs, false);
-  const left = view().filter(x => x.due && x.due <= d && !x.repeat);
-  if (left.length) out += (en ? "\n\nStill open " + left.length : "\n\n아직 남은 일 " + left.length + "건") + left.map(x => "\n- " + (x.section ? "[" + x.section + (x.sub ? " › " + x.sub : "") + "] " : "") + x.steps[Math.min(x.step, x.steps.length - 1)] + newsTail(x)).join("");
+  const left = view().filter(x => x.due && x.due <= d && !x.repeat && !waiting(x));     // 기다리는 일은 아래 따로(PC 와 같음)
+  const where = x => x.section ? "[" + x.section + (x.sub ? " › " + x.sub : "") + "] " : "";
+  if (left.length) out += (en ? "\n\nStill open " + left.length : "\n\n아직 남은 일 " + left.length + "건") + left.map(x => "\n- " + where(x) + x.steps[Math.min(x.step, x.steps.length - 1)] + newsTail(x)).join("");
+  const waits = view().filter(x => x.wait).sort((a, b) => (a.waitUntil || "9").localeCompare(b.waitUntil || "9"));
+  if (waits.length) out += (en ? "\n\nWaiting " + waits.length : "\n\n기다리는 중 " + waits.length + "건") + waits.map(x => "\n- " + where(x) + x.steps[Math.min(x.step, x.steps.length - 1)] + " · " + (en ? "waiting for " + x.wait : x.wait + " 기다림") + (x.waitUntil ? (en ? " (check " + md(x.waitUntil) + ")" : " (" + md(x.waitUntil) + " 다시 보기)") : "")).join("");
   return out;
 }
 // 남은 일 줄 끝에 최근 소식(PC 주간 요약과 같음): 진행 한 줄, 없으면 메모 속 최근 날짜 소식, 길면 줄임
@@ -1958,6 +1961,7 @@ async function selfTest() {
     }
     { // 오늘 한 일 복사: 아직 남은 일 줄 끝에 최근 소식
       const rep = dayReport();
+      check("오늘 한 일 복사: 기다리는 일은 따로", /\n기다리는 중 1건\n- \[거래처\] 대표님 검토 · 대표님 검토 기다림 \(\d+\/\d+ 다시 보기\)$/.test(rep) && !/아직 남은 일[^]*대표님 검토 ·/.test(rep.split("기다리는 중")[0]), rep.slice(-140));
       check("오늘 한 일 복사에 남은 일 최근 소식", /계약서 수정 사항 확인 {2}· (최근|latest): 10\/18 수정본 메일 받음/.test(rep), rep.slice(-120));
     }
     { // 기다리는 중(폰): 보라 알약 · 흐린 글 · '기다리는 중' 알약, 지난 마감 일을 기다리게 하면 지난 마감에서 빠짐, 시트(누구 짐작 · 다시 볼 날) → op wait, 기다림 끝 → op unwait
