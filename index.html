@@ -341,7 +341,9 @@ const words = () => query.toLowerCase().split(/\s+/).filter(Boolean);
 const hits = (...texts) => { const all = texts.join("\n").toLowerCase(); return words().every(w => all.includes(w)); };
 const mark = s => { let out = esc(s); for (const w of words()) out = out.replace(new RegExp(w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi"), m => "<mark>" + m + "</mark>"); return out; };
 let demo = (!CLIENT_ID && !native()) || new URLSearchParams(location.search).has("demo");
-const selftestOn = new URLSearchParams(location.search).has("selftest");     // 켜자마자 읽어 둔다(주소는 곧 정리된다)   // ?demo 를 붙이면 견본 자료로만 돈다(시험용)
+const selftestOn = new URLSearchParams(location.search).has("selftest");
+// 화면 사진용(견본에서만, tools\phone-shot.html): ?demo&open=s3 이면 그 할 일을 펼쳐 둔다
+const shotOpen = new URLSearchParams(location.search).get("open") || "";     // 켜자마자 읽어 둔다(주소는 곧 정리된다)   // ?demo 를 붙이면 견본 자료로만 돈다(시험용)
 
 function sample() {
   const t = today(), plus = n => day(new Date(Date.parse(t) + n * 86400000));
@@ -1712,7 +1714,7 @@ setInterval(() => { if (!demo && token && !document.hidden) refresh(); }, 20000)
 if (!demo && !native()) { const s = document.createElement("script"); s.src = "https://accounts.google.com/gsi/client"; s.async = true; document.head.appendChild(s); }
 if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
 if (state) render();
-refresh().finally(() => { booting = false; render(); if (demo && selftestOn) selfTest(); });
+refresh().finally(() => { booting = false; if (demo && shotOpen) opened = shotOpen; render(); if (demo && selftestOn) selfTest(); });
 
 // 폰 자체 시험(?demo&selftest): 탭마다 열어 보고(빠뜨리는 탭이 없게) 결과를 화면 맨 위 #selftest 에 적는다. 견본 자료만 쓴다.
 async function selfTest() {
