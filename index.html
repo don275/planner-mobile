@@ -608,11 +608,13 @@ function pickBrief(kind) {
 // 기록 탭 위의 두 단추: 목록에 없던 일도 바로 기록 · 오늘 한 일을 보고 글로 복사
 // 줄마다 마감 알약의 실제 폭 + 10px 만큼 제목 오른쪽을 비운다(알약이 위에 떠 있을 때만)
 function fitPills() {
+  // 먼저 모든 알약 폭을 읽고, 그다음 한꺼번에 쓴다(줄마다 읽고 쓰면 그때마다 화면 배치를 다시 계산해 800개에 1초가 걸렸다)
+  const plan = [];
   for (const it of document.querySelectorAll(".board .item")) {
     const d = it.querySelector(".meta .due"), tx = it.querySelector(".text");
-    if (!d || !tx) continue;
-    tx.style.paddingRight = getComputedStyle(d).position === "absolute" ? (d.offsetWidth + 10) + "px" : "";
+    if (d && tx) plan.push([tx, getComputedStyle(d).position === "absolute" ? (d.offsetWidth + 10) + "px" : ""]);
   }
+  for (const [tx, pad] of plan) if (tx.style.paddingRight !== pad) tx.style.paddingRight = pad;
 }
 // 시험: 알약이 제목 글자를 덮는 줄 수
 function pillOverlaps() {
@@ -1910,6 +1912,18 @@ async function selfTest() {
     $("findText").value = ""; $("findText").dispatchEvent(new Event("input", { bubbles: true })); await W(150);
     state.events = keepEv; tab("전체"); await W(200);
     check("일정 장소 보이고 누를 수 있음 · 장소로 찾기", !!withLoc && locTxt.includes("홍은중앙로") && plain === 1 && found.includes("장소 시험 촬영") && !found.includes("장소 없는 일정"), locTxt + " / 장소 없는 것 " + plain + " / 찾기 " + found.slice(0, 30));
+  }
+  { // 할 일 800개도 0.7초 안에 그림(전체 · 날짜순, 세 번 중 빠른 것). 알약 여백 맞추기가 줄마다 화면 배치를 다시 계산해 1초 넘던 것
+    const keepTodos = state.todos, d0 = today(), big = [];
+    for (let i = 0; i < 800; i++) big.push({ id: "spd" + i, section: "속도 " + (i % 20), sub: i % 3 ? "" : "부제" + (i % 4), text: "속도 시험 할 일 " + i, steps: i % 5 ? ["속도 시험 할 일 " + i] : ["하나", "둘", "셋"], step: 0, due: i % 2 ? "" : later(i % 30 - 5), notes: i % 7 ? "" : "메모", created: d0 });
+    state.todos = big; const ms = [];
+    for (const f of ["all", "next"]) {
+      document.querySelector(`[data-filter="${f}"]`).click(); await W(100);
+      let best = 1e9; for (let k = 0; k < 3; k++) { const t0 = performance.now(); render(); best = Math.min(best, performance.now() - t0); await W(30); }
+      ms.push(Math.round(best));
+    }
+    state.todos = keepTodos; document.querySelector('[data-filter="all"]').click(); render(); await W(150);
+    check("할 일 800개도 0.7초 안에 그림(전체 · 날짜순)", ms.every(v => v < 700), ms.join("ms / ") + "ms");
   }
   // 글자 대비 훑기: 밝게 · 어둡게, 탭 다섯 · 설정 · 펼친 할 일 · 프로젝트 시트에서 보이는 글자가 모두 4.5(큰 글자 3) 이상. 아이콘(★)은 빼고
   try {
