@@ -56,6 +56,10 @@ section.b0 { --sc: var(--red); } section.b1 { --sc: var(--orange); } section.b2,
 .thead { display: flex; gap: 8px; align-items: center; } .thead b { flex: 1; } .thead small { color: var(--sub); }
 .tstats { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 4px; } .tstats .st { font-size: 12.5px; font-weight: 700; border-radius: 8px; padding: 2px 8px; background: var(--canvas); }
 .tstats .st.r { color: color-mix(in srgb, var(--red) 72%, var(--text)); background: color-mix(in srgb, var(--red) 14%, var(--card)); } .tstats .st.g { color: color-mix(in srgb, #137333 45%, var(--text)); background: color-mix(in srgb, #137333 14%, var(--card)); }
+.scard .schip { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 9px; border-radius: 10px; color: color-mix(in srgb, #E8710A 60%, var(--text)); background: color-mix(in srgb, #E8710A 15%, var(--card)); }
+.scard .schip.g { color: color-mix(in srgb, #137333 45%, var(--text)); background: color-mix(in srgb, #137333 14%, var(--card)); } .scard .schip.n { color: var(--sub); background: color-mix(in srgb, var(--sub) 14%, var(--card)); } .scard .schip.a { color: color-mix(in srgb, var(--accent) 60%, var(--text)); background: color-mix(in srgb, var(--accent) 14%, var(--card)); }
+.stext { font-weight: 700; margin-top: 6px; overflow-wrap: anywhere; } .smeta { color: var(--sub); font-size: 13px; margin-top: 2px; }
+.sreply { font-size: 13px; margin-top: 6px; padding-left: 9px; border-left: 3px solid #E8710A; } .sreply.g { border-left-color: #137333; } .sreply.n { border-left-color: var(--sub); } .sreply.a { border-left-color: var(--accent); }
 .tline { font-size: 13px; color: var(--text); margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .tnone { color: var(--sub); font-size: 13px; margin-top: 6px; }
 .tgave { border-top: 1px solid var(--line); margin-top: 8px; padding-top: 6px; } .tgave b { font-size: 12.5px; }
 .psec { font-size: 12px; font-weight: 600; color: var(--sub);     /* 프로젝트 색이 있으면 headInk 로 카드 위 4.5 맞춘 색(보라 · 옅은 노랑이 4.2 · 4.3 이었다, 2.2.91) */ margin-right: 2px; }
@@ -354,6 +358,9 @@ function sample() {
              { title: "가을 행사 준비 기간", allDay: true, start: plus(1) + "T00:00", end: plus(4) + "T00:00", last: plus(3), calendar: "행사", color: "#8E24AA" },
              { title: "거래처 미팅", allDay: false, start: plus(2) + "T15:00", end: plus(2) + "T16:00", last: plus(2), calendar: "", color: "" }],
     logs: [{ date: t, section: "매일 하는 일", title: "주문 확인" }, { date: plus(-1), section: "가을 행사", title: "장소 확정" }, { date: plus(-1), section: "거래처", title: "견적서 발송", detail: "단가표 2종 첨부 · 회신은 다음 주 화요일까지 받기로" }],
+    suggestions: [{ id: "g1", text: "거래처별로 마지막 연락한 날 보기", status: "new", reply: "", at: t + " 09:10", ver: "", context: "거래처 정리하다가" },
+                  { id: "g2", text: "반복 업무에 오늘은 없음", status: "done", reply: "오른쪽 클릭 › 해당 없음", at: plus(-2) + " 14:02", ver: "2.2.258", context: "주문 없는 날" },
+                  { id: "g3", text: "할 일마다 다른 알림 소리", status: "declined", reply: "윈도우 알림 소리를 따릅니다", at: plus(-3) + " 11:30", ver: "", context: "" }],
     phrases: [{ name: "입고지 안내", text: "입고지 정보 전달드립니다!\n\n입고지: (주소)\n담당자: (이름)\n연락처: (번호)" },
               { name: "출고일 안내", text: "{업체명} 담당자님, 안녕하세요.\n{상품명} 출고일은 {출고일}입니다." }],
     todos: [
@@ -478,7 +485,7 @@ const EN = {
   "지난 마감": "Overdue", "오늘 마감": "Due today", "이번 주 디데이": "D-days this week", "오늘 알림": "Reminders today", "오늘 소식": "News today", "오래 밀린 일": "Long overdue", "오늘로 옮겨 온 일": "Moved to today",
   "오늘은 숨기기": "Hide for today", "고정": "Pinned", "반복": "Repeats", "반복 · 오늘": "Repeats · today", "마감일": "Due date", "단계 나누기": "Split steps",
   "★ 중요": "★ Important", "중요 해제": "Unmark important", "단계 추가": "Add step", "메모 추가": "Add note", "복제": "Duplicate", "옮기기": "Move", "삭제": "Delete", "수정": "Edit",
-  "이전 단계": "Previous step", "메모": "Note", "추가": "Add", "진행 한 줄": "Progress", "메모 → 진행": "Notes → progress", "메모 속 날짜 소식을 진행 한 줄로 옮겼습니다": "Dated note lines moved to progress", "업무 · 개인": "Work · Personal", "업무": "Work", "개인": "Personal", "해당 없음": "N/A", "이유(선택)": "Reason (optional)", "해당 없음으로 넘겼습니다": "Marked N/A", "지우기": "Delete", "진행 한 줄을 지웠습니다": "Progress line deleted", "진행 한 줄을 고쳤습니다": "Progress line edited", "지금 단계에 진행을 남겼습니다": "Progress added under the current step", "기타": "Other", "부제 없음": "No subgroup", "프로젝트": "Project", "부제": "Subgroup", "완료": "Done",
+  "이전 단계": "Previous step", "메모": "Note", "추가": "Add", "진행 한 줄": "Progress", "메모 → 진행": "Notes → progress", "메모 속 날짜 소식을 진행 한 줄로 옮겼습니다": "Dated note lines moved to progress", "제안함": "Suggestions", "검토 기다림": "Waiting for review", "하기로 함": "Planned", "반영됨": "Done", "안 하기로 함": "Not planned", "PC 로 보내는 중": "Sending to PC", "AI 와 쓰다 남긴 '있으면 좋겠다' — 보고 결과를 알려 드립니다": "Ideas left while using AI — each gets reviewed", "아직 제안이 없습니다": "No suggestions yet", "AI 에게 '이럴 때 이런 게 있으면 좋겠다' 고 말하거나 아래에 적으세요.": "Tell the AI 'it would help if…', or write one below.", "무엇이 있으면 좋겠나요?": "What would help?", "남기기": "Send", "제안을 남겼습니다": "Suggestion sent", "업무 · 개인": "Work · Personal", "업무": "Work", "개인": "Personal", "해당 없음": "N/A", "이유(선택)": "Reason (optional)", "해당 없음으로 넘겼습니다": "Marked N/A", "지우기": "Delete", "진행 한 줄을 지웠습니다": "Progress line deleted", "진행 한 줄을 고쳤습니다": "Progress line edited", "지금 단계에 진행을 남겼습니다": "Progress added under the current step", "기타": "Other", "부제 없음": "No subgroup", "프로젝트": "Project", "부제": "Subgroup", "완료": "Done",
   "한 줄 남기기": "Add a line", "되돌리기": "Undo", "모두 오늘로": "All to today", "내일로": "To tomorrow",
   "오늘": "Today", "내일": "Tomorrow", "다음 7일": "Next 7 days", "나중에": "Later", "날짜 없음": "No date", "종일": "All day",
   "폰에는 오늘부터 2주 일정이 보입니다 · 더 먼 일정은 PC 일정 탭에서": "The phone shows 2 weeks from today · see further ahead in the PC Calendar tab",
@@ -1100,6 +1107,7 @@ function showSettings() {
     <label>마감 지난 할 일</label><div class="seg"><button data-roll="on" class="${rollOn() ? "on" : ""}">매일 오늘로 옮기기</button><button data-roll="off" class="${rollOn() ? "" : "on"}">그대로 두기</button></div>
     ` + (state && state.team ? `<label>팀 (Test)</label><div class="seg"><button id="teamBoard">팀 현황</button></div>` : "") + `
     <label>${T("업무 · 개인")}</label><div class="seg"><button data-profile="work" class="${phoneProfile === "work" ? "on" : ""}">${T("업무")}</button><button data-profile="personal" class="${phoneProfile === "personal" ? "on" : ""}">${T("개인")}</button></div>
+    <label>${T("제안함")}</label><div class="seg"><button id="suggestBox">${T("제안함")}${sugWaiting() ? " · " + sugWaiting() : ""}</button></div>
     <label>구글</label><div class="seg">` + (token ? `<button id="signOut">연결 해제</button>` : `<button id="signIn">구글 연결</button>`) + `</div>` + (fromPcText() ? `<div class="setnote" id="fromPc">${esc(fromPcText())}</div>` : "") + `
     <label><a href="about.html">앱 소개</a> · <a href="privacy.html">개인정보처리방침</a></label>
     <div class="end"><button class="primary" data-close>닫기</button></div>`, s => {
@@ -1121,6 +1129,7 @@ function showSettings() {
     if (inn) inn.onclick = () => { closeSheet(); connect(); };
     const tb = s.querySelector("#teamBoard");
     if (tb) tb.onclick = () => showTeamBoard();
+    s.querySelector("#suggestBox").onclick = () => showSuggestions();
   });
 }
 
@@ -1150,6 +1159,33 @@ function showTeamBoard() {
         + (p.top || []).map(s => `<div class="tline">· ${esc(s)}</div>`).join(""))
     + ((p.gave || []).length ? `<div class="tgave"><b>${isEn() ? "I assigned" : "내가 맡긴 일"} · ${p.gave.length}</b>` + p.gave.map(s => `<div class="tline">↗ ${esc(s)}</div>`).join("") + `</div>` : "") + `</div>`;
   sheet(`<h2 id="teamBoardH">${isEn() ? "Team status" : "팀 현황"}</h2>` + people.map(card).join("") + `<div class="end"><button class="primary" data-close>${isEn() ? "Close" : "닫기"}</button></div>`);
+}
+
+// 제안함(PC 설정 › 제안함과 같음): AI 와 쓰다 남긴 '있으면 좋겠다' 를 상태 칩 · 이유와 함께. 여기서 바로 남기면 PC 가 받아 적는다(op "suggest")
+const SUG_WORD = { new: "검토 기다림", accepted: "하기로 함", done: "반영됨", declined: "안 하기로 함" };
+function sugList() {
+  const sent = inbox.filter(o => o.op === "suggest").map(o => ({ id: o.key, text: o.text, status: "sending", reply: "", at: "", ver: "", context: "" }));
+  return sent.concat((state && state.suggestions) || []);
+}
+function sugWaiting() { return sugList().filter(s => s.status === "new" || s.status === "sending").length; }
+function showSuggestions() {
+  const list = sugList();
+  const cls = st => st === "done" ? "g" : st === "declined" ? "n" : st === "accepted" ? "a" : "o";
+  const card = s => `<div class="tcard scard"><span class="schip ${cls(s.status)}">${s.status === "sending" ? T("PC 로 보내는 중") : T(SUG_WORD[s.status] || SUG_WORD.new)}</span>`
+    + `<div class="stext">${esc(s.text)}</div>`
+    + ((s.at || s.context) ? `<div class="smeta">${esc([s.at ? md(s.at.slice(0, 10)) + s.at.slice(10) : "", s.context].filter(Boolean).join(" · "))}</div>` : "")
+    + ((s.reply || (s.status === "done" && s.ver)) ? `<div class="sreply ${cls(s.status)}">${esc((s.reply || "") + (s.status === "done" && s.ver ? " (" + s.ver + ")" : ""))}</div>` : "") + `</div>`;
+  sheet(`<h2 id="sugH">${T("제안함")}</h2><p class="hint">${T("AI 와 쓰다 남긴 '있으면 좋겠다' — 보고 결과를 알려 드립니다")}</p>`
+    + (list.length ? list.map(card).join("") : `<div class="tcard"><div class="stext">${T("아직 제안이 없습니다")}</div><div class="smeta">${T("AI 에게 '이럴 때 이런 게 있으면 좋겠다' 고 말하거나 아래에 적으세요.")}</div></div>`)
+    + `<textarea id="sugText" rows="2" placeholder="${T("무엇이 있으면 좋겠나요?")}"></textarea>
+    <div class="end"><button data-close>${T("닫기")}</button><button class="primary" id="sugSend">${T("남기기")}</button></div>`, s => {
+    const box = s.querySelector("#sugText");
+    s.querySelector("#sugSend").onclick = () => {
+      const v = box.value.replace(/　/g, " ").replace(/\s+/g, " ").trim();
+      if (!v) { box.focus(); return; }
+      push({ op: "suggest", text: v }, T("제안을 남겼습니다")); showSuggestions();
+    };
+  });
 }
 
 // 팀 현황을 열어 둔 동안 새 목록이 오면: 바뀌었을 때만 다시 그림(스크롤 자리 지킴, PC 와 같음)
@@ -1715,7 +1751,7 @@ setInterval(() => { if (!demo && token && !document.hidden) refresh(); }, 20000)
 if (!demo && !native()) { const s = document.createElement("script"); s.src = "https://accounts.google.com/gsi/client"; s.async = true; document.head.appendChild(s); }
 if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
 if (state) render();
-refresh().finally(() => { booting = false; if (demo && shotOpen && shotOpen !== "settings") opened = shotOpen; render(); if (demo && shotTab) { const tb = document.querySelector(`[data-filter="${shotTab}"]`); if (tb) tb.click(); } if (demo && shotOpen === "settings") showSettings(); if (demo && selftestOn) selfTest(); });
+refresh().finally(() => { booting = false; if (demo && shotOpen && shotOpen !== "settings" && shotOpen !== "suggest") opened = shotOpen; render(); if (demo && shotTab) { const tb = document.querySelector(`[data-filter="${shotTab}"]`); if (tb) tb.click(); } if (demo && shotOpen === "settings") showSettings(); if (demo && shotOpen === "suggest") showSuggestions(); if (demo && selftestOn) selfTest(); });
 
 // 폰 자체 시험(?demo&selftest): 탭마다 열어 보고(빠뜨리는 탭이 없게) 결과를 화면 맨 위 #selftest 에 적는다. 견본 자료만 쓴다.
 async function selfTest() {
@@ -1878,6 +1914,32 @@ async function selfTest() {
     { // 오늘 한 일 복사: 아직 남은 일 줄 끝에 최근 소식
       const rep = dayReport();
       check("오늘 한 일 복사에 남은 일 최근 소식", /계약서 수정 사항 확인 {2}· (최근|latest): 10\/18 수정본 메일 받음/.test(rep), rep.slice(-120));
+    }
+    { // 제안함(폰): 설정 › 제안함 · 검토 기다림 건수, 카드마다 상태 칩 · 이유, 남기면 PC 로 보낼 op "suggest" 가 생기고 맨 위에 '보내는 중'
+      const keepInbox = inbox.slice();
+      showSettings(); await W(80);
+      const btn = document.querySelector("#sheet #suggestBox"), btnText = btn ? btn.textContent : "";
+      btn && btn.click(); await W(80);
+      const cards0 = [...document.querySelectorAll("#sheet .scard")];
+      const chips = cards0.map(c => c.querySelector(".schip").textContent);
+      const declinedReply = cards0[2] && cards0[2].querySelector(".sreply") ? cards0[2].querySelector(".sreply").textContent : "";
+      const chipStyle = cards0[0] ? getComputedStyle(cards0[0].querySelector(".schip")) : null;
+      const rgbOf = c => { const n = c.match(/[\d.]+/g).map(Number); return c.startsWith("color(") ? n.slice(0, 3).map(q => q * 255) : n.slice(0, 3); };
+      const lumOf = v => v.map(q => { q /= 255; return q <= 0.03928 ? q / 12.92 : Math.pow((q + 0.055) / 1.055, 2.4); }).reduce((s, q, i) => s + q * [0.2126, 0.7152, 0.0722][i], 0);
+      const sugRatios = [], keepLookS = load("look", {});
+      for (const th of ["light", "dark"]) {
+        save("look", { ...keepLookS, theme: th }); applyLook(); showSuggestions(); await W(60);
+        for (const el of document.querySelectorAll("#sheet .schip, #sheet .smeta, #sheet .sreply")) { const cs = getComputedStyle(el), bg = el.classList.contains("schip") ? cs.backgroundColor : getComputedStyle(el.closest(".tcard")).backgroundColor, a = lumOf(rgbOf(cs.color)), b = lumOf(rgbOf(bg)); sugRatios.push((Math.max(a, b) + .05) / (Math.min(a, b) + .05)); }
+      }
+      save("look", keepLookS); applyLook(); showSuggestions(); await W(60);
+      const chipOk = !!chipStyle && sugRatios.length >= 12 && Math.min(...sugRatios) >= 4.5;
+      document.querySelector("#sheet #sugText").value = "  폰에서 사진 붙이기  "; document.querySelector("#sheet #sugSend").click(); await W(80);
+      const sentOp = inbox.find(o => o.op === "suggest");
+      const cards1 = [...document.querySelectorAll("#sheet .scard")];
+      const ok = /1$/.test(btnText.trim()) && cards0.length === 3 && chips[0] === T("검토 기다림") && chips[1] === T("반영됨") && chips[2] === T("안 하기로 함") && declinedReply.includes("윈도우 알림 소리") && chipOk
+        && !!sentOp && sentOp.text === "폰에서 사진 붙이기" && cards1.length === 4 && cards1[0].textContent.includes(T("PC 로 보내는 중"));
+      inbox = keepInbox; save(ibKey(), inbox); closeSheet(); render();
+      check("제안함(폰)", ok, "btn=" + btnText + " cards=" + cards0.length + "/" + cards1.length + " chips=" + chips.join(",") + " chip=" + chipOk + " min=" + Math.min(...sugRatios).toFixed(2) + " op=" + (sentOp && sentOp.text));
     }
     { // 업무 / 개인(폰): 개인으로 바꾸면 파일 이름 · 저장 칸이 개인용, 위에 '개인', 업무 목록과 안 섞임 → 다시 업무
       const workState = state, workInbox = inbox;
