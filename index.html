@@ -788,7 +788,7 @@ function render() {
     $("connect").hidden = demo;
     return;
   }
-  const todos = view().filter(x => (filter === "mine" ? !!x.from : filter === "all" || filter === "next" || (x.due && x.due <= today() && !waiting(x)) || recheck(x)) && (!query || hits(x.section || "", x.sub || "", x.steps.join(" "), x.notes || "", (x.prog || []).map(q => q.t).join(" "), x.from || "", x.who ? personName(x.who) : "")));
+  const todos = view().filter(x => (filter === "mine" ? !!x.from : filter === "all" || filter === "next" || (x.due && x.due <= today() && !waiting(x)) || recheck(x)) && (!query || hits(x.section || "", x.sub || "", x.steps.join(" "), x.notes || "", (x.prog || []).map(q => q.t).join(" "), x.from || "", x.who ? personName(x.who) : "", x.wait || "")));
   const order = [...new Set([...sectionOrder(), ...todos.map(x => x.section || "")])];
   const colors = (state && state.colors) || {}, pinned = (state && state.pinned) || [];
   let html = "";
@@ -1975,6 +1975,7 @@ async function selfTest() {
       push({ op: "wait", id: "s5", who: "회신", until: day(new Date(Date.parse(today()) + 86400000)) }); await W(60);
       const lateAfter = briefMatch("late").length, wN = briefMatch("waiting").length;
       push({ op: "wait", id: "s5", who: "회신", until: today() }); await W(60);
+      const qKeep = query; query = "회신"; render(); await W(60); const foundWait = !!document.querySelector('.item[data-id="s5"]'); query = qKeep; render(); await W(40);     // 찾기: 기다림의 누구로도
       const back = briefMatch("recheck").some(x => x.id === "s5") && briefMatch("late").length === lateBefore && !!document.querySelector('.item[data-id="s5"] .due.wait.now');
       opened = "s3"; render(); await W(60);
       const wb = document.querySelector('.item[data-id="s3"] [data-act="wait"]'); wb && wb.click(); await W(80);
@@ -1992,8 +1993,8 @@ async function selfTest() {
       save("look", lkW); closeSheet();
       inbox = keepInbox; save(ibKey(), inbox); opened = null; closeSheet(); render();
       check("기다리는 중(폰) 영어 짐작", enOk, "on=" + (enOn && enOn.dataset.who) + " box=" + document.querySelector("#waitWho")?.value);
-      check("기다리는 중(폰)", shown && lateAfter === lateBefore - 1 && wN === 2 && back && guess === T("대표님 확인") && boxSame && !!op3 && op3.until === "" && unw,
-        "shown=" + shown + " late=" + lateBefore + ">" + lateAfter + " wN=" + wN + " back=" + back + " guess=" + guess + " op=" + JSON.stringify(op3) + " unw=" + unw);
+      check("기다리는 중(폰)", foundWait && shown && lateAfter === lateBefore - 1 && wN === 2 && back && guess === T("대표님 확인") && boxSame && !!op3 && op3.until === "" && unw,
+        "found=" + foundWait + " shown=" + shown + " late=" + lateBefore + ">" + lateAfter + " wN=" + wN + " back=" + back + " guess=" + guess + " op=" + JSON.stringify(op3) + " unw=" + unw);
     }
     { // 제안함(폰): 설정 › 제안함 · 검토 기다림 건수, 카드마다 상태 칩 · 이유, 남기면 PC 로 보낼 op "suggest" 가 생기고 맨 위에 '보내는 중'
       const keepInbox = inbox.slice();
