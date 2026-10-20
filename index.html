@@ -326,8 +326,9 @@ const stKey = () => "state" + pfx(), ibKey = () => "inbox" + pfx();
 // 앱(아이폰 · 안드로이드)으로 감쌌을 때: 앱이 window.PlannerNative = { signIn(), copy(text) } 를 넣어 주면 그걸 쓴다.
 const native = () => window.PlannerNative || null;
 // 메모 속 주소(https://…, www.…)는 눌러 열 수 있게. 앱이 PlannerNative.openUrl(url) 을 주면 그걸로(바깥 브라우저) 연다.
-const linkify = s => esc(s).replace(/(?:https?:\/\/|www\.)[^\s<>"']+|(?<![@\w.\/-])[A-Za-z0-9][A-Za-z0-9-]*(?:\.[A-Za-z0-9-]+)*\.(?:com|net|org|kr|io|me|co|biz|info|shop|site|app|dev)(?![\w.-]*@)(?:\/[^\s<>"']*)?(?![\w-])/g, m => { const u = m.replace(/[.,)]+$/, ""), rest = m.slice(u.length);     /* 맨 주소(findcopyright.or.kr)도, 메일 주소는 빼고 */
-  return `<a class="link" href="${/^https?:\/\//i.test(u) ? u : "https://" + u}" target="_blank" rel="noopener">${u}</a>${rest}`; });
+// 뒤돌아보기 정규식(물음표 · 꺾쇠 · 느낌표로 시작하는 것)은 iOS 16.4 전 Safari 가 못 읽어 폰 화면 전체가 안 뜬다 → 앞 글자를 묶어 받아 그대로 돌려준다(10/20)
+const linkify = s => esc(s).replace(/(^|[^@\w.\/-])((?:https?:\/\/|www\.)[^\s<>"']+|[A-Za-z0-9][A-Za-z0-9-]*(?:\.[A-Za-z0-9-]+)*\.(?:com|net|org|kr|io|me|co|biz|info|shop|site|app|dev)(?![\w.-]*@)(?:\/[^\s<>"']*)?(?![\w-]))/g, (all, pre, m) => { const u = m.replace(/[.,)]+$/, ""), rest = m.slice(u.length);     /* 맨 주소(findcopyright.or.kr)도, 메일 주소는 빼고 */
+  return `${pre}<a class="link" href="${/^https?:\/\//i.test(u) ? u : "https://" + u}" target="_blank" rel="noopener">${u}</a>${rest}`; });
 function openLink(url) {
   try { if (window.PlannerNative?.openUrl) { window.PlannerNative.openUrl(url); return; } } catch {}
   window.open(url, "_blank", "noopener");
@@ -2111,6 +2112,10 @@ async function selfTest() {
       tab("전체"); opened = ""; render(); await W(150);
       const m4 = document.querySelector('.item[data-id="s4"] .news.memo');
       check("메모 속 최근 소식(진행 한 줄 없을 때)", !!m4 && m4.textContent.includes("견적 요청함") && !document.querySelector('.item[data-id="s3"] .news.memo'), m4 ? m4.textContent : "없음");
+    }
+    { // 옛 아이폰(iOS 16.4 전): 뒤돌아보기 정규식이 하나라도 있으면 화면 전체가 안 뜬다 — 스크립트에 없어야 함
+      const lb = new RegExp("\\(\\?<" + "[=!]"), bad = [...document.scripts].filter(sc => lb.test(sc.textContent)).length;
+      check("옛 아이폰에서 못 읽는 정규식 없음", bad === 0, "scripts=" + bad);
     }
     { // 메모 속 맨 주소도 링크(PC 와 같음), 메일 주소는 아님
       const h1 = linkify("findcopyright.or.kr 로그인"), h2 = linkify("kim@naver.com 으로"), h3 = linkify("https://a.com/x 보기");
