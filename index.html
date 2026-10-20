@@ -165,7 +165,8 @@ body.xl .bchip { font-size: 11.2px; padding: 5px 10px; }     /* 아주 크게: �
   .bchip.late { background: color-mix(in srgb, var(--red) 16%, var(--card)); color: color-mix(in srgb, var(--red) 72%, var(--text)); }     /* 옅은 바탕 위 작은 글씨 대비 4.5(그냥 빨강은 약 4) */
   .bchip.today { background: color-mix(in srgb, var(--orange) 16%, var(--card)); color: color-mix(in srgb, var(--orange) 58%, var(--text)); }     /* 주황은 2.6 이었다 */
   .bchip.rolled { background: var(--tint); color: var(--sub); }
-  .bchip.waiting { background: color-mix(in srgb, #7B4FD6 15%, var(--card)); color: color-mix(in srgb, #7B4FD6 45%, var(--text)); } .bchip.recheck { background: #7B4FD6; color: #fff; }
+  .bchip.maybewait { background: var(--tint); color: color-mix(in srgb, #7B4FD6 45%, var(--text)); } .bwrow { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid var(--line); } .bwrow input { width: 20px; height: 20px; margin-top: 2px; flex: none; accent-color: #7B4FD6; } .bwrow b { display: block; overflow-wrap: anywhere; } .bwrow small { display: block; color: var(--sub); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; } .bwrow > div { min-width: 0; flex: 1; }
+.bchip.waiting { background: color-mix(in srgb, #7B4FD6 15%, var(--card)); color: color-mix(in srgb, #7B4FD6 45%, var(--text)); } .bchip.recheck { background: #7B4FD6; color: #fff; }
 .due.wait { background: color-mix(in srgb, #7B4FD6 15%, var(--card)); color: color-mix(in srgb, #7B4FD6 45%, var(--text)); font-weight: 700; } .due.wait.now { background: #7B4FD6; color: #fff; }
 .item.waiting .text { color: var(--sub); }
 #sheet .chips { flex-wrap: wrap; }     /* 시트 안 칩은 줄을 바꿔 다 보이게(기다림 · 해당 없음) */
@@ -373,7 +374,7 @@ function sample() {
     { id: "s2", section: "매일 하는 일", text: "문의 메일 답장", steps: ["문의 메일 답장"], step: 0, due: t, stepDues: [], notes: "", repeat: true },
     { id: "s3", section: "가을 행사", text: "장소 확정 → 안내문 작성 → 참석자에게 발송", steps: ["장소 확정", "안내문 작성", "참석자에게 발송"], step: 1, due: plus(2), stepDues: [plus(-1), plus(2), plus(7)], notes: "작년 안내문 참고\n참석 예정 40명", repeat: false, prog: [{ s: 0, t: "10/14  호텔 2곳 견적 받음" }, { s: 1, t: "10/18  초안 대표님께 보냄, 회신 대기" }] },
     { id: "s4", section: "가을 행사", text: "인쇄물 견적 받기", steps: ["인쇄물 견적 받기"], step: 0, due: "", stepDues: [], notes: "", repeat: false, created: plus(-12), dated: "10/18  두 곳에 견적 요청함" },
-    { id: "s5", section: "거래처", text: "계약서 수정 사항 확인", steps: ["계약서 수정 사항 확인"], step: 0, due: plus(-1), stepDues: [], notes: "", repeat: false, files: 2, dated: "10/18  수정본 메일 받음" },
+    { id: "s5", section: "거래처", text: "계약서 수정 사항 확인", steps: ["계약서 수정 사항 확인"], step: 0, due: plus(-1), stepDues: [], notes: "", repeat: false, files: 2, dated: "10/18  수정본 메일 받음", maybeWait: "회신", maybeWhy: "10/19  수정본 다시 보냄, 회신 없음" },
     { id: "s6", section: "거래처", text: "대표님 검토 → 전자 계약 발송", steps: ["대표님 검토", "전자 계약 발송"], step: 0, due: plus(9), stepDues: [], notes: "", repeat: false, star: true, remind: t + " 15:00", wait: "대표님 검토", waitUntil: plus(1), waitSince: plus(-1) } ] };
 }
 
@@ -493,7 +494,7 @@ const EN = {
   "지난 마감": "Overdue", "오늘 마감": "Due today", "이번 주 디데이": "D-days this week", "오늘 알림": "Reminders today", "오늘 소식": "News today", "오래 밀린 일": "Long overdue", "오늘로 옮겨 온 일": "Moved to today",
   "오늘은 숨기기": "Hide for today", "고정": "Pinned", "반복": "Repeats", "반복 · 오늘": "Repeats · today", "마감일": "Due date", "단계 나누기": "Split steps",
   "★ 중요": "★ Important", "중요 해제": "Unmark important", "단계 추가": "Add step", "메모 추가": "Add note", "복제": "Duplicate", "옮기기": "Move", "삭제": "Delete", "수정": "Edit",
-  "이전 단계": "Previous step", "메모": "Note", "추가": "Add", "진행 한 줄": "Progress", "메모 → 진행": "Notes → progress", "메모 속 날짜 소식을 진행 한 줄로 옮겼습니다": "Dated note lines moved to progress", "다시 볼 것": "Check again", "기다리는 중": "Waiting", "⏳ 기다림": "⏳ Waiting", "⏳ 기다림 고치기": "⏳ Edit waiting", "기다림 끝": "Stop waiting", "기다림을 끝냈습니다": "Stopped waiting", "기다리는 중으로": "Waiting for…", "누구 · 무엇을": "Who · what", "언제 다시 볼까요": "When to check again", "기다리기": "Wait", "기다리는 중으로 옮겼습니다": "Marked as waiting", "대표님 확인": "Boss approval", "회신": "Reply", "입금": "Payment", "서류": "Documents", "오늘 오후": "Later today", "내일": "Tomorrow", "모레": "In 2 days", "다음 주 월": "Next Monday", "날짜 없이": "No date", "제안함": "Suggestions", "검토 기다림": "Waiting for review", "하기로 함": "Planned", "반영됨": "Done", "안 하기로 함": "Not planned", "PC 로 보내는 중": "Sending to PC", "AI 와 쓰다 남긴 '있으면 좋겠다' — 보고 결과를 알려 드립니다": "Ideas left while using AI — each gets reviewed", "아직 제안이 없습니다": "No suggestions yet", "AI 에게 '이럴 때 이런 게 있으면 좋겠다' 고 말하거나 아래에 적으세요.": "Tell the AI 'it would help if…', or write one below.", "무엇이 있으면 좋겠나요?": "What would help?", "남기기": "Send", "제안을 남겼습니다": "Suggestion sent", "업무 · 개인": "Work · Personal", "업무": "Work", "개인": "Personal", "해당 없음": "N/A", "이유(선택)": "Reason (optional)", "해당 없음으로 넘겼습니다": "Marked N/A", "지우기": "Delete", "진행 한 줄을 지웠습니다": "Progress line deleted", "진행 한 줄을 고쳤습니다": "Progress line edited", "지금 단계에 진행을 남겼습니다": "Progress added under the current step", "기타": "Other", "부제 없음": "No subgroup", "프로젝트": "Project", "부제": "Subgroup", "완료": "Done",
+  "이전 단계": "Previous step", "메모": "Note", "추가": "Add", "진행 한 줄": "Progress", "메모 → 진행": "Notes → progress", "메모 속 날짜 소식을 진행 한 줄로 옮겼습니다": "Dated note lines moved to progress", "다시 볼 것": "Check again", "기다리는 일 같음": "Looks like waiting", "기다리는 중으로 옮길까요?": "Move to waiting?", "소식을 보면 남의 답을 기다리는 일 — 고른 것은 내일 다시": "News says they wait for someone — back tomorrow", "옮기기": "Move", "개를 기다리는 중으로 · 내일 다시 보기": " moved to waiting · check again tomorrow", "기다리는 중": "Waiting", "⏳ 기다림": "⏳ Waiting", "⏳ 기다림 고치기": "⏳ Edit waiting", "기다림 끝": "Stop waiting", "기다림을 끝냈습니다": "Stopped waiting", "기다리는 중으로": "Waiting for…", "누구 · 무엇을": "Who · what", "언제 다시 볼까요": "When to check again", "기다리기": "Wait", "기다리는 중으로 옮겼습니다": "Marked as waiting", "대표님 확인": "Boss approval", "회신": "Reply", "입금": "Payment", "서류": "Documents", "오늘 오후": "Later today", "내일": "Tomorrow", "모레": "In 2 days", "다음 주 월": "Next Monday", "날짜 없이": "No date", "제안함": "Suggestions", "검토 기다림": "Waiting for review", "하기로 함": "Planned", "반영됨": "Done", "안 하기로 함": "Not planned", "PC 로 보내는 중": "Sending to PC", "AI 와 쓰다 남긴 '있으면 좋겠다' — 보고 결과를 알려 드립니다": "Ideas left while using AI — each gets reviewed", "아직 제안이 없습니다": "No suggestions yet", "AI 에게 '이럴 때 이런 게 있으면 좋겠다' 고 말하거나 아래에 적으세요.": "Tell the AI 'it would help if…', or write one below.", "무엇이 있으면 좋겠나요?": "What would help?", "남기기": "Send", "제안을 남겼습니다": "Suggestion sent", "업무 · 개인": "Work · Personal", "업무": "Work", "개인": "Personal", "해당 없음": "N/A", "이유(선택)": "Reason (optional)", "해당 없음으로 넘겼습니다": "Marked N/A", "지우기": "Delete", "진행 한 줄을 지웠습니다": "Progress line deleted", "진행 한 줄을 고쳤습니다": "Progress line edited", "지금 단계에 진행을 남겼습니다": "Progress added under the current step", "기타": "Other", "부제 없음": "No subgroup", "프로젝트": "Project", "부제": "Subgroup", "완료": "Done",
   "한 줄 남기기": "Add a line", "되돌리기": "Undo", "모두 오늘로": "All to today", "내일로": "To tomorrow",
   "오늘": "Today", "내일": "Tomorrow", "다음 7일": "Next 7 days", "나중에": "Later", "날짜 없음": "No date", "종일": "All day",
   "폰에는 오늘부터 2주 일정이 보입니다 · 더 먼 일정은 PC 일정 탭에서": "The phone shows 2 weeks from today · see further ahead in the PC Calendar tab",
@@ -616,6 +617,7 @@ function briefMatch(kind) {
   const d = today();
   if (kind === "waiting") return view().filter(waiting);
   if (kind === "recheck") return view().filter(recheck);
+  if (kind === "maybewait") return view().filter(x => x.maybeWait && !x.wait);     // 기다리는 일 같음(PC 짐작)
   const wk = new Date(); wk.setDate(wk.getDate() + 6); const w = wk.getFullYear() + "-" + String(wk.getMonth() + 1).padStart(2, "0") + "-" + String(wk.getDate()).padStart(2, "0");
   return view().filter(x => (kind === "team" || kind === "remind" || kind === "news" || !waiting(x)) && (kind === "stuck" ? carriedDays(x) >= 3 : kind === "late" ? x.due && x.due < d && !x.repeat : kind === "today" ? x.due === d : kind === "week" ? x.due && x.due > d && x.due <= w && !x.repeat : kind === "nodate" ? !x.due && !x.repeat : kind === "team" ? !!x.fresh : kind === "remind" ? (x.remind || "").slice(0, 10) === d : kind === "news" ? !!todayNews(x) : carriedDays(x) > 0 && x.due === d));
 }
@@ -638,6 +640,7 @@ function briefHtml() {
   if (n("team")) chips.unshift(`<button class="bchip team" data-brief="team">새로 받은 일 ${n("team")}</button>`);     // 팀: 어제 · 오늘 남이 맡긴 일(PC 와 같음)
   if (n("week")) chips.push(`<button class="bchip rolled" data-brief="week">이번 주 디데이 ${n("week")}</button>`);     // 오늘 몫 다음에 볼 일
   if (n("nodate")) chips.push(`<button class="bchip rolled" data-brief="nodate">날짜 없음 ${n("nodate")}</button>`);     // 날짜 없는 일(시간 나면 챙길 일, PC 와 같음)
+  if (n("maybewait")) chips.push(`<button class="bchip maybewait" data-brief="maybewait">${T("기다리는 일 같음")} ${n("maybewait")}</button>`);     // 누르면 골라서 한꺼번에 기다리는 중
   if (n("waiting")) chips.push(`<button class="bchip waiting" data-brief="waiting">${T("기다리는 중")} ${n("waiting")}</button>`);     // 대표님 확인 · 회신 대기(오늘 몫에서 뺀 것)
   if (n("news")) chips.push(`<button class="bchip team" data-brief="news">오늘 소식 ${n("news")}</button>`);     // 오늘 붙은 진행 한 줄 · 메모 속 오늘 소식(PC · AI 와 같음)
   if (n("remind")) chips.push(`<button class="bchip rolled" data-brief="remind">오늘 알림 ${n("remind")}</button>`);     // 오늘 알림(PC · AI 와 같음): 누르면 이른 시각부터
@@ -1027,6 +1030,21 @@ function waitSheet(item) {
       const who = box.value.replace(/　/g, " ").replace(/\s+/g, " ").trim();
       if (!who) { box.focus(); return; }
       closeSheet(); push({ op: "wait", id: item.id, who, until }, T("기다리는 중으로 옮겼습니다"));
+    };
+  });
+}
+// 기다리는 일 같음(PC 와 같음): 체크한 것만 기다리는 중(내일 다시 보기). 마음대로 안 바꾸고 묻는다
+function bulkWaitSheet() {
+  const items = briefMatch("maybewait"); if (!items.length) return;
+  const tmr = day(new Date(Date.parse(today()) + 86400000));
+  sheet(`<h2 id="bulkWaitH">${T("기다리는 중으로 옮길까요?")}</h2><p class="hint">${T("소식을 보면 남의 답을 기다리는 일 — 고른 것은 내일 다시")}</p>`
+    + items.map(x => `<label class="bwrow"><input type="checkbox" checked data-bw="${esc(x.id)}"><div><b>⏳ <span class="wwho">${esc(T(x.maybeWait))}</span> · ${esc(x.steps[Math.min(x.step, x.steps.length - 1)])}</b><small>${esc((x.section || "") + (x.maybeWhy ? " · " + x.maybeWhy.replace(/  /g, " ") : ""))}</small></div></label>`).join("")
+    + `<div class="end"><button data-close>${T("취소")}</button><button class="primary" id="bwOk">${T("옮기기")}</button></div>`, s => {
+    s.querySelector("#bwOk").onclick = () => {
+      const picked = [...s.querySelectorAll("[data-bw]")].filter(b => b.checked).map(b => b.dataset.bw);
+      closeSheet();
+      for (const id of picked) { const it = items.find(x => x.id === id); push({ op: "wait", id, who: T(it.maybeWait), until: tmr }); }
+      if (picked.length) toast(picked.length + T("개를 기다리는 중으로 · 내일 다시 보기"));
     };
   });
 }
@@ -1697,7 +1715,7 @@ $("list").addEventListener("click", e => {
     return;
   }
   const chip = e.target.closest("[data-brief]");
-  if (chip) { pickBrief(chip.dataset.brief); return; }
+  if (chip) { if (chip.dataset.brief === "maybewait") bulkWaitSheet(); else pickBrief(chip.dataset.brief); return; }
   if (e.target.closest("[data-briefx]")) { save("briefHidden", today()); render(); return; }
   if (e.target.closest("#logAdd")) { addLogSheet(); return; }
   const locEv = e.target.closest(".ev[data-loc]");
@@ -1966,6 +1984,17 @@ async function selfTest() {
       const rep = dayReport();
       check("오늘 한 일 복사: 기다리는 일은 따로", /\n기다리는 중 1건\n- \[거래처\] 대표님 검토 · 대표님 검토 기다림 \(\d+\/\d+ 다시 보기\)$/.test(rep) && !/아직 남은 일[^]*대표님 검토 ·/.test(rep.split("기다리는 중")[0]), rep.slice(-140));
       check("오늘 한 일 복사에 남은 일 최근 소식", /계약서 수정 사항 확인 {2}· (최근|latest): 10\/18 수정본 메일 받음/.test(rep), rep.slice(-120));
+    }
+    { // 기다리는 일 같음(폰): 알약 → 체크 시트 → 고른 것만 op wait(내일), 옮기면 알약이 사라짐
+      const keepInbox = inbox.slice(); filter = "all"; opened = null; render(); await W(60);
+      const chipMW = document.querySelector('.bchip[data-brief="maybewait"]'), chipText = chipMW ? chipMW.textContent : "";
+      chipMW && chipMW.click(); await W(80);
+      const rowsMW = [...document.querySelectorAll("#sheet [data-bw]")];
+      document.querySelector("#sheet #bwOk") && document.querySelector("#sheet #bwOk").click(); await W(80);
+      const opMW = inbox.find(o => o.op === "wait" && o.id === "s5");
+      const gone = !document.querySelector('.bchip[data-brief="maybewait"]');
+      inbox = keepInbox; save(ibKey(), inbox); closeSheet(); render();
+      check("기다리는 일 같음(폰)", /1$/.test(chipText.trim()) && rowsMW.length === 1 && !!opMW && opMW.who === T("회신") && opMW.until === day(new Date(Date.parse(today()) + 86400000)) && gone, "chip=" + chipText + " rows=" + rowsMW.length + " op=" + JSON.stringify(opMW) + " gone=" + gone);
     }
     { // 기다리는 중(폰): 보라 알약 · 흐린 글 · '기다리는 중' 알약, 지난 마감 일을 기다리게 하면 지난 마감에서 빠짐, 시트(누구 짐작 · 다시 볼 날) → op wait, 기다림 끝 → op unwait
       const keepInbox = inbox.slice(); filter = "all"; opened = null; render(); await W(60);
@@ -2344,6 +2373,7 @@ async function selfTest() {
         if (w6) { waitSheet(w6); await W(150); sweep(th + "/wait"); closeSheet(); opened = "s6"; render(); await W(150); sweep(th + "/waitcard"); opened = null; render(); }
         if (s3) { skipSheet(s3); await W(150); sweep(th + "/skip"); closeSheet(); }
         showSuggestions(); await W(150); sweep(th + "/suggest"); closeSheet(); render(); await W(100);
+        bulkWaitSheet(); await W(150); sweep(th + "/bulkwait"); closeSheet(); render(); await W(100);
       }
     }
     save("look", lookKeep); applyLook(); render(); await W(150);
@@ -2379,6 +2409,7 @@ async function selfTest() {
         if (w6) { waitSheet(w6); await W(150); sweepOut(tag + "/wait"); closeSheet(); opened = "s6"; render(); await W(150); sweepOut(tag + "/waitcard"); opened = null; render(); }
         if (s3) { skipSheet(s3); await W(150); sweepOut(tag + "/skip"); closeSheet(); }
         showSuggestions(); await W(150); sweepOut(tag + "/suggest"); closeSheet(); render(); await W(100);
+        bulkWaitSheet(); await W(150); sweepOut(tag + "/bulkwait"); closeSheet(); render(); await W(100);
       }
     }
     save("look", lookKeep); applyLook(); render(); await W(150);
