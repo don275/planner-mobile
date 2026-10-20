@@ -36,7 +36,7 @@
   .chip { border-radius: 999px; padding: 4px clamp(9px, 3.4vw, 13px); font-size: 13px; flex: none; }
   .chip.on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
   .banner { margin: 10px 16px 0; padding: 9px 12px; border-radius: 10px; background: var(--tint); color: var(--sub); font-size: 13px; display: flex; align-items: center; gap: 8px; }
-  .banner span { flex: 1; } .banner.stale { background: color-mix(in srgb, var(--orange) 16%, var(--card)); color: color-mix(in srgb, var(--orange) 58%, var(--text)); font-weight: 700; }     /* 끊겨서 예전 목록: 눈에 띄게(오늘 마감 알약과 같은 주황, 대비 4.5) */
+  .banner span { flex: 1; } .banner.stale { background: rgba(227, 116, 0, .16); color: var(--text); background: color-mix(in srgb, var(--orange) 16%, var(--card)); color: color-mix(in srgb, var(--orange) 58%, var(--text)); font-weight: 700; }     /* 끊겨서 예전 목록: 눈에 띄게(오늘 마감 알약과 같은 주황, 대비 4.5) */
   main { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; padding: 4px 16px 20px; }
   .banner { flex: none; }
   section { margin-top: 14px; }
@@ -2475,9 +2475,13 @@ async function selfTest() {
     demo = false; token = null; if (!state) state = { updated: new Date().toISOString(), todos: [] };
     setBanner();
     const b = $("banner"), txt = $("bannerText").textContent, btn = $("connect");
-    const staleOk = b.classList.contains("stale") && txt.includes("예전 목록") && /\d{2}:\d{2}/.test(txt) && txt.includes("다시 연결해 주세요") && btn.textContent === "다시 연결" && !btn.hidden;
+    // 밝게 · 어둡게 둘 다 띠 글씨가 바탕에서 읽힘(4.5 이상): 계산된 색을 1점 그림판에 칠해 읽는다(color-mix 결과 형식이 달라도)
+    const px = c => { const cv = document.createElement("canvas"); cv.width = cv.height = 1; const g = cv.getContext("2d"); g.fillStyle = "#000"; g.fillStyle = c; g.fillRect(0, 0, 1, 1); return [...g.getImageData(0, 0, 1, 1).data].slice(0, 3); };
+    const themeKeep = document.documentElement.dataset.theme, ratios = [];
+    for (const th of ["light", "dark"]) { document.documentElement.dataset.theme = th; const cs = getComputedStyle(b); ratios.push(Math.round(contrast(px(cs.color), px(cs.backgroundColor)) * 10) / 10); }
+    if (themeKeep) document.documentElement.dataset.theme = themeKeep; else delete document.documentElement.dataset.theme;    const staleOk = ratios.every(r => r >= 4.5) && b.classList.contains("stale") && txt.includes("예전 목록") && /\d{2}:\d{2}/.test(txt) && txt.includes("다시 연결해 주세요") && btn.textContent === "다시 연결" && !btn.hidden;
     demo = keepDemo; token = keepToken; state = keepState; setBanner();
-    check("연결 끊김 · 예전 목록 띠(받은 때 · 다시 연결)", staleOk, txt);
+    check("연결 끊김 · 예전 목록 띠(받은 때 · 다시 연결 · 밝게 · 어둡게 대비)", staleOk, txt + " 대비 " + ratios.join("/"));
   } catch (e) { check("연결 끊김 · 예전 목록 띠(받은 때 · 다시 연결)", false, e.message); }  // English 화면(맨 마지막: 한국어로 돌아가려면 다시 켜야 해서). 탭 · 오늘 카드 · 마감 알약 · 날짜순 · 설정 시트에 UI 한국어가 남지 않는지(사용자 자료 칸은 빼고)
   try {
     const lookKeep = load("look", {}); save("look", { ...lookKeep, lang: "en" }); applyLook(); render(); startTr(); await W(300);
