@@ -506,7 +506,7 @@ const EN = {
   "대표색": "Color", "화면": "Display", "기기 설정": "Device", "밝게": "Light", "어둡게": "Dark", "글자 크기": "Text size", "작게": "Small", "보통": "Normal", "크게": "Large", "아주 크게": "Largest",
   "마감 지난 할 일": "Overdue to-dos", "매일 오늘로 옮기기": "Move to today daily", "그대로 두기": "Leave as is", "구글": "Google", "연결 해제": "Disconnect",
   "앱 소개": "About", "개인정보처리방침": "Privacy policy", "닫기": "Close", "취소": "Cancel", "저장": "Save", "확인": "OK", "언어": "Language", "PC 따라": "Same as PC",
-  "남은 일 목록 복사": "Copy open to-dos", "카톡 · 메일에 붙일 글로 복사합니다(끝낸 단계는 줄임). 한 프로젝트만은 목록에서 프로젝트 이름을 누르세요": "Copies a message for chat or email (done steps shortened). For one project, tap its name in the list",
+  "남은 일 목록 복사": "Copy open to-dos", "카톡 · 메일에 붙일 글로 복사합니다(끝낸 단계는 줄임). 한 프로젝트만은 목록에서 프로젝트 이름을 눌러 주세요": "Copies a message for chat or email (done steps shortened). For one project, tap its name in the list",
   "링크 모음 만들기": "Make a link collection", "주소나 받은 링크 글을 붙여 넣으면 보낼 글로 정리해 줍니다": "Paste addresses or a message with links to tidy them into one message",
   "이 프로젝트 남은 일 복사": "Copy this project's open to-dos", "카톡 · 메일에 붙일 글(끝낸 단계는 줄임)": "For chat or email (done steps shortened)",
   "이 프로젝트 남은 일 복사 (메모 빼고)": "Copy this project's open to-dos (without notes)", "거래처 · 소속사용: 할 일 · 단계만": "For partners: to-dos and steps only",
@@ -1378,7 +1378,7 @@ function shareText(only, bare) {
   return out;
 }function showPhrases() {
   const list = (state && state.phrases) || [];
-  const links = `<button class="phrase" id="shareOpen">남은 일 목록 복사<small>카톡 · 메일에 붙일 글로 복사합니다(끝낸 단계는 줄임). 한 프로젝트만은 목록에서 프로젝트 이름을 누르세요</small></button>`
+  const links = `<button class="phrase" id="shareOpen">남은 일 목록 복사<small>카톡 · 메일에 붙일 글로 복사합니다(끝낸 단계는 줄임). 한 프로젝트만은 목록에서 프로젝트 이름을 눌러 주세요</small></button>`
     + `<button class="phrase" id="linksOpen">링크 모음 만들기<small>주소나 받은 링크 글을 붙여 넣으면 보낼 글로 정리해 줍니다</small></button>`;
   const ready = s => { s.querySelector("#linksOpen").onclick = () => storeLinks(); s.querySelector("#shareOpen").onclick = async () => { closeSheet(); toast(await copy(shareText()) ? "남은 일을 복사했습니다 · 카톡 · 메일에 붙여 넣으세요" : "복사하지 못했습니다"); }; };
   if (!list.length) { sheet(`<h2>문구</h2>` + links + `<div class="empty">저장한 문구가 없습니다. PC 앱의 [문구 ▾ › 문구 관리]에서 만들면 여기 보입니다.</div><div class="end"><button data-close>닫기</button></div>`, ready); return; }
