@@ -2113,6 +2113,14 @@ async function selfTest() {
       const m4 = document.querySelector('.item[data-id="s4"] .news.memo');
       check("메모 속 최근 소식(진행 한 줄 없을 때)", !!m4 && m4.textContent.includes("견적 요청함") && !document.querySelector('.item[data-id="s3"] .news.memo'), m4 ? m4.textContent : "없음");
     }
+    { // 말투(사장님 10/20): 화면 글에 '…면 끝 · …여세요 · …누르세요' 같은 끊기는 말이 없음(설정 · 시트 포함)
+      const curtRx = /(면 끝[.\s]|(여|르|고르|넣으|하|켜|끄|놓으|두)세요(?![가-힣]))/, bad = new Set();
+      const scanCurt = () => { const tw = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, { acceptNode: n => n.parentElement?.closest("script, style, #selftest") ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT }); let n; while ((n = tw.nextNode())) if (curtRx.test(n.data)) bad.add(n.data.trim().slice(0, 24)); for (const el of document.querySelectorAll("[placeholder], [aria-label], [title]")) for (const a of ["placeholder", "aria-label", "title"]) { const v = el.getAttribute(a); if (v && curtRx.test(v)) bad.add(v.slice(0, 24)); } };
+      render(); await W(80); scanCurt(); $("settings").click(); await W(150); scanCurt(); closeSheet();
+      const w6c = view().find(t => t.id === "s6"); if (w6c) { waitSheet(w6c); await W(100); scanCurt(); closeSheet(); }
+      showSuggestions(); await W(100); scanCurt(); closeSheet(); render();
+      check("화면 글 말투(끊기는 말 없음)", bad.size === 0, [...bad].slice(0, 4).join(" | "));
+    }
     { // 옛 아이폰(iOS 16.4 전): 뒤돌아보기 정규식이 하나라도 있으면 화면 전체가 안 뜬다 — 스크립트에 없어야 함
       const lb = new RegExp("\\(\\?<" + "[=!]"), bad = [...document.scripts].filter(sc => lb.test(sc.textContent)).length;
       check("옛 아이폰에서 못 읽는 정규식 없음", bad === 0, "scripts=" + bad);
