@@ -2368,6 +2368,11 @@ async function selfTest() {
         opened = editId; render(); await W(200); press(`.item[data-id="${CSS.escape(editId)}"] [data-act="edit"]`); await W(250);
         if (!($("sheet").textContent || "").trim()) throw new Error("수정 창 안 열림");
         sweepOut(tag + "/edit"); closeSheet(); opened = null; render(); await W(150);
+        // 새 시트 · 카드(기다림 · 해당 없음 · 제안함 · 기다리는 카드)도 같이 훑는다
+        const w6 = view().find(t => t.id === "s6"), s3 = view().find(t => t.id === "s3");
+        if (w6) { waitSheet(w6); await W(150); sweepOut(tag + "/wait"); closeSheet(); opened = "s6"; render(); await W(150); sweepOut(tag + "/waitcard"); opened = null; render(); }
+        if (s3) { skipSheet(s3); await W(150); sweepOut(tag + "/skip"); closeSheet(); }
+        showSuggestions(); await W(150); sweepOut(tag + "/suggest"); closeSheet(); render(); await W(100);
       }
     }
     save("look", lookKeep); applyLook(); render(); await W(150);
