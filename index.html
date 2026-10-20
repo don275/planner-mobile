@@ -516,7 +516,7 @@ const EN = {
   "고쳤습니다": "Saved", "구글 연결 준비 중입니다. 잠시 뒤 다시 눌러 주세요": "Google is getting ready. Tap again in a moment", "구글 연결을 하지 못했습니다": "Couldn't connect to Google",
   "남은 일을 복사했습니다 · 카톡 · 메일에 붙여 넣으세요": "Copied open to-dos · paste into chat or email", "넣은 링크가 없습니다": "No links added", "단계 이름을 바꿨습니다": "Step renamed",
   "메모를 넣었습니다": "Note added", "보이는 목록에 없습니다(검색 · 걸러 보기를 풀어 보세요)": "Not in the visible list (clear search or filters)", "복사했습니다. 카톡에 붙여 넣으세요": "Copied. Paste into chat",
-  "복제했습니다": "Duplicated", "부제 이름을 바꿨습니다": "Subgroup renamed", "붙여넣기를 못 했습니다. 아래 칸에 길게 눌러 붙여 넣어 주세요": "Couldn't paste. Long-press the box below to paste",
+  "복제했습니다": "Duplicated", "부제 이름을 바꿨습니다": "Subgroup renamed", "붙여넣기를 못 했습니다. 아래 칸에 길게 눌러 붙여 넣으세요": "Couldn't paste. Long-press the box below to paste",
   "삭제했습니다": "Deleted", "업무 기록에 남겼습니다": "Saved to the work log", "오늘 한 일을 복사했습니다 · 카톡 · 메일에 붙여 넣으세요": "Copied today's work · paste into chat or email", "이번 주 한 일을 복사했습니다 · 카톡 · 메일에 붙여 넣으세요": "Copied this week's work · paste into chat or email", "다시 연결하는 중…": "Reconnecting…",
   "옮길 곳이 없습니다": "Nowhere to move", "이름을 바꿨습니다": "Renamed", "단계 순서를 바꿨습니다": "Steps reordered", "마감일을 지웠습니다": "Due date cleared", "부제에서 뺐습니다": "Removed from subgroup",
   "순서를 바꿨습니다": "Reordered", "완료했습니다": "Done", "주소를 찾지 못했습니다": "No address found", "중요 표시를 뺐습니다": "Unmarked important", "중요 표시했습니다": "Marked important",
@@ -793,8 +793,7 @@ function render() {
     $("list").innerHTML = filter === "events" ? eventsHtml() : logsHtml();
     $("state").textContent = stateText();
     $("banner").hidden = !demo && (!!token || (booting && !!state));
-    $("bannerText").textContent = demo ? "견본 자료입니다" : "구글에 연결하면 내 할 일이 보입니다";
-    $("connect").hidden = demo;
+    setBanner();
     return;
   }
   const todos = view().filter(x => (filter === "mine" ? !!x.from : filter === "all" || filter === "next" || (x.due && x.due <= today() && !waiting(x)) || recheck(x)) && (!query || hits(x.section || "", x.sub || "", x.steps.join(" "), x.notes || "", (x.prog || []).map(q => q.t).join(" "), x.from || "", x.who ? personName(x.who) : "", x.wait || "")));
@@ -1171,7 +1170,8 @@ function setBanner() {
   $("bannerText").textContent = demo ? "견본 자료입니다" : stale ? (isEn() ? "Disconnected — this is the old list" : "연결이 끊겨 예전 목록입니다") + (fromPcText() ? " · " + fromPcText().replace(/^PC 에서 받은 목록 · |^List from PC · /, "") : "") + (isEn() ? ". Please reconnect." : ". 다시 연결해 주세요.") : "구글에 연결하면 내 할 일이 보입니다";
   $("connect").textContent = stale ? T("다시 연결") : T("구글 연결");
   $("connect").hidden = demo;
-}function fromPcText() {
+}
+function fromPcText() {
   const u = state && state.updated; if (!u) return "";
   const t = new Date(u); if (isNaN(t)) return "";
   const d = t.getFullYear() + "-" + String(t.getMonth() + 1).padStart(2, "0") + "-" + String(t.getDate()).padStart(2, "0");
@@ -1467,7 +1467,7 @@ function storeLinks() {
     });
     const addText = t => { const n = linksFromText(t, rows); draw(); toast(n ? n + "곳을 넣었습니다" : "주소를 찾지 못했습니다"); };
     $s("#lkAdd").onclick = () => { addText($s("#lkPaste").value); $s("#lkPaste").value = ""; };
-    $s("#lkClip").onclick = async () => { try { addText(await navigator.clipboard.readText()); } catch { toast("붙여넣기를 못 했습니다. 아래 칸에 길게 눌러 붙여 넣어 주세요"); } };
+    $s("#lkClip").onclick = async () => { try { addText(await navigator.clipboard.readText()); } catch { toast("붙여넣기를 못 했습니다. 아래 칸에 길게 눌러 붙여 넣으세요"); } };
     $s("#lkPaste").addEventListener("paste", () => setTimeout(() => { if (/https?:\/\//.test($s("#lkPaste").value)) { addText($s("#lkPaste").value); $s("#lkPaste").value = ""; } }, 0));
     $s("#lkCopy").onclick = async () => {
       if (!rows.length) { toast("넣은 링크가 없습니다"); return; }
@@ -2467,7 +2467,16 @@ async function selfTest() {
     save("look", lookKeep); applyLook(); render(); await W(150);
     check("넘침 훑기(한 · 영 × 보통 · 아주 크게) · 폭 " + innerWidth, outs.size === 0, [...outs].slice(0, 4).join(" | "));
   } catch (e) { check("넘침 훑기", false, e.message); }
-  // English 화면(맨 마지막: 한국어로 돌아가려면 다시 켜야 해서). 탭 · 오늘 카드 · 마감 알약 · 날짜순 · 설정 시트에 UI 한국어가 남지 않는지(사용자 자료 칸은 빼고)
+  // 연결이 끊긴 채 예전 목록(제안 c6b94dba): 띠가 주황 · '예전 목록' · 받은 때 · [다시 연결]
+  try {
+    const keepDemo = demo, keepToken = token, keepState = state;
+    demo = false; token = null; if (!state) state = { updated: new Date().toISOString(), todos: [] };
+    setBanner();
+    const b = $("banner"), txt = $("bannerText").textContent, btn = $("connect");
+    const staleOk = b.classList.contains("stale") && txt.includes("예전 목록") && /\d{2}:\d{2}/.test(txt) && txt.includes("다시 연결해 주세요") && btn.textContent === "다시 연결" && !btn.hidden;
+    demo = keepDemo; token = keepToken; state = keepState; setBanner();
+    check("연결 끊김 · 예전 목록 띠(받은 때 · 다시 연결)", staleOk, txt);
+  } catch (e) { check("연결 끊김 · 예전 목록 띠(받은 때 · 다시 연결)", false, e.message); }  // English 화면(맨 마지막: 한국어로 돌아가려면 다시 켜야 해서). 탭 · 오늘 카드 · 마감 알약 · 날짜순 · 설정 시트에 UI 한국어가 남지 않는지(사용자 자료 칸은 빼고)
   try {
     const lookKeep = load("look", {}); save("look", { ...lookKeep, lang: "en" }); applyLook(); render(); startTr(); await W(300);
     const leftKo = new Set(), scan = () => { const tw = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, { acceptNode: n => /SCRIPT|STYLE/.test(n.parentElement?.tagName) || n.parentElement?.closest(SKIP + ", #selftest, .phrase") ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT }); let n; while ((n = tw.nextNode())) if (/[가-힣]/.test(n.data.replace(/^\s*Next: .*$/, "")) && !/한국어|언어 · Language/.test(n.data)) leftKo.add(n.data.trim()); /* Next: 뒤는 단계 이름(사용자 자료) */ };
