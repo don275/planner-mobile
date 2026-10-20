@@ -36,7 +36,7 @@
   .chip { border-radius: 999px; padding: 4px clamp(9px, 3.4vw, 13px); font-size: 13px; flex: none; }
   .chip.on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
   .banner { margin: 10px 16px 0; padding: 9px 12px; border-radius: 10px; background: var(--tint); color: var(--sub); font-size: 13px; display: flex; align-items: center; gap: 8px; }
-  .banner span { flex: 1; }
+  .banner span { flex: 1; } .banner.stale { background: color-mix(in srgb, var(--orange) 16%, var(--card)); color: color-mix(in srgb, var(--orange) 58%, var(--text)); font-weight: 700; }     /* 끊겨서 예전 목록: 눈에 띄게(오늘 마감 알약과 같은 주황, 대비 4.5) */
   main { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; padding: 4px 16px 20px; }
   .banner { flex: none; }
   section { margin-top: 14px; }
@@ -496,7 +496,7 @@ const EN = {
   "지난 마감": "Overdue", "오늘 마감": "Due today", "이번 주 디데이": "D-days this week", "오늘 알림": "Reminders today", "오늘 소식": "News today", "오래 밀린 일": "Long overdue", "오늘로 옮겨 온 일": "Moved to today",
   "오늘은 숨기기": "Hide for today", "고정": "Pinned", "반복": "Repeats", "반복 · 오늘": "Repeats · today", "마감일": "Due date", "단계 나누기": "Split steps",
   "★ 중요": "★ Important", "중요 해제": "Unmark important", "단계 추가": "Add step", "메모 추가": "Add note", "복제": "Duplicate", "옮기기": "Move", "삭제": "Delete", "수정": "Edit",
-  "이전 단계": "Previous step", "메모": "Note", "추가": "Add", "진행 한 줄": "Progress", "메모 → 진행": "Notes → progress", "메모 속 날짜 소식을 진행 한 줄로 옮겼습니다": "Dated note lines moved to progress", "다시 볼 것": "Check again", "이렇게 한다": "How to do it", "안내": "How-to", "더": "more", "주문 없음": "No orders", "재고 충분": "Enough stock", "대표님 부재": "Boss away", "이미 처리됨": "Already done", "기다리는 일 같음": "Looks like waiting", "기다리는 중으로 옮길까요?": "Move to waiting?", "소식을 보면 남의 답을 기다리는 일 — 고른 것은 내일 다시": "News says they wait for someone — back tomorrow", "옮기기": "Move", "개를 기다리는 중으로 · 내일 다시 보기": " moved to waiting · check again tomorrow", "기다리는 중": "Waiting", "⏳ 기다림": "⏳ Waiting", "⏳ 기다림 고치기": "⏳ Edit waiting", "기다림 끝": "Stop waiting", "기다림을 끝냈습니다": "Stopped waiting", "기다리는 중으로": "Waiting for…", "누구 · 무엇을": "Who · what", "언제 다시 볼까요": "When to check again", "기다리기": "Wait", "기다리는 중으로 옮겼습니다": "Marked as waiting", "대표님 확인": "Boss approval", "회신": "Reply", "입금": "Payment", "서류": "Documents", "오늘 오후": "Later today", "내일": "Tomorrow", "모레": "In 2 days", "다음 주 월": "Next Monday", "날짜 없이": "No date", "제안함": "Suggestions", "검토 기다림": "Waiting for review", "하기로 함": "Planned", "반영됨": "Done", "안 하기로 함": "Not planned", "PC 로 보내는 중": "Sending to PC", "AI 와 쓰다 남긴 '있으면 좋겠다' — 보고 결과를 알려 드립니다": "Ideas left while using AI — each gets reviewed", "아직 제안이 없습니다": "No suggestions yet", "AI 에게 '이럴 때 이런 게 있으면 좋겠다' 고 말하거나 아래에 적으세요.": "Tell the AI 'it would help if…', or write one below.", "무엇이 있으면 좋겠나요?": "What would help?", "남기기": "Send", "제안을 남겼습니다": "Suggestion sent", "업무 · 개인": "Work · Personal", "업무": "Work", "개인": "Personal", "해당 없음": "N/A", "이유(선택)": "Reason (optional)", "해당 없음으로 넘겼습니다": "Marked N/A", "지우기": "Delete", "진행 한 줄을 지웠습니다": "Progress line deleted", "진행 한 줄을 고쳤습니다": "Progress line edited", "지금 단계에 진행을 남겼습니다": "Progress added under the current step", "기타": "Other", "부제 없음": "No subgroup", "프로젝트": "Project", "부제": "Subgroup", "완료": "Done",
+  "이전 단계": "Previous step", "메모": "Note", "추가": "Add", "진행 한 줄": "Progress", "메모 → 진행": "Notes → progress", "메모 속 날짜 소식을 진행 한 줄로 옮겼습니다": "Dated note lines moved to progress", "다시 볼 것": "Check again", "다시 연결": "Reconnect", "구글 연결": "Connect Google", "이렇게 한다": "How to do it", "안내": "How-to", "더": "more", "주문 없음": "No orders", "재고 충분": "Enough stock", "대표님 부재": "Boss away", "이미 처리됨": "Already done", "기다리는 일 같음": "Looks like waiting", "기다리는 중으로 옮길까요?": "Move to waiting?", "소식을 보면 남의 답을 기다리는 일 — 고른 것은 내일 다시": "News says they wait for someone — back tomorrow", "옮기기": "Move", "개를 기다리는 중으로 · 내일 다시 보기": " moved to waiting · check again tomorrow", "기다리는 중": "Waiting", "⏳ 기다림": "⏳ Waiting", "⏳ 기다림 고치기": "⏳ Edit waiting", "기다림 끝": "Stop waiting", "기다림을 끝냈습니다": "Stopped waiting", "기다리는 중으로": "Waiting for…", "누구 · 무엇을": "Who · what", "언제 다시 볼까요": "When to check again", "기다리기": "Wait", "기다리는 중으로 옮겼습니다": "Marked as waiting", "대표님 확인": "Boss approval", "회신": "Reply", "입금": "Payment", "서류": "Documents", "오늘 오후": "Later today", "내일": "Tomorrow", "모레": "In 2 days", "다음 주 월": "Next Monday", "날짜 없이": "No date", "제안함": "Suggestions", "검토 기다림": "Waiting for review", "하기로 함": "Planned", "반영됨": "Done", "안 하기로 함": "Not planned", "PC 로 보내는 중": "Sending to PC", "AI 와 쓰다 남긴 '있으면 좋겠다' — 보고 결과를 알려 드립니다": "Ideas left while using AI — each gets reviewed", "아직 제안이 없습니다": "No suggestions yet", "AI 에게 '이럴 때 이런 게 있으면 좋겠다' 고 말하거나 아래에 적으세요.": "Tell the AI 'it would help if…', or write one below.", "무엇이 있으면 좋겠나요?": "What would help?", "남기기": "Send", "제안을 남겼습니다": "Suggestion sent", "업무 · 개인": "Work · Personal", "업무": "Work", "개인": "Personal", "해당 없음": "N/A", "이유(선택)": "Reason (optional)", "해당 없음으로 넘겼습니다": "Marked N/A", "지우기": "Delete", "진행 한 줄을 지웠습니다": "Progress line deleted", "진행 한 줄을 고쳤습니다": "Progress line edited", "지금 단계에 진행을 남겼습니다": "Progress added under the current step", "기타": "Other", "부제 없음": "No subgroup", "프로젝트": "Project", "부제": "Subgroup", "완료": "Done",
   "한 줄 남기기": "Add a line", "되돌리기": "Undo", "모두 오늘로": "All to today", "내일로": "To tomorrow",
   "오늘": "Today", "내일": "Tomorrow", "다음 7일": "Next 7 days", "나중에": "Later", "날짜 없음": "No date", "종일": "All day",
   "폰에는 오늘부터 2주 일정이 보입니다 · 더 먼 일정은 PC 일정 탭에서": "The phone shows 2 weeks from today · see further ahead in the PC Calendar tab",
@@ -810,7 +810,7 @@ function render() {
       const due = dueLabel(item), many = item.steps.length > 1;
       html += `<div class="item${opened === item.id ? " open" : ""}${waiting(item) ? " waiting" : ""}" data-id="${esc(item.id)}" data-sec="${esc(item.section || "")}" data-sub="${esc(item.sub || "")}"><button class="box${item.step > 0 ? " part" : ""}"${item.step > 0 ? ` style="--p:${Math.round(item.step * 100 / item.steps.length)}%"` : ""} data-check="${esc(item.id)}" aria-label="완료"></button><div class="body">`
         + `<div class="text" data-open="${esc(item.id)}">${withSec ? `<span class="psec" style="${colors[item.section || ""] && headInk(colors[item.section || ""], isDark(), 0) ? "color:" + headInk(colors[item.section || ""], isDark(), 0) : ""}">${esc(item.section || "기타")}</span> ` : ""}${item.star ? `<span class="star">★</span> ` : ""}${mark(many ? item.steps[item.step] : item.text)}${item.who ? avatarHtml(item.who) : ""}</div><div class="meta" data-open="${esc(item.id)}">`
-        + (many ? `<span class="prog"><i style="width:${Math.round((item.step + 1) * 100 / item.steps.length)}%"></i></span><span>${item.step + 1}/${item.steps.length}</span>` + (item.step < item.steps.length - 1 ? `<span>다음: ${esc(item.steps[item.step + 1])}</span>` : "") : "")
+        + (many ? `<span class="prog"><i style="width:${Math.round((item.step + 1) * 100 / item.steps.length)}%"></i></span><span>${isEn() ? "step " + (item.step + 1) + "/" + item.steps.length : (item.step + 1) + "/" + item.steps.length + "단계"}</span>` + (item.step < item.steps.length - 1 ? `<span>다음: ${esc(item.steps[item.step + 1])}</span>` : "") : "")
         + (item.wait ? `<span class="due wait${recheck(item) ? " now" : ""}">${waitLabel(item, true)}</span>` : due ? `<span class="due ${due.cls}">${due.text}</span>` : withSec && ageDays(item) > 0 ? `<span class="due far age">${ageDays(item)}일째</span>` : "") + (item.remind ? `<span>알림 ${remindLabel(item.remind)}</span>` : "")
         + (item.guide ? `<span class="guidetag">📖 ${T("안내")}</span>` : "") + (item.files ? `<span>첨부 ${item.files}</span>` : "") + (item.notes && opened !== item.id ? `<span>메모</span>` : "")
         + (item.from ? `<span class="from">${isEn() ? "From " + esc(item.from) : esc(item.from) + "님이 맡김"}${whenAssigned(item.fromAt)}</span>` : "") + `</div>`;
@@ -881,8 +881,7 @@ function render() {
   fillSubs();
   $("state").textContent = stateText();
   $("banner").hidden = !demo && (!!token || (booting && !!state));
-  $("bannerText").textContent = demo ? "견본 자료입니다" : "구글에 연결하면 내 할 일이 보입니다";
-  $("connect").hidden = demo;
+  setBanner();
   noticeFresh();
   // 앱으로 감쌌을 때: 앱이 마감일 알림을 걸 수 있게 지금 목록을 넘겨준다.
   try { window.PlannerNative?.onItems?.(view()); } catch {}
@@ -1164,7 +1163,15 @@ function applyLook() {
   const z = ({ small: 0.9, large: 1.2, xl: 1.4 })[look.size] || 1; $("list").style.zoom = z === 1 ? "" : String(z); document.body.classList.toggle("big", z > 1); document.body.classList.toggle("xl", look.size === "xl");
 }
 // PC 가 이 목록을 보낸 때(state.updated): PC 가 꺼져 있으면 오래된 목록일 수 있어 설정에 보인다
-function fromPcText() {
+// 연결 안내 띠: 끊겼는데 예전에 받은 목록이 있으면 '예전 목록' 인 걸 분명히(받은 때) + [다시 연결](대리님 제안 10/20: '연결 안 됨' 이 떠도 지운 반복 업무 · 지난 단계가 그대로 보여 헷갈렸다)
+function setBanner() {
+  const stale = !demo && !token && !!state;
+  const b = $("banner");
+  b.classList.toggle("stale", stale);
+  $("bannerText").textContent = demo ? "견본 자료입니다" : stale ? (isEn() ? "Disconnected — this is the old list" : "연결이 끊겨 예전 목록입니다") + (fromPcText() ? " · " + fromPcText().replace(/^PC 에서 받은 목록 · |^List from PC · /, "") : "") + (isEn() ? ". Please reconnect." : ". 다시 연결해 주세요.") : "구글에 연결하면 내 할 일이 보입니다";
+  $("connect").textContent = stale ? T("다시 연결") : T("구글 연결");
+  $("connect").hidden = demo;
+}function fromPcText() {
   const u = state && state.updated; if (!u) return "";
   const t = new Date(u); if (isNaN(t)) return "";
   const d = t.getFullYear() + "-" + String(t.getMonth() + 1).padStart(2, "0") + "-" + String(t.getDate()).padStart(2, "0");
@@ -1993,6 +2000,11 @@ async function selfTest() {
       const rep = dayReport();
       check("오늘 한 일 복사: 기다리는 일은 따로", /\n기다리는 중 1건\n- \[거래처\] 대표님 검토 · 대표님 검토 기다림 \(\d+\/\d+ 다시 보기\)$/.test(rep) && !/아직 남은 일[^]*대표님 검토 ·/.test(rep.split("기다리는 중")[0]), rep.slice(-140));
       check("오늘 한 일 복사에 남은 일 최근 소식", /계약서 수정 사항 확인 {2}· (최근|latest): 10\/18 수정본 메일 받음/.test(rep), rep.slice(-120));
+    }
+    { // 단계 진행은 '2/3단계'(그냥 '2/3' 은 날짜처럼 보였다 — 대리님 제안 10/20)
+      filter = "all"; opened = null; render(); await W(60);
+      const meta3 = document.querySelector('.item[data-id="s3"] .meta'), mt = meta3 ? meta3.textContent : "";
+      check("단계 표시 2/3단계(날짜와 구분)", /2\/3단계/.test(mt) || /step 2\/3/.test(mt), mt.slice(0, 40));
     }
     { // 업무 안내서(폰): 안내가 있는 일은 '📖 안내' 표시, 펼치면 안내 칸(이렇게 한다 · 주의)
       filter = "all"; opened = null; render(); await W(60);
