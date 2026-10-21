@@ -132,12 +132,15 @@ body.personal h1 .pf { display: inline-block; }
   .toast { position: fixed; z-index: 30; left: 50%; bottom: calc(150px + env(safe-area-inset-bottom)); transform: translateX(-50%); background: var(--accent); color: var(--on-accent); padding: 9px 14px; border-radius: 999px; font-size: 13.5px; display: flex; gap: 12px; align-items: center; white-space: nowrap; }
   .toast button { background: color-mix(in srgb, var(--on-accent) 18%, transparent); border: 0; color: inherit; font-weight: 700; padding: 5px 11px; border-radius: 999px; text-decoration: none; }
   .toast { box-shadow: 0 8px 24px rgba(0,0,0,.22); padding: 7px 8px 7px 16px; animation: toastIn .18s ease-out; }
-  .toast { max-width: calc(100vw - 24px); box-sizing: border-box; }
-  .toast #toastText { white-space: normal; line-height: 1.35; }
+  .toast { max-width: calc(100vw - 24px); box-sizing: border-box; left: 12px; right: 12px; margin: 0 auto; width: max-content; transform: none; border-radius: 22px; }     /* 가운데(left:50%)에서 시작하면 쓸 폭이 화면 절반뿐이라 긴 글이 한 글자씩 세로로 눌리던 것(10/21) */
+  .toast #toastText { white-space: normal; line-height: 1.35; flex: 1 1 170px; min-width: 0; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
   .toast button { flex: none; white-space: nowrap; }
+  .toast { flex-wrap: wrap; row-gap: 6px; } .toast #toastText + button:not([hidden]), .toast #noteLog[hidden] + #undo { margin-left: auto; }     /* 좁으면 단추가 다음 줄 오른쪽으로 */
+  .toast { pointer-events: none; } .toast button { pointer-events: auto; }     /* 넓어진 알림이 아래 목록(끌기 · 누르기)을 가리지 않게: 단추만 눌림 */
+  .toast.two { padding: 10px 10px 8px 16px; } .toast.two #toastText { flex-basis: 100%; }     /* 단추가 둘(한 줄 남기기 · 되돌리기)이면 늘 글 한 줄 · 아래 오른쪽에 단추 둘 */
   .lfoot { margin: 18px 12px 8px; text-align: center; font-size: 12px; color: var(--sub); line-height: 1.5; }     /* 작은 글씨라 대비 4.5(옅은 --faint 는 3.2 였다) */
   .toast #toastText::before { content: "✓"; display: inline-block; width: 18px; height: 18px; line-height: 18px; text-align: center; margin-right: 8px; border-radius: 50%; background: color-mix(in srgb, var(--on-accent) 22%, transparent); font-size: 11px; font-weight: 800; }
-  @keyframes toastIn { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
+  @keyframes toastIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
   .shade { position: fixed; left: 0; right: 0; top: 0; height: 100%; z-index: 20; background: var(--shade); display: flex; align-items: flex-end; overscroll-behavior: contain; }
   .sheet { width: 100%; max-height: 88%; overflow: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; background: var(--back); border-radius: 16px 16px 0 0; padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); }
   .sheet .row input { flex: 1; width: auto; }
@@ -610,8 +613,10 @@ function carriedDays(x) { return x.lateFrom && x.due && x.due >= today() ? Math.
 // 기다리는 중(PC 와 같음): 대표님 확인 · 회신 대기. 다시 볼 날 전엔 오늘 몫에서 빠지고, 그날이 되면 '다시 볼 것'
 const waiting = x => !!x.wait && !(x.waitUntil && x.waitUntil <= today());
 const recheck = x => !!x.wait && !!x.waitUntil && x.waitUntil <= today();
+// 알약에 쓸 짧은 이름: 괄호 · 대시 뒤 설명은 빼고, 그래도 길면 10자(AI 가 사정까지 길게 적어 잘려 보이던 것 10/21)
+function waitWho(s) { s = String(s || "").trim(); let cut = s.length; for (const sep of ["(", " — ", " - ", ":", ","]) { const i = s.indexOf(sep); if (i > 0 && i < cut) cut = i; } s = s.slice(0, cut).trim(); return s.length > 10 ? s.slice(0, 10).trim() + "…" : s; }
 function waitLabel(x, html) {
-  const w = x.wait.length > 12 ? x.wait.slice(0, 12) + "…" : x.wait, who = html ? `<span class="wwho">${esc(w)}</span>` : w;     // 누구는 사용자 자료(번역 안 함)
+  const w = waitWho(x.wait), who = html ? `<span class="wwho">${esc(w)}</span>` : w;     // 누구는 사용자 자료(번역 안 함)
   if (!x.waitUntil) return "⏳ " + who;
   return "⏳ " + who + " · " + (x.waitUntil <= today() ? (isEn() ? "check today" : "오늘 다시 보기") : (isEn() ? "check " + md(x.waitUntil) : md(x.waitUntil) + " 다시 보기"));
 }
@@ -891,7 +896,7 @@ function toast(text, op) {
   lastOp = op || null;
   $("toastText").textContent = text; $("undo").hidden = !op; $("toast").hidden = false;
   // 끝낸 직후에는 결과를 한 줄 남길 수 있게(PC 업무 기록 내용으로)
-  const canNote = !!(op && op.op === "check"); $("noteLog").hidden = !canNote;
+  const canNote = !!(op && op.op === "check"); $("noteLog").hidden = !canNote; $("toast").classList.toggle("two", canNote);
   clearTimeout(toastTimer); toastTimer = setTimeout(() => $("toast").hidden = true, canNote ? 9000 : 4000);
 }
 
@@ -2222,16 +2227,23 @@ async function selfTest() {
       a.scrollIntoView({ block: "center" }); await W(200);
       // 놓을 자리(a 카드 아래)가 아래 입력 막대에 가리면 화면을 그만큼 올린다(좁은 폰 · 카드가 높을 때 가끔 안 끌리던 것)
       { const need = a.getBoundingClientRect().bottom + 14 - (innerHeight - 120); if (need > 0) { window.scrollBy(0, need); const sc = document.scrollingElement; if (sc) sc.scrollTop += 0; await W(200); } }
+      // 집을 카드(b)가 위쪽 탭 줄 · 머리 밑에 깔리면 그만큼 내린다(넓은 화면에서 탭 줄을 누르던 것 10/21)
+      { const top = Math.max(...[...document.querySelectorAll("header, .chips")].map(h => h.getBoundingClientRect().bottom), 0), bt = b.querySelector(".text").getBoundingClientRect().top; if (bt < top + 8) { window.scrollBy(0, bt - top - 40); await W(200); } }
       const ra = a.querySelector(".text").getBoundingClientRect(), rb = b.querySelector(".text").getBoundingClientRect();
       const before = [...document.querySelectorAll(".item .text")].map(x => x.textContent).join("|");
       // 위의 것(b)을 아래 것(a) 밑으로 끌어내린다: 위로 끌면 키 작은 폰에서 놓는 자리가 위쪽 막대 밑이 될 수 있다
       const x = rb.left + rb.width / 2, y0 = rb.top + rb.height / 2, y1 = a.getBoundingClientRect().bottom + 14, el = document.elementFromPoint(x, y0);     /* 카드 전체 아래(소식 줄이 붙어도) */
-      const fire = (t, yy) => el.dispatchEvent(new PointerEvent(t, { bubbles: true, cancelable: true, clientX: x, clientY: yy, pointerId: 1, pointerType: "touch", isPrimary: true, button: 0, buttons: t === "pointerup" ? 0 : 1 }));
+      let tgt = el, fx = x, fy0 = y0, fy1 = y1;     // 다시 해 볼 때는 카드를 새로 찾는다(그 사이 목록을 다시 그리면 옛 카드는 화면에 없어 세 번 다 안 끌리던 것 10/21)
+      const fire = (t, yy) => tgt.dispatchEvent(new PointerEvent(t, { bubbles: true, cancelable: true, clientX: fx, clientY: yy, pointerId: 1, pointerType: "touch", isPrimary: true, button: 0, buttons: t === "pointerup" ? 0 : 1 }));
       // PC 가 바쁠 때(배포 시험) 길게 누르기가 덜 잡혀 가끔 안 끌림: 넉넉히 기다리고, 안 바뀌었으면 한 번 더
-      const drag = async () => { fire("pointerdown", y0); await W(950); for (let yy = y0; yy <= y1; yy += 7) { fire("pointermove", yy); await W(35); } fire("pointerup", y1); await W(800); };
+      const drag = async () => {
+        const nb = document.querySelector(`.item[data-id="${CSS.escape(b.dataset.id)}"]`), na = document.querySelector(`.item[data-id="${CSS.escape(a.dataset.id)}"]`);
+        if (nb && na && !tgt.isConnected) { const r2 = nb.querySelector(".text").getBoundingClientRect(); fx = r2.left + r2.width / 2; fy0 = r2.top + r2.height / 2; fy1 = na.getBoundingClientRect().bottom + 14; tgt = document.elementFromPoint(fx, fy0) || nb.querySelector(".text"); }
+        $("toast").hidden = true;     // 끝냄 알림이 떠 있으면 치운다
+        fire("pointerdown", fy0); await W(950); for (let yy = fy0; yy <= fy1; yy += 7) { fire("pointermove", yy); await W(35); } fire("pointerup", fy1); await W(800); };
       await drag();
       for (let tryN = 0; tryN < 2 && [...document.querySelectorAll(".item .text")].map(x => x.textContent).join("|") === before; tryN++) { await W(400); await drag(); }     // 바쁠 때 길게 누르기가 덜 잡힘: 세 번까지
-      check("흐름: 끌어서 순서 바꾸기", [...document.querySelectorAll(".item .text")].map(x => x.textContent).join("|") !== before, "a=" + a.dataset.id + " b=" + b.dataset.id + " y0=" + Math.round(y0) + " y1=" + Math.round(y1) + " h=" + innerHeight + " el=" + (el ? el.className : "-") + " sy=" + Math.round(scrollY));
+      check("흐름: 끌어서 순서 바꾸기", [...document.querySelectorAll(".item .text")].map(x => x.textContent).join("|") !== before, "a=" + a.dataset.id + " b=" + b.dataset.id + " y0=" + Math.round(y0) + " y1=" + Math.round(y1) + " h=" + innerHeight + " el=" + (el ? el.className : "-") + " connected=" + tgt.isConnected + " sy=" + Math.round(scrollY));
     } else check("흐름: 끌어서 순서 바꾸기", false, "할 일이 2개 미만");
     const setBtn = document.querySelectorAll("header button")[1]; if (setBtn) setBtn.click(); await W(500);
     const sh = document.querySelector(".sheet");
@@ -2469,6 +2481,14 @@ async function selfTest() {
     save("look", lookKeep); applyLook(); render(); await W(150);
     check("넘침 훑기(한 · 영 × 보통 · 아주 크게) · 폭 " + innerWidth, outs.size === 0, [...outs].slice(0, 4).join(" | "));
   } catch (e) { check("넘침 훑기", false, e.message); }
+  // 끝냄 알림(긴 단계 이름 + 한 줄 남기기 + 되돌리기): 글이 한 글자씩 세로로 눌려 큰 타원이 되던 것(대리님 폰 10/21) — 글 칸이 넉넉하고 두 줄 안, 화면 안
+  try {
+    toast("'신보안내서 수정사항 회신 확인, 반영 (서령 대리님)' 완료", { op: "check", id: "x" }); await W(250);
+    const tb = $("toast").getBoundingClientRect(), xb = $("toastText").getBoundingClientRect(), lh = parseFloat(getComputedStyle($("toastText")).lineHeight) || 18;
+    const toastOk = xb.width >= tb.width * 0.4 && xb.height <= lh * 2 + 4 && tb.left >= 0 && tb.right <= innerWidth + 1 && tb.height < 110;     /* 글 두 줄 + 단추 줄. 깨졌을 땐 수백 px */
+    $("toast").hidden = true; clearTimeout(toastTimer); $("toastText").textContent = "";
+    check("끝냄 알림 모양(긴 이름 · 단추 둘)", toastOk, "알림 " + Math.round(tb.width) + "x" + Math.round(tb.height) + " 글 " + Math.round(xb.width) + "x" + Math.round(xb.height));
+  } catch (e) { check("끝냄 알림 모양(긴 이름 · 단추 둘)", false, e.message); }  check("기다림 알약 짧은 이름(괄호 뒤 설명 빼기)", waitWho("대표님 확인 (중창단 00590 주소 수정본 확인 후 나이스다큐 발송)") === "대표님 확인" && waitWho("회신") === "회신" && waitWho("이영은 실장님 초안 검토 회신").length <= 11, waitWho("대표님 확인 (중창단 00590 주소 수정본)"));
   // 연결이 끊긴 채 예전 목록(제안 c6b94dba): 띠가 주황 · '예전 목록' · 받은 때 · [다시 연결]
   try {
     const keepDemo = demo, keepToken = token, keepState = state;
