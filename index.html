@@ -46,7 +46,7 @@
   .proj b { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .proj small { font-weight: 400; color: var(--sub); white-space: nowrap; flex: none; }     /* 아주 큰 글자 · 좁은 폭에서 "고정" 이 고/정 두 줄로 꺾이지 않게(이름이 대신 줄어듦) */
 /* 날짜순: 머리줄은 날짜 묶음(지남 · 오늘 빨강, 내일 주황, 나머지 회색), 줄 앞에 프로젝트 이름 */
-section.b9 { --sc: #7B4FD6; } section.b0 { --sc: var(--red); } section.b1 { --sc: var(--orange); } section.b2, section.b3, section.b4 { --sc: var(--sub); }
+section.b9 { --sc: #7B4FD6; } .uphead .hcopy { margin-left: auto; border: 0; border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 700; background: var(--card); color: var(--sub); } section.b0 { --sc: var(--red); } section.b1 { --sc: var(--orange); } section.b2, section.b3, section.b4 { --sc: var(--sub); }
 /* 팀: 맡은 사람 동그라미(줄 정보 끝), 받은 일 "OO님이 맡김" */
 .text .av { float: right; margin: 1px 0 0 8px; }     /* 남에게 맡긴 일: 제목 줄 오른쪽(PC 처럼) */
 .text .av, .meta .av, .sheet .av, #sheet .av { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--accent, #202124); color: #fff; font-size: 11px; font-weight: 700; flex: none; vertical-align: middle; }
@@ -550,7 +550,7 @@ const EN_PAT = [
   [/^(?:전날까지 마감이었던|지난 마감) (\d+)건을 오늘로 옮겼습니다$/, m => "Moved " + m[1] + " overdue to today"], [/^지난 마감 (\d+)건을 내일로 옮겼습니다$/, m => "Moved " + m[1] + " overdue to tomorrow"],
   [/^마감 (.+)로 추가했습니다$/, m => "Added, due " + m[1]],
   [/^'(.+)' 을\(를\) 삭제할까요\?$/, m => "Delete '" + m[1] + "'?"], [/^'(.+)' 부제를 없앨까요\? 할 일은 그대로 남습니다\.$/, m => "Remove subgroup '" + m[1] + "'? To-dos stay."],
-  [/^'(.+)' 완료$/, m => "Done: '" + m[1] + "'"], [/^(\d+)일째$/, m => m[1] + "d waiting"], [/^'(.+)' 완료 → 대기로 표시했습니다\((.+)\)$/, m => "Done: '" + m[1] + "' → waiting (" + m[2] + ")"], [/^대기 (\d+)건을 누구별로 복사했습니다 · 카톡 · 메일에 붙여 넣어 주세요$/, m => "Copied " + m[1] + " waiting — paste into chat or email"], [/^⇱ 할 일로 빼기(.*)$/, m => "⇱ Make it a to-do" + m[1]], [/^마감일 \(예: (.+), 비우면 지움\)$/, m => "Due date (e.g. " + m[1] + ", blank to clear)"]
+  [/^'(.+)' 완료$/, m => "Done: '" + m[1] + "'"], [/^(\d+)일째$/, m => m[1] + "d waiting"], [/^'(.+)' 완료 → 대기로 표시했습니다\((.+)\)$/, m => "Done: '" + m[1] + "' → waiting (" + m[2] + ")"], [/^대기 (\d+)건을 누구별로 복사했습니다 · 카톡 · 메일에 붙여 넣어 주세요$/, m => "Copied " + m[1] + " waiting — paste into chat or email"], [/^'(.+)' 대기 목록을 복사했습니다 · 카톡 · 메일에 붙여 넣어 주세요$/, m => "Copied the waiting list for " + m[1] + " — paste into chat or email"], [/^⇱ 할 일로 빼기(.*)$/, m => "⇱ Make it a to-do" + m[1]], [/^마감일 \(예: (.+), 비우면 지움\)$/, m => "Due date (e.g. " + m[1] + ", blank to clear)"]
 ];
 // 확인창 · 입력창(confirm · prompt)은 화면 글자가 아니라서 따로 바꾼다
 { const c0 = window.confirm.bind(window), p0 = window.prompt.bind(window); window.confirm = m => c0(T(String(m))); window.prompt = (m, d) => p0(T(String(m)), d); }
@@ -884,7 +884,7 @@ function render() {
     for (const x of todos) (groups[waitGroup(x.wait)] = groups[waitGroup(x.wait)] || []).push(x);
     for (const k of Object.keys(groups).sort((a, b) => groups[b].length - groups[a].length || (a < b ? -1 : a > b ? 1 : 0))) {
       const its = groups[k].sort((a, b) => (a.waitUntil || "9") < (b.waitUntil || "9") ? -1 : (a.waitUntil || "9") > (b.waitUntil || "9") ? 1 : 0);
-      html += `<section class="bucket b9"><div class="proj uphead"><b>⏳ ${esc(k)}</b><small>${its.length}</small></div><div class="board">` + its.map(x => itemHtml(x, true)).join("") + `</div></section>`;
+      html += `<section class="bucket b9"><div class="proj uphead"><b>⏳ ${esc(k)}</b><small>${its.length}</small><button class="hcopy" data-waitcopy="${esc(k)}">${T("복사")}</button></div><div class="board">` + its.map(x => itemHtml(x, true)).join("") + `</div></section>`;
     }
   }
   else if (filter === "next" || filter === "mine") {
@@ -1445,8 +1445,8 @@ function shareText(only, bare) {
 }// 대기 목록 복사(10/22, PC 편집 ▾ 와 같은 글): 기다리는 일을 누구별로 묶어 — 대표님께 확인 부탁할 것을 한 번에 보내게
 // 누구별 묶음(PC MainForm.WaitWhoGroup 과 같음): '○○님' 이 있으면 그 사람, 없으면 입금 · 서명 · 날인 · 회신, 그래도 없으면 기타
 function waitGroup(s) { const w = String(s || "").trim(), m = w.match(/(?:[가-힣A-Za-z]+\s)?[가-힣A-Za-z]+님/); if (m) { const who = m[0].trim(); return who.endsWith("대표님") ? "대표님" : who; } const en = isEn(); return /입금/.test(w) ? (en ? "Payment" : "입금") : /서명|날인/.test(w) ? (en ? "Signature" : "서명 · 날인") : /회신|답변|답장|피드백|컨펌|확인/.test(w) ? (en ? "Reply" : "회신") : (en ? "Other" : "기타"); }
-function waitListText() {
-  const en = isEn(), waits = view().filter(x => x.wait), t0 = today();
+function waitListText(only) {     // only: 그 사람 묶음만(대표님께 보낼 것만)
+  const en = isEn(), waits = view().filter(x => x.wait && (!only || waitGroup(x.wait) === only)), t0 = today();
   let out = (en ? "Waiting " + waits.length + " (as of " + md(t0) + ")" : "대기 중 " + waits.length + "건 (" + md(t0) + " 기준)");
   if (!waits.length) return out + "\n" + (en ? "Nothing is waiting" : "기다리는 일이 없습니다");
   const groups = {};
@@ -1815,6 +1815,7 @@ $("list").addEventListener("click", e => {
   }
   const chip = e.target.closest("[data-brief]");
   if (e.target.closest("[data-briefmore]")) { briefOpen = true; render(); return; }
+  { const wc = e.target.closest("[data-waitcopy]"); if (wc) { const g = wc.dataset.waitcopy; copy(waitListText(g)).then(ok => toast(ok ? "'" + g + "' 대기 목록을 복사했습니다 · 카톡 · 메일에 붙여 넣어 주세요" : "복사하지 못했습니다")); return; } }     // 대기 보기 사람 묶음 [복사]
   if (chip) { if (chip.dataset.brief === "maybewait") bulkWaitSheet(); else if (chip.dataset.brief === "waiting") { filter = "wait"; document.querySelectorAll("[data-filter]").forEach(c => c.classList.toggle("on", c.dataset.filter === "wait")); render(); window.scrollTo(0, 0); } else pickBrief(chip.dataset.brief); return; }     // 대기 중 알약 → [⏳ 대기] 보기(PC 와 같음)
   if (e.target.closest("[data-briefx]")) { save("briefHidden", today()); render(); return; }
   if (e.target.closest("#logAdd")) { addLogSheet(); return; }
@@ -2585,7 +2586,7 @@ async function selfTest() {
     if (chip && !chip.hidden) {
       chip.click(); await W(300);
       const secs = [...document.querySelectorAll("#list section.bucket.b9")], items = [...document.querySelectorAll("#list .item")];
-      viewOk = filter === "wait" && secs.length > 0 && secs.every(s => /⏳/.test(s.querySelector(".uphead").textContent)) && items.length > 0 && items.every(el => (view().find(t => t.id === el.dataset.id) || {}).wait) && !document.querySelector("#list .brief");
+      viewOk = filter === "wait" && secs.length > 0 && secs.every(s => /⏳/.test(s.querySelector(".uphead").textContent) && !!s.querySelector(".uphead .hcopy")) && items.length > 0 && items.every(el => (view().find(t => t.id === el.dataset.id) || {}).wait) && !document.querySelector("#list .brief");
       info = "secs=" + secs.length + " items=" + items.length;
       document.querySelector('[data-filter="all"]').click(); await W(250);
     } else info = "칩 없음";
@@ -2595,9 +2596,9 @@ async function selfTest() {
   try {
     const keepState = state, t0 = today(), d2 = new Date(Date.now() - 2 * 86400000), ago2 = d2.getFullYear() + "-" + String(d2.getMonth() + 1).padStart(2, "0") + "-" + String(d2.getDate()).padStart(2, "0"), d3 = new Date(Date.now() + 86400000), tmr = d3.getFullYear() + "-" + String(d3.getMonth() + 1).padStart(2, "0") + "-" + String(d3.getDate()).padStart(2, "0");
     state = { ...state, todos: [...state.todos.filter(t => !t.wait), { id: "wq-1", section: "대기목록 시험", text: "계약서 날인", steps: ["계약서 날인"], step: 0, wait: "시험이 대리님 확인 (주소 수정본 확인 후 발송)", waitSince: ago2, waitUntil: tmr }, { id: "wq-2", section: "대기목록 시험", text: "서류 받기", steps: ["서류 받기"], step: 0, wait: "시험이 대리님 확인", waitSince: t0, waitUntil: t0 }, { id: "wq-3", section: "대기목록 시험", text: "회신 받기", steps: ["회신 받기"], step: 0, wait: "시험삼 과장님 회신", waitSince: t0 }] };
-    const wl = waitListText();
+    const wl = waitListText(), wlOne = waitListText("시험이 대리님");
     state = keepState; render();
-    const wOk = wl.startsWith("대기 중 3건") && wl.indexOf("■ 시험이 대리님 2건") >= 0 && wl.indexOf("■ 시험삼 과장님 1건") > wl.indexOf("■ 시험이 대리님 2건") && wl.includes("- [대기목록 시험] 계약서 날인 · 시험이 대리님 확인 (주소 수정본 확인 후 발송) · " + md(ago2) + "부터 · " + md(tmr) + " 다시 보기") && wl.includes("- [대기목록 시험] 서류 받기 · 시험이 대리님 확인 · " + md(t0) + "부터 · 오늘 다시 보기") && wl.includes("- [대기목록 시험] 회신 받기 · 시험삼 과장님 회신 · " + md(t0) + "부터") && waitGroup("윤슬 이영은 실장님 플레이어 설명서 번역 텍스트") === "이영은 실장님" && waitGroup("대표님 제출 서류 3종") === "대표님" && waitGroup("직원 회신") === "회신" && waitGroup("VMG 계약서 수정본") === "기타";
+    const wOk = wl.startsWith("대기 중 3건") && wl.indexOf("■ 시험이 대리님 2건") >= 0 && wl.indexOf("■ 시험삼 과장님 1건") > wl.indexOf("■ 시험이 대리님 2건") && wl.includes("- [대기목록 시험] 계약서 날인 · 시험이 대리님 확인 (주소 수정본 확인 후 발송) · " + md(ago2) + "부터 · " + md(tmr) + " 다시 보기") && wl.includes("- [대기목록 시험] 서류 받기 · 시험이 대리님 확인 · " + md(t0) + "부터 · 오늘 다시 보기") && wl.includes("- [대기목록 시험] 회신 받기 · 시험삼 과장님 회신 · " + md(t0) + "부터") && waitGroup("윤슬 이영은 실장님 플레이어 설명서 번역 텍스트") === "이영은 실장님" && waitGroup("대표님 제출 서류 3종") === "대표님" && waitGroup("직원 회신") === "회신" && waitGroup("VMG 계약서 수정본") === "기타" && wlOne.startsWith("대기 중 2건") && !wlOne.includes("시험삼 과장님");     // 한 사람 것만 복사
     check("대기 목록 복사(누구별 · 사정 · 다시 볼 날)", wOk, wl.replace(/\n/g, " / ").slice(0, 160));
   } catch (e) { check("대기 목록 복사(누구별 · 사정 · 다시 볼 날)", false, e.message); }  // 아이폰 홈 화면 앱에서 구글 연결이 안 될 때 안내: 사파리로 열 주소 · [주소 복사]
   try { connectHint(); await W(150); const sh = $("sheet").textContent || ""; const ok = sh.includes("구글 연결이 안 되나요?") && sh.includes("사파리") && sh.includes(location.pathname) && !!document.querySelector("#sheet #copyAddr"); closeSheet(); await W(100); check("홈 화면 앱 구글 연결 안 될 때 안내(사파리 주소)", ok, sh.slice(0, 60)); } catch (e) { check("홈 화면 앱 구글 연결 안 될 때 안내(사파리 주소)", false, e.message); }  // 홈 화면에 추가 안내(10/22 아이폰 앱 7일 만료): 브라우저로 열면 맨 위 카드 → [방법 보기] 3단계 시트 → [닫기] 하면 다시 안 뜸
