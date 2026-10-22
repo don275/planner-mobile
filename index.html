@@ -206,6 +206,7 @@ body.xl .bchip { font-size: 11.2px; padding: 5px 10px; }     /* 아주 크게: �
   .lchip { display: inline-block; margin-top: 5px; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; background: color-mix(in srgb, var(--pc, var(--sub)) 16%, var(--card)); color: var(--pci, color-mix(in srgb, var(--pc, var(--sub)) 85%, var(--text))); }     /* --pci: 옅은 프로젝트 색이어도 대비 4.5 (headInk) */
   .logbar { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 12px 10px; }     /* 단추 셋: 한 줄 글자, 좁으면(영어 · 큰 글자) 다음 줄로 */
   .logbar button { flex: 1 1 auto; white-space: nowrap; padding: 10px 8px; border-radius: 12px; border: 1px solid var(--line, rgba(127,127,127,.25)); background: var(--card); color: var(--text); font-weight: 600; }
+  body.xl .wagain { display: none; } body.xl .due.wait { white-space: nowrap; max-width: 100%; } body.xl .due.wait .wwho { display: inline-block; max-width: 4.5em; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }     /* 아주 크게: 대기 알약 「다시 보기」 숨김 · 한 줄, 길면 누구만 …(날짜는 늘 보임) */
   body.xl .logbar { margin: 4px 0 10px; gap: 6px; } body.xl .logbar button { font-size: .8em; padding: 8px 4px; } body.xl #logAdd { flex-basis: 100%; }     /* 아주 크게: 적기는 한 줄 다, 복사 둘은 나란히(세 줄로 첫 화면 반을 차지하던 것 10/23) */
   .sheet label { display: block; font-size: 13px; color: var(--sub); margin: 10px 0 4px; }
   .sheet .end { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
@@ -647,7 +648,8 @@ function waitLabel(x, html) {
   const w = waitWho(x.wait), who = html ? `<span class="wwho">${esc(w)}</span>` : w;     // 누구는 사용자 자료(번역 안 함)
   const pre = html ? ic("wait") + " " : "";     // 알약에는 시계 선 아이콘, 글(복사 · 알림)에는 아이콘 없이
   if (!x.waitUntil) return pre + who;
-  return pre + who + " · " + (x.waitUntil <= today() ? (isEn() ? "check today" : "오늘 다시 보기") : (isEn() ? "check " + md(x.waitUntil) : md(x.waitUntil) + " 다시 보기"));
+  const again = s => html ? `<span class="wagain">${s}</span>` : s;     // 아주 크게에서는 「다시 보기」 를 숨겨 알약이 한 줄로(10/23 320px 두 줄로 꺾이던 것)
+  return pre + who + " · " + (x.waitUntil <= today() ? (isEn() ? again("check ") + "today" : "오늘" + again(" 다시 보기")) : (isEn() ? again("check ") + md(x.waitUntil) : md(x.waitUntil) + again(" 다시 보기")));
 }
 function briefMatch(kind) {
   const d = today();
@@ -2267,6 +2269,13 @@ async function selfTest() {
       const cut = [...document.querySelectorAll(".proj b")].filter(b => b.textContent.length <= 8 && (b.scrollWidth > b.clientWidth + 1 || b.scrollHeight > b.clientHeight + 1)).map(b => b.textContent);
       save("look", lookKeep3); applyLook(); render();
       check("아주 크게 프로젝트 이름 안 잘림", cut.length === 0, cut.join(",") || "없음");
+    }
+    { // 아주 크게: 대기 알약은 「다시 보기」 를 숨겨 한 줄로(320px 에서 '대표님 검토 · / 10/24 다시 보기' 두 줄로 꺾이던 것 10/23), 보통 크기는 그대로
+      const lookKeep5 = load("look", {}); save("look", { ...lookKeep5, size: "xl" }); applyLook(); render(); await W(100);
+      const wp = document.querySelector(".due.wait .wagain"), wpill = document.querySelector(".due.wait"), oneLine = !!wpill && wpill.getBoundingClientRect().height < parseFloat(getComputedStyle(wpill).fontSize) * 1.4 * 1.9, hid = (wp ? getComputedStyle(wp).display === "none" : false) && oneLine && wpill.scrollWidth <= wpill.clientWidth + 1;     // 날짜까지 다 보임(넘쳐 잘리지 않음)
+      save("look", lookKeep5); applyLook(); render(); await W(50);
+      const wp2 = document.querySelector(".due.wait .wagain"), shown = wp2 ? getComputedStyle(wp2).display !== "none" : false;
+      check("아주 크게 대기 알약 짧게", hid && shown, "xl 숨김 " + hid + " · 보통 보임 " + shown);
     }
     { // 한국어 글은 낱말 단위로 줄바꿈(제안함 '…날 보/기' 처럼 낱말 중간에서 끊기던 것 10/23) — 화면 전체 기본값
       const wbAll = getComputedStyle(document.body).wordBreak, owAll = getComputedStyle(document.body).overflowWrap;
