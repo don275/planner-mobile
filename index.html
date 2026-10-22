@@ -1815,7 +1815,7 @@ $("list").addEventListener("click", e => {
   }
   const chip = e.target.closest("[data-brief]");
   if (e.target.closest("[data-briefmore]")) { briefOpen = true; render(); return; }
-  if (chip) { if (chip.dataset.brief === "maybewait") bulkWaitSheet(); else pickBrief(chip.dataset.brief); return; }
+  if (chip) { if (chip.dataset.brief === "maybewait") bulkWaitSheet(); else if (chip.dataset.brief === "waiting") { filter = "wait"; document.querySelectorAll("[data-filter]").forEach(c => c.classList.toggle("on", c.dataset.filter === "wait")); render(); window.scrollTo(0, 0); } else pickBrief(chip.dataset.brief); return; }     // 대기 중 알약 → [⏳ 대기] 보기(PC 와 같음)
   if (e.target.closest("[data-briefx]")) { save("briefHidden", today()); render(); return; }
   if (e.target.closest("#logAdd")) { addLogSheet(); return; }
   const locEv = e.target.closest(".ev[data-loc]");
@@ -2589,6 +2589,7 @@ async function selfTest() {
       info = "secs=" + secs.length + " items=" + items.length;
       document.querySelector('[data-filter="all"]').click(); await W(250);
     } else info = "칩 없음";
+    { const bw = document.querySelector('[data-brief="waiting"]'); if (bw) { bw.click(); await W(250); viewOk = viewOk && filter === "wait" && !!document.querySelector("#list section.b9"); info += " brief=" + filter; document.querySelector('[data-filter="all"]').click(); await W(200); } }     // 오늘 카드 대기 중 알약을 누르면 [⏳ 대기] 보기로
     check("내 손을 떠난 일 대기 짐작 · [⏳ 대기] 보기", !bad.length && viewOk, bad.join(", ") + " " + info);
   } catch (e) { check("내 손을 떠난 일 대기 짐작 · [⏳ 대기] 보기", false, e.message); }  // 대기 목록 복사(10/22): 누구별 묶음(많은 쪽 먼저) · 괄호 뒤 사정 · 언제부터 · 다시 볼 날 — PC 와 같은 글
   try {
