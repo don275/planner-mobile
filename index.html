@@ -503,6 +503,7 @@ const EN = {
   "★ 중요": "★ Important", "중요 해제": "Unmark important", "단계 추가": "Add step", "메모 추가": "Add note", "복제": "Duplicate", "옮기기": "Move", "삭제": "Delete", "수정": "Edit",
   "이전 단계": "Previous step", "메모": "Note", "추가": "Add", "진행 한 줄": "Progress", "메모 → 진행": "Notes → progress", "메모 속 날짜 소식을 진행 한 줄로 옮겼습니다": "Dated note lines moved to progress", "다시 볼 것": "Check again", "다시 연결": "Reconnect", "구글 연결": "Connect Google", "이렇게 한다": "How to do it", "안내": "How-to", "더": "more", "주문 없음": "No orders", "재고 충분": "Enough stock", "대표님 부재": "Boss away", "이미 처리됨": "Already done", "대기 같은 일": "Looks like waiting", "대기로 표시할까요?": "Move to waiting?", "소식을 보면 남의 답을 기다리는 일 — 고른 것은 내일 다시": "News says they wait for someone — back tomorrow", "옮기기": "Move", "개를 대기로 · 내일 다시 보기": " moved to waiting · check again tomorrow", "대기 중": "Waiting", "⏳ 대기": "⏳ Waiting", "⏳ 대기 변경": "⏳ Edit waiting", "대기 해제": "Stop waiting", "대기를 해제했습니다": "Stopped waiting", "대기로 표시": "Waiting for…", "누구 · 무엇을": "Who · what", "언제 다시 볼까요": "When to check again", "기다리기": "Wait", "대기로 표시했습니다": "Marked as waiting", "대표님 확인": "Boss approval", "회신": "Reply", "입금": "Payment", "서류": "Documents", "오늘 오후": "Later today", "내일": "Tomorrow", "모레": "In 2 days", "다음 주 월": "Next Monday", "날짜 없이": "No date", "제안함": "Suggestions", "검토 대기": "Waiting for review", "하기로 함": "Planned", "반영됨": "Done", "안 하기로 함": "Not planned", "PC 로 보내는 중": "Sending to PC", "AI 와 쓰다 남긴 '있으면 좋겠다' — 보고 결과를 알려 드립니다": "Ideas left while using AI — each gets reviewed", "아직 제안이 없습니다": "No suggestions yet", "AI 에게 '이럴 때 이런 게 있으면 좋겠다' 고 말하거나 아래에 적어 주세요.": "Tell the AI 'it would help if…', or write one below.", "무엇이 있으면 좋겠나요?": "What would help?", "남기기": "Send", "제안을 남겼습니다": "Suggestion sent", "업무 · 개인": "Work · Personal", "업무": "Work", "개인": "Personal", "해당 없음": "N/A", "이유(선택)": "Reason (optional)", "해당 없음으로 처리했습니다": "Marked N/A", "지우기": "Delete", "진행 한 줄을 지웠습니다": "Progress line deleted", "진행 한 줄을 고쳤습니다": "Progress line edited", "지금 단계에 진행을 남겼습니다": "Progress added under the current step", "기타": "Other", "부제 없음": "No subgroup", "프로젝트": "Project", "부제": "Subgroup", "완료": "Done",
   "홈 화면에 추가하면 앱처럼 씁니다": "Add to Home Screen to use it like an app", "주소창 없이 아이콘을 눌러 바로 열립니다": "Opens from an icon, without the address bar", "방법 보기": "How", "홈 화면에 추가하기": "Add to Home Screen", "사파리 아래": "In Safari, tap", "안 보이면": "if hidden,", "공유": "Share", "단추를 눌러 주세요": "at the bottom", "목록에서": "Choose", "홈 화면에 추가": "Add to Home Screen", "를 눌러 주세요": "", "오른쪽 위": "Tap", "추가": "Add", "를 누르면 홈 화면에 아이콘이 생깁니다": "at the top right — an icon appears on your Home Screen", "크롬 오른쪽 위": "In Chrome, tap", "또는": "or", "앱 설치": "Install app", "홈 화면에 생긴 아이콘으로 열어 주세요": "Open it from the new icon", "구글 연결은 홈 화면 아이콘으로 연 뒤 한 번만 다시 해 주세요.": "After opening from the icon, connect Google once more.", "바로 설치": "Install now", "닫았습니다. 설정 › 홈 화면에 추가하기 에서 다시 볼 수 있습니다": "Hidden. Find it again in Settings › Add to Home Screen",
+  "⏳ 대기 목록 복사": "⏳ Copy waiting list", "대표님 확인 · 회신처럼 기다리는 일을 누구별로 묶어 복사합니다": "Things waiting on others (approval, reply), grouped by who", "대기 중인 일이 없습니다": "Nothing is waiting",
   "한 줄 남기기": "Add a line", "되돌리기": "Undo", "모두 오늘로": "All to today", "내일로": "To tomorrow",
   "오늘": "Today", "내일": "Tomorrow", "다음 7일": "Next 7 days", "나중에": "Later", "날짜 없음": "No date", "종일": "All day",
   "폰에는 오늘부터 2주 일정이 보입니다 · 더 먼 일정은 PC 일정 탭에서": "The phone shows 2 weeks from today · see further ahead in the PC Calendar tab",
@@ -545,7 +546,7 @@ const EN_PAT = [
   [/^(?:전날까지 마감이었던|지난 마감) (\d+)건을 오늘로 옮겼습니다$/, m => "Moved " + m[1] + " overdue to today"], [/^지난 마감 (\d+)건을 내일로 옮겼습니다$/, m => "Moved " + m[1] + " overdue to tomorrow"],
   [/^마감 (.+)로 추가했습니다$/, m => "Added, due " + m[1]],
   [/^'(.+)' 을\(를\) 삭제할까요\?$/, m => "Delete '" + m[1] + "'?"], [/^'(.+)' 부제를 없앨까요\? 할 일은 그대로 남습니다\.$/, m => "Remove subgroup '" + m[1] + "'? To-dos stay."],
-  [/^'(.+)' 완료$/, m => "Done: '" + m[1] + "'"], [/^(\d+)일째$/, m => m[1] + "d waiting"], [/^⇱ 할 일로 빼기(.*)$/, m => "⇱ Make it a to-do" + m[1]], [/^마감일 \(예: (.+), 비우면 지움\)$/, m => "Due date (e.g. " + m[1] + ", blank to clear)"]
+  [/^'(.+)' 완료$/, m => "Done: '" + m[1] + "'"], [/^(\d+)일째$/, m => m[1] + "d waiting"], [/^대기 (\d+)건을 누구별로 복사했습니다 · 카톡 · 메일에 붙여 넣어 주세요$/, m => "Copied " + m[1] + " waiting — paste into chat or email"], [/^⇱ 할 일로 빼기(.*)$/, m => "⇱ Make it a to-do" + m[1]], [/^마감일 \(예: (.+), 비우면 지움\)$/, m => "Due date (e.g. " + m[1] + ", blank to clear)"]
 ];
 // 확인창 · 입력창(confirm · prompt)은 화면 글자가 아니라서 따로 바꾼다
 { const c0 = window.confirm.bind(window), p0 = window.prompt.bind(window); window.confirm = m => c0(T(String(m))); window.prompt = (m, d) => p0(T(String(m)), d); }
@@ -1417,11 +1418,31 @@ function shareText(only, bare) {
     }
   }
   return out;
+}// 대기 목록 복사(10/22, PC 편집 ▾ 와 같은 글): 기다리는 일을 누구별로 묶어 — 대표님께 확인 부탁할 것을 한 번에 보내게
+function waitGroup(s) { s = String(s || "").trim(); let cut = s.length; for (const sep of ["(", " — ", " - ", ":", ","]) { const i = s.indexOf(sep); if (i > 0 && i < cut) cut = i; } return s.slice(0, cut).trim(); }
+function waitListText() {
+  const en = isEn(), waits = view().filter(x => x.wait), t0 = today();
+  let out = (en ? "Waiting " + waits.length + " (as of " + md(t0) + ")" : "대기 중 " + waits.length + "건 (" + md(t0) + " 기준)");
+  if (!waits.length) return out + "\n" + (en ? "Nothing is waiting" : "기다리는 일이 없습니다");
+  const groups = {};
+  for (const x of waits) (groups[waitGroup(x.wait)] = groups[waitGroup(x.wait)] || []).push(x);
+  const keys = Object.keys(groups).sort((a, b) => groups[b].length - groups[a].length || (a < b ? -1 : a > b ? 1 : 0));
+  for (const k of keys) {
+    out += "\n\n■ " + k + " " + (en ? groups[k].length : groups[k].length + "건");
+    for (const x of groups[k].sort((a, b) => (a.waitUntil || "9") < (b.waitUntil || "9") ? -1 : 1)) {
+      const where = x.sub ? (x.section || "") + " › " + x.sub : (x.section || ""), what = x.steps && x.steps.length > 1 ? x.steps[Math.min(x.step, x.steps.length - 1)] : x.text;
+      let detail = String(x.wait || "").trim(); detail = detail.startsWith(k) ? detail.slice(k.length).trim().replace(/^[(\-—:,\s]+|[)\-—:,\s]+$/g, "") : "";
+      const since = x.waitSince ? (en ? "since " + md(x.waitSince) : md(x.waitSince) + "부터") : "", until = x.waitUntil ? (x.waitUntil <= t0 ? (en ? "check today" : "오늘 다시 보기") : (en ? "check " + md(x.waitUntil) : md(x.waitUntil) + " 다시 보기")) : "";
+      out += "\n- " + (where ? "[" + where + "] " : "") + what + (detail ? " · " + detail : "") + [since, until].filter(Boolean).map(v => " · " + v).join("");
+    }
+  }
+  return out;
 }function showPhrases() {
   const list = (state && state.phrases) || [];
   const links = `<button class="phrase" id="shareOpen">남은 일 목록 복사<small>카톡 · 메일에 붙일 글로 복사합니다(끝낸 단계는 줄임). 한 프로젝트만은 목록에서 프로젝트 이름을 눌러 주세요</small></button>`
+    + `<button class="phrase" id="waitCopy">⏳ 대기 목록 복사<small>대표님 확인 · 회신처럼 기다리는 일을 누구별로 묶어 복사합니다</small></button>`
     + `<button class="phrase" id="linksOpen">링크 모음 만들기<small>주소나 받은 링크 글을 붙여 넣으면 보낼 글로 정리해 줍니다</small></button>`;
-  const ready = s => { s.querySelector("#linksOpen").onclick = () => storeLinks(); s.querySelector("#shareOpen").onclick = async () => { closeSheet(); toast(await copy(shareText()) ? "남은 일을 복사했습니다 · 카톡 · 메일에 붙여 넣어 주세요" : "복사하지 못했습니다"); }; };
+  const ready = s => { s.querySelector("#waitCopy").onclick = async () => { closeSheet(); const n = view().filter(x => x.wait).length; toast(!n ? "대기 중인 일이 없습니다" : await copy(waitListText()) ? "대기 " + n + "건을 누구별로 복사했습니다 · 카톡 · 메일에 붙여 넣어 주세요" : "복사하지 못했습니다"); }; s.querySelector("#linksOpen").onclick = () => storeLinks(); s.querySelector("#shareOpen").onclick = async () => { closeSheet(); toast(await copy(shareText()) ? "남은 일을 복사했습니다 · 카톡 · 메일에 붙여 넣어 주세요" : "복사하지 못했습니다"); }; };
   if (!list.length) { sheet(`<h2>문구</h2>` + links + `<div class="empty">저장한 문구가 없습니다. PC 앱의 [문구 ▾ › 문구 관리]에서 만들면 여기 보입니다.</div><div class="end"><button data-close>닫기</button></div>`, ready); return; }
   sheet(`<h2>문구</h2>` + links + list.map((p, i) => `<button class="phrase" data-phrase="${i}">${esc(p.name)}<small>${esc(p.text.replace(/\n+/g, " "))}</small></button>`).join("")
     + `<div class="end"><button data-close>닫기</button></div>`, ready);
@@ -2515,7 +2536,15 @@ async function selfTest() {
     const rollOk = !ids.includes("wl-1") && ids.includes("wl-2") && carriedDays(w3) === 0 && !(dueLabel(w3) || { text: "" }).text.includes("밀림");
     state = keepState; render();
     check("대기 중인 일은 오늘로 옮기기 · 밀림에서 빠짐", rollOk, ids.join(","));
-  } catch (e) { check("대기 중인 일은 오늘로 옮기기 · 밀림에서 빠짐", false, e.message); }  // 홈 화면에 추가 안내(10/22 아이폰 앱 7일 만료): 브라우저로 열면 맨 위 카드 → [방법 보기] 3단계 시트 → [닫기] 하면 다시 안 뜸
+  } catch (e) { check("대기 중인 일은 오늘로 옮기기 · 밀림에서 빠짐", false, e.message); }  // 대기 목록 복사(10/22): 누구별 묶음(많은 쪽 먼저) · 괄호 뒤 사정 · 언제부터 · 다시 볼 날 — PC 와 같은 글
+  try {
+    const keepState = state, t0 = today(), d2 = new Date(Date.now() - 2 * 86400000), ago2 = d2.getFullYear() + "-" + String(d2.getMonth() + 1).padStart(2, "0") + "-" + String(d2.getDate()).padStart(2, "0"), d3 = new Date(Date.now() + 86400000), tmr = d3.getFullYear() + "-" + String(d3.getMonth() + 1).padStart(2, "0") + "-" + String(d3.getDate()).padStart(2, "0");
+    state = { ...state, todos: [...state.todos.filter(t => !t.wait), { id: "wq-1", section: "대기목록 시험", text: "계약서 날인", steps: ["계약서 날인"], step: 0, wait: "시험 확인 (주소 수정본 확인 후 발송)", waitSince: ago2, waitUntil: tmr }, { id: "wq-2", section: "대기목록 시험", text: "서류 받기", steps: ["서류 받기"], step: 0, wait: "시험 확인", waitSince: t0, waitUntil: t0 }, { id: "wq-3", section: "대기목록 시험", text: "회신 받기", steps: ["회신 받기"], step: 0, wait: "시험 회신", waitSince: t0 }] };
+    const wl = waitListText();
+    state = keepState; render();
+    const wOk = wl.startsWith("대기 중 3건") && wl.indexOf("■ 시험 확인 2건") >= 0 && wl.indexOf("■ 시험 회신 1건") > wl.indexOf("■ 시험 확인 2건") && wl.includes("- [대기목록 시험] 계약서 날인 · 주소 수정본 확인 후 발송 · " + md(ago2) + "부터 · " + md(tmr) + " 다시 보기") && wl.includes("- [대기목록 시험] 서류 받기 · " + md(t0) + "부터 · 오늘 다시 보기") && wl.includes("- [대기목록 시험] 회신 받기 · " + md(t0) + "부터");
+    check("대기 목록 복사(누구별 · 사정 · 다시 볼 날)", wOk, wl.replace(/\n/g, " / ").slice(0, 160));
+  } catch (e) { check("대기 목록 복사(누구별 · 사정 · 다시 볼 날)", false, e.message); }  // 홈 화면에 추가 안내(10/22 아이폰 앱 7일 만료): 브라우저로 열면 맨 위 카드 → [방법 보기] 3단계 시트 → [닫기] 하면 다시 안 뜸
   try {
     const keepHide = load("installHide", false); save("installHide", false); installForce = true; filter = "all"; render(); await W(150);
     const card = $("installCard"), firstCard = document.querySelector("#list > div"), cardOk = !!card && firstCard === card && card.textContent.includes("홈 화면에 추가하면"); const r1 = card ? $("installHow").getBoundingClientRect() : null, r2 = card ? $("installHide").getBoundingClientRect() : null, apart = !!r1 && !!r2 && (r1.right <= r2.left || r2.right <= r1.left || r1.bottom <= r2.top || r2.bottom <= r1.top) && getComputedStyle($("installHide")).position === "static";     /* 두 단추가 겹치지 않음(drag 용 .ghost 와 이름이 겹쳐 [닫기] 가 떠 있던 것) */
