@@ -205,6 +205,7 @@ body.xl .bchip { font-size: 11.2px; padding: 5px 10px; }     /* 아주 크게: �
   .lchip { display: inline-block; margin-top: 5px; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; background: color-mix(in srgb, var(--pc, var(--sub)) 16%, var(--card)); color: var(--pci, color-mix(in srgb, var(--pc, var(--sub)) 85%, var(--text))); }     /* --pci: 옅은 프로젝트 색이어도 대비 4.5 (headInk) */
   .logbar { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 12px 10px; }     /* 단추 셋: 한 줄 글자, 좁으면(영어 · 큰 글자) 다음 줄로 */
   .logbar button { flex: 1 1 auto; white-space: nowrap; padding: 10px 8px; border-radius: 12px; border: 1px solid var(--line, rgba(127,127,127,.25)); background: var(--card); color: var(--text); font-weight: 600; }
+  body.xl .logbar { margin: 4px 0 10px; gap: 6px; } body.xl .logbar button { font-size: .8em; padding: 8px 4px; } body.xl #logAdd { flex-basis: 100%; }     /* 아주 크게: 적기는 한 줄 다, 복사 둘은 나란히(세 줄로 첫 화면 반을 차지하던 것 10/23) */
   .sheet label { display: block; font-size: 13px; color: var(--sub); margin: 10px 0 4px; }
   .sheet .end { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
   .lkrows { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
@@ -2444,6 +2445,14 @@ async function selfTest() {
     tab("전체");
   } catch (e) { errs.push(e.message); }
   check("자바스크립트 오류 없음", errs.length === 0, errs.join(" / "));
+  // 아주 크게 · 좁은 폭 기록 탭: 복사 단추 둘(오늘 · 이번 주)은 한 줄에 — 단추 셋이 세 줄로 첫 화면 반을 차지하던 것(10/23 320px)
+  try {
+    const lookKeepL = load("look", {}); save("look", { ...lookKeepL, size: "xl" }); applyLook(); tab("기록"); await W(200);
+    const c1 = $("logCopy"), c2 = $("logWeek"), same = !!c1 && !!c2 && Math.abs(c1.getBoundingClientRect().top - c2.getBoundingClientRect().top) < 2;
+    const info = c1 && c2 ? Math.round(c1.getBoundingClientRect().top) + "/" + Math.round(c2.getBoundingClientRect().top) : "없음";
+    save("look", lookKeepL); applyLook(); tab("전체");
+    check("아주 크게 기록 복사 단추 한 줄", same, info);
+  } catch (e) { check("아주 크게 기록 복사 단추 한 줄", false, e.message); }
   // 글자 크기 '아주 크게': 목록이 1.4배로 커지고, 끌 때 빈자리가 카드와 같은 높이(v93 전에는 1.4배 더 높아 놓는 곳이 어긋났다)
   try {
     const lookKeep = load("look", {}); save("look", { ...lookKeep, size: "xl" }); applyLook(); tab("전체"); await W(300);
