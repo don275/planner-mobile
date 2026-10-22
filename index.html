@@ -634,9 +634,11 @@ function briefMatch(kind) {
 }
 // 홈 화면에 설치한 앱 아이콘 배지: 오늘 마감 + 지난 마감 수(PC 트레이 글과 같은 기준). 지원 안 하는 브라우저는 그냥 넘어간다
 let badgeShown = -1;
+// 배지 수: 오늘 마감 + 지난 마감 + 대기하다 오늘 다시 볼 일(마감으로 이미 센 것은 빼고) — PC 트레이 글과 같은 기준
+function badgeCount() { const t0 = today(); return briefMatch("today").length + briefMatch("late").length + briefMatch("recheck").filter(x => !(x.due && x.due <= t0)).length; }
 function updateBadge() {
   if (!state || demo && !window.__badgeTest) return;
-  const n = briefMatch("today").length + briefMatch("late").length;
+  const n = badgeCount();
   if (n === badgeShown) return; badgeShown = n;
   try { if (n > 0 && navigator.setAppBadge) navigator.setAppBadge(n).catch(() => {}); else if (navigator.clearAppBadge) navigator.clearAppBadge().catch(() => {}); } catch {}
 }
@@ -2536,7 +2538,14 @@ async function selfTest() {
     const rollOk = !ids.includes("wl-1") && ids.includes("wl-2") && carriedDays(w3) === 0 && !(dueLabel(w3) || { text: "" }).text.includes("밀림");
     state = keepState; render();
     check("대기 중인 일은 오늘로 옮기기 · 밀림에서 빠짐", rollOk, ids.join(","));
-  } catch (e) { check("대기 중인 일은 오늘로 옮기기 · 밀림에서 빠짐", false, e.message); }  // 대기 목록 복사(10/22): 누구별 묶음(많은 쪽 먼저) · 괄호 뒤 사정 · 언제부터 · 다시 볼 날 — PC 와 같은 글
+  } catch (e) { check("대기 중인 일은 오늘로 옮기기 · 밀림에서 빠짐", false, e.message); }  // 앱 아이콘 배지: 대기하다 오늘 다시 볼 일도 셈(마감이 오늘 · 지난 일은 이미 셈 — 두 번 세지 않음, PC 트레이와 같음)
+  try {
+    const keepState = state, t0 = today(), d5 = new Date(Date.now() + 5 * 86400000), in5 = d5.getFullYear() + "-" + String(d5.getMonth() + 1).padStart(2, "0") + "-" + String(d5.getDate()).padStart(2, "0");
+    const b0 = badgeCount();
+    state = { ...state, todos: [...state.todos, { id: "bg-1", section: "배지 시험", text: "다음 주 마감 대기", steps: ["다음 주 마감 대기"], step: 0, due: in5, wait: "회신", waitUntil: t0 }, { id: "bg-2", section: "배지 시험", text: "오늘 마감 대기", steps: ["오늘 마감 대기"], step: 0, due: t0, wait: "회신", waitUntil: t0 }] };
+    const b1 = badgeCount(); state = keepState; render();
+    check("앱 배지: 오늘 다시 볼 대기 일도 셈(두 번 안 셈)", b1 === b0 + 2, b0 + "->" + b1);
+  } catch (e) { check("앱 배지: 오늘 다시 볼 대기 일도 셈(두 번 안 셈)", false, e.message); }  // 대기 목록 복사(10/22): 누구별 묶음(많은 쪽 먼저) · 괄호 뒤 사정 · 언제부터 · 다시 볼 날 — PC 와 같은 글
   try {
     const keepState = state, t0 = today(), d2 = new Date(Date.now() - 2 * 86400000), ago2 = d2.getFullYear() + "-" + String(d2.getMonth() + 1).padStart(2, "0") + "-" + String(d2.getDate()).padStart(2, "0"), d3 = new Date(Date.now() + 86400000), tmr = d3.getFullYear() + "-" + String(d3.getMonth() + 1).padStart(2, "0") + "-" + String(d3.getDate()).padStart(2, "0");
     state = { ...state, todos: [...state.todos.filter(t => !t.wait), { id: "wq-1", section: "대기목록 시험", text: "계약서 날인", steps: ["계약서 날인"], step: 0, wait: "시험 확인 (주소 수정본 확인 후 발송)", waitSince: ago2, waitUntil: tmr }, { id: "wq-2", section: "대기목록 시험", text: "서류 받기", steps: ["서류 받기"], step: 0, wait: "시험 확인", waitSince: t0, waitUntil: t0 }, { id: "wq-3", section: "대기목록 시험", text: "회신 받기", steps: ["회신 받기"], step: 0, wait: "시험 회신", waitSince: t0 }] };
