@@ -98,7 +98,8 @@ body.personal h1 .pf { display: inline-block; }
 .steps li.done.na span { text-decoration: none; color: var(--faint); }     /* 해당 없음: 끝냄(줄 긋기)과 구별 — li.done 보다 우선 */
 .nachip { font-style: normal; font-size: 11.5px; padding: 1px 8px; border-radius: 999px; background: var(--track, #f1f3f4); color: var(--sub); white-space: nowrap; }
 .news.memo::before { content: "✎ "; }
-  .steps li span { flex: 1; min-width: 0; word-break: keep-all; overflow-wrap: anywhere; }
+  .steps li span { flex: 1 1 6em; min-width: 0; word-break: keep-all; overflow-wrap: anywhere; }
+  .steps li { flex-wrap: wrap; } .meta span { word-break: keep-all; overflow-wrap: anywhere; }     /* 좁으면 날짜 단추가 다음 줄로(단계 이름이 '안내/문/작성' 한 글자씩 꺾이던 것), '다음: … 발송' 낱말 중간 안 끊김 10/23 */
   .steps li.done span { text-decoration: line-through; color: var(--faint); }
   .steps li.now span { color: var(--text); font-weight: 700; }
   .steps li button, .acts button { font-size: 12.5px; padding: 3px 9px; border-radius: 999px; }
@@ -2266,6 +2267,13 @@ async function selfTest() {
       const cut = [...document.querySelectorAll(".proj b")].filter(b => b.textContent.length <= 8 && (b.scrollWidth > b.clientWidth + 1 || b.scrollHeight > b.clientHeight + 1)).map(b => b.textContent);
       save("look", lookKeep3); applyLook(); render();
       check("아주 크게 프로젝트 이름 안 잘림", cut.length === 0, cut.join(",") || "없음");
+    }
+    { // 아주 크게 · 좁은 폭 펼친 할 일: 단계 이름이 날짜 단추에 밀려 '안내/문/작성' 한 글자씩 꺾이지 않음, '다음: … 발송' 도 낱말 중간에서 안 끊김(10/23 320px)
+      const lookKeep4 = load("look", {}); save("look", { ...lookKeep4, size: "xl" }); applyLook(); opened = "s3"; render(); await W(100);
+      const nowSp = document.querySelector('.item[data-id="s3"] .steps li.now span'), fs4 = nowSp ? parseFloat(getComputedStyle(nowSp).fontSize) : 0, w4 = nowSp ? nowSp.clientWidth : 0;
+      const nx = [...document.querySelectorAll('.item[data-id="s3"] .meta span')].find(s => s.textContent.startsWith("다음")), wb = nx ? getComputedStyle(nx).wordBreak : "없음";
+      opened = ""; save("look", lookKeep4); applyLook(); render();
+      check("아주 크게 펼친 단계 이름 안 꺾임", !!nowSp && w4 >= fs4 * 5 && wb === "keep-all", "폭 " + w4 + " / 글자 " + fs4 + " · 다음 " + wb);
     }
     { // 해당 없음 단계는 줄을 긋지 않음(끝냄과 구별)
       const keepInbox2 = inbox.slice(); inbox.push({ op: "skip", id: "s1", reason: "주문 없음" }); opened = "s1"; render(); await W(100);
