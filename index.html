@@ -24,7 +24,7 @@
   html, body { margin: 0; background: var(--back); color: var(--text); font: 15px/1.45 -apple-system, "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; }
   html, body { height: 100%; overflow: hidden; overscroll-behavior: none; }
   /* 앱 창에 꼭 맞춘다(높이 값을 따로 재지 않는다). 키보드가 화면을 덮는 경우에만 그만큼 위로 올린다 */
-  body { position: fixed; left: 0; right: 0; top: 0; bottom: var(--kb, 0px); display: flex; flex-direction: column; padding-bottom: var(--ad, 0px); }
+  body { position: fixed; left: 0; right: 0; top: 0; bottom: var(--kb, 0px); display: flex; flex-direction: column; padding-bottom: var(--ad, 0px); word-break: keep-all; overflow-wrap: break-word; }     /* 한국어는 낱말 단위로 줄바꿈(제안함 '…날 보/기' 10/23), 아주 긴 낱말만 끊음 */
   header { flex: none; z-index: 5; background: var(--back); padding: calc(10px + env(safe-area-inset-top)) 16px 8px; border-bottom: 1px solid var(--line); }
   .top { display: flex; align-items: center; gap: 8px; }
   h1 { font-size: 18px; margin: 0; flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }     /* 맨 위 상태 글(PC 대기 n)이 길면 제목이 줄어듦 */
@@ -2267,6 +2267,10 @@ async function selfTest() {
       const cut = [...document.querySelectorAll(".proj b")].filter(b => b.textContent.length <= 8 && (b.scrollWidth > b.clientWidth + 1 || b.scrollHeight > b.clientHeight + 1)).map(b => b.textContent);
       save("look", lookKeep3); applyLook(); render();
       check("아주 크게 프로젝트 이름 안 잘림", cut.length === 0, cut.join(",") || "없음");
+    }
+    { // 한국어 글은 낱말 단위로 줄바꿈(제안함 '…날 보/기' 처럼 낱말 중간에서 끊기던 것 10/23) — 화면 전체 기본값
+      const wbAll = getComputedStyle(document.body).wordBreak, owAll = getComputedStyle(document.body).overflowWrap;
+      check("낱말 중간 줄바꿈 없음(전체)", wbAll === "keep-all" && owAll === "break-word", wbAll + " / " + owAll);
     }
     { // 아주 크게 · 좁은 폭 펼친 할 일: 단계 이름이 날짜 단추에 밀려 '안내/문/작성' 한 글자씩 꺾이지 않음, '다음: … 발송' 도 낱말 중간에서 안 끊김(10/23 320px)
       const lookKeep4 = load("look", {}); save("look", { ...lookKeep4, size: "xl" }); applyLook(); opened = "s3"; render(); await W(100);
