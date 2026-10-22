@@ -966,7 +966,7 @@ $("state").addEventListener("click", () => {
 function waitStepWho(step) {
   const s = String(step || "").trim().replace(/\s*\([^)]*\)\s*$/, "");
   if (/(요청|보내|발송|전달|작성|공유|드리|정리|등록|입력|안내|노티스|전화|연락|리마인드|준비|님께|에게|논의|저장|반영|회신 검토)/.test(s)) return null;
-  if (!/(회신|답변|답장|컨펌|승인|결재|입금|날인|서명|피드백|대표님 ?(확인|검토)|확인 받기|검토 받기|대기|기다림)/.test(s)) return null;
+  if (!/(회신|답변|답장|컨펌|승인|결재|입금|날인|서명|피드백|대표님[^,·→]{0,14}?(확인|검토)|확인 받기|검토 받기|대기|기다림)/.test(s)) return null;     // 대표님과 확인 사이에 말이 끼어도('대표님 확정본(번호) 확인' 10/22)
   return s.includes("대표님") ? "대표님 확인" : /입금/.test(s) ? "입금" : /날인|서명/.test(s) ? "서명" : "회신";
 }
 function nextWorkday() { const d = new Date(); do d.setDate(d.getDate() + 1); while (d.getDay() === 0 || d.getDay() === 6); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
@@ -2580,7 +2580,7 @@ async function selfTest() {
     check("앱 배지: 오늘 다시 볼 대기 일도 셈(두 번 안 셈)", b1 === b0 + 2, b0 + "->" + b1);
   } catch (e) { check("앱 배지: 오늘 다시 볼 대기 일도 셈(두 번 안 셈)", false, e.message); }  // 내 손을 떠난 일은 대기로(10/22): 다음 단계 이름으로 짐작 + [⏳ n] 대기 보기(누구별 묶음 · 대기 일만)
   try {
-    const cases = [["회신 확인", "회신"], ["대표님 확인", "대표님 확인"], ["대표님께 확인 요청", null], ["입금 확인", "입금"], ["체결 완료 확인", null], ["LMST 날인 요청", null], ["상대 서명 받기", "서명"], ["VMG 회신 대기 (10/21)", "회신"], ["이슬아님께 답장", null], ["Keith 회신 검토, 대표님과 논의", null], ["회신 자료 pdf 규격 저장", null], ["대표님 날인", "대표님 확인"]];
+    const cases = [["회신 확인", "회신"], ["대표님 확인", "대표님 확인"], ["대표님께 확인 요청", null], ["입금 확인", "입금"], ["체결 완료 확인", null], ["LMST 날인 요청", null], ["상대 서명 받기", "서명"], ["VMG 회신 대기 (10/21)", "회신"], ["이슬아님께 답장", null], ["Keith 회신 검토, 대표님과 논의", null], ["회신 자료 pdf 규격 저장", null], ["대표님 날인", "대표님 확인"], ["V.teum(김형섭) 대표님 확정본(번호) 확인", "대표님 확인"], ["LMST·Ashall: 대표님 계약서 확인", "대표님 확인"], ["대표님께 계약서 확인 요청", null]];
     const bad = cases.filter(c => waitStepWho(c[0]) !== c[1]).map(c => c[0] + "=" + waitStepWho(c[0]));
     const chip = $("waitChip"); let viewOk = false, info = "";
     if (chip && !chip.hidden) {
