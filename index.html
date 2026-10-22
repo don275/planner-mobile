@@ -206,6 +206,7 @@ body.xl .bchip { font-size: 11.2px; padding: 5px 10px; }     /* 아주 크게: �
   .lchip { display: inline-block; margin-top: 5px; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; background: color-mix(in srgb, var(--pc, var(--sub)) 16%, var(--card)); color: var(--pci, color-mix(in srgb, var(--pc, var(--sub)) 85%, var(--text))); }     /* --pci: 옅은 프로젝트 색이어도 대비 4.5 (headInk) */
   .logbar { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 12px 10px; }     /* 단추 셋: 한 줄 글자, 좁으면(영어 · 큰 글자) 다음 줄로 */
   .logbar button { flex: 1 1 auto; white-space: nowrap; padding: 10px 8px; border-radius: 12px; border: 1px solid var(--line, rgba(127,127,127,.25)); background: var(--card); color: var(--text); font-weight: 600; }
+  .item:not(.open) .text { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; overflow: hidden; }     /* 아주 긴 이름은 접힌 카드에서 네 줄까지(…), 펼치면 전체(10/23) */
   body.xl .wagain { display: none; } body.xl .due.wait { white-space: nowrap; max-width: 100%; } body.xl .due.wait .wwho { display: inline-block; max-width: 4.5em; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }     /* 아주 크게: 대기 알약 「다시 보기」 숨김 · 한 줄, 길면 누구만 …(날짜는 늘 보임) */
   body.xl .logbar { margin: 4px 0 10px; gap: 6px; } body.xl .logbar button { font-size: .8em; padding: 8px 4px; } body.xl #logAdd { flex-basis: 100%; }     /* 아주 크게: 적기는 한 줄 다, 복사 둘은 나란히(세 줄로 첫 화면 반을 차지하던 것 10/23) */
   .sheet label { display: block; font-size: 13px; color: var(--sub); margin: 10px 0 4px; }
@@ -2276,6 +2277,16 @@ async function selfTest() {
       save("look", lookKeep5); applyLook(); render(); await W(50);
       const wp2 = document.querySelector(".due.wait .wagain"), shown = wp2 ? getComputedStyle(wp2).display !== "none" : false;
       check("아주 크게 대기 알약 짧게", hid && shown, "xl 숨김 " + hid + " · 보통 보임 " + shown);
+    }
+    { // 아주 긴 할 일 이름: 접힌 카드에서는 네 줄까지(…) — 한 건이 첫 화면을 다 차지하던 것(PC 미니 창 10/23), 펼치면 전체
+      const longT = Array(30).fill("계약 수정 검토 코드 확인 이름(사람)").join(" ");
+      state.todos.push({ id: "lt-x", section: "긴 이름 시험", text: longT, steps: [longT], step: 0, due: "", stepDues: [], notes: "", repeat: false });
+      opened = ""; render(); await W(80);
+      const tx = document.querySelector('.item[data-id="lt-x"] .text'), lh = tx ? parseFloat(getComputedStyle(tx).lineHeight) || parseFloat(getComputedStyle(tx).fontSize) * 1.4 : 0, hClosed = tx ? tx.getBoundingClientRect().height : 0;
+      opened = "lt-x"; render(); await W(80);
+      const tx2 = document.querySelector('.item[data-id="lt-x"] .text'), hOpen = tx2 ? tx2.getBoundingClientRect().height : 0;
+      opened = ""; state.todos = state.todos.filter(x => x.id !== "lt-x"); render();
+      check("긴 이름 접힌 카드 네 줄까지", !!tx && hClosed <= lh * 4.6 && hOpen > hClosed * 1.5, "접힘 " + Math.round(hClosed) + " · 펼침 " + Math.round(hOpen) + " · 줄 " + Math.round(lh));
     }
     { // 한국어 글은 낱말 단위로 줄바꿈(제안함 '…날 보/기' 처럼 낱말 중간에서 끊기던 것 10/23) — 화면 전체 기본값
       const wbAll = getComputedStyle(document.body).wordBreak, owAll = getComputedStyle(document.body).overflowWrap;
