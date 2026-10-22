@@ -965,7 +965,7 @@ $("state").addEventListener("click", () => {
 // 내 손을 떠난 일은 대기로(10/22 사장님, PC TodoPanel.WaitStepWho 와 같은 규칙): 다음 단계가 회신 확인 · 대표님 확인 · 입금 확인 · 날인 · 승인처럼 남이 해 줘야 하는 단계면 대기. 내가 하는 말(요청 · 발송 · 전달 …)이 있으면 아님
 function waitStepWho(step) {
   const s = String(step || "").trim().replace(/\s*\([^)]*\)\s*$/, "");
-  if (/(요청|보내|발송|전달|작성|공유|드리|정리|등록|입력|안내|노티스|전화|연락|리마인드|준비)/.test(s)) return null;
+  if (/(요청|보내|발송|전달|작성|공유|드리|정리|등록|입력|안내|노티스|전화|연락|리마인드|준비|님께|에게|논의|저장|반영|회신 검토)/.test(s)) return null;
   if (!/(회신|답변|답장|컨펌|승인|결재|입금|날인|서명|피드백|대표님 ?(확인|검토)|확인 받기|검토 받기|대기|기다림)/.test(s)) return null;
   return s.includes("대표님") ? "대표님 확인" : /입금/.test(s) ? "입금" : /날인|서명/.test(s) ? "서명" : "회신";
 }
@@ -2579,7 +2579,7 @@ async function selfTest() {
     check("앱 배지: 오늘 다시 볼 대기 일도 셈(두 번 안 셈)", b1 === b0 + 2, b0 + "->" + b1);
   } catch (e) { check("앱 배지: 오늘 다시 볼 대기 일도 셈(두 번 안 셈)", false, e.message); }  // 내 손을 떠난 일은 대기로(10/22): 다음 단계 이름으로 짐작 + [⏳ n] 대기 보기(누구별 묶음 · 대기 일만)
   try {
-    const cases = [["회신 확인", "회신"], ["대표님 확인", "대표님 확인"], ["대표님께 확인 요청", null], ["입금 확인", "입금"], ["체결 완료 확인", null], ["LMST 날인 요청", null], ["상대 서명 받기", "서명"], ["VMG 회신 대기 (10/21)", "회신"]];
+    const cases = [["회신 확인", "회신"], ["대표님 확인", "대표님 확인"], ["대표님께 확인 요청", null], ["입금 확인", "입금"], ["체결 완료 확인", null], ["LMST 날인 요청", null], ["상대 서명 받기", "서명"], ["VMG 회신 대기 (10/21)", "회신"], ["이슬아님께 답장", null], ["Keith 회신 검토, 대표님과 논의", null], ["회신 자료 pdf 규격 저장", null], ["대표님 날인", "대표님 확인"]];
     const bad = cases.filter(c => waitStepWho(c[0]) !== c[1]).map(c => c[0] + "=" + waitStepWho(c[0]));
     const chip = $("waitChip"); let viewOk = false, info = "";
     if (chip && !chip.hidden) {
