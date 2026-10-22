@@ -2724,6 +2724,12 @@ async function selfTest() {
     const pillOver = [...document.querySelectorAll(".board .item")].filter(it => { const d = it.querySelector(".meta .due"), tx = it.querySelector(".text"); if (!d || !tx || getComputedStyle(d).position !== "absolute") return false; const tr = tx.getBoundingClientRect(); return tr.left + tx.clientWidth - parseFloat(getComputedStyle(tx).paddingRight) > d.getBoundingClientRect().left + 1; }).length;
     save("look", lookKeep);
   { const bad = []; for (let k = 0; k < 7; k++) { const b0 = day(new Date(Date.parse("2026-10-19") + k * 86400000)), w = waitWhens(b0).filter(p => p[1] && p[1] !== b0); w.forEach(p => { const d = new Date(Date.parse(p[1])).getUTCDay(); if (d === 0 || d === 6) bad.push(b0 + ":" + p[0]); }); if (new Set(w.map(p => p[1])).size !== w.length) bad.push(b0 + ":겹침"); } check("대기 다시 볼 날 칩: 주말 · 겹침 없음(요일 7가지)", !bad.length, bad.join(", ")); }
+  { // 지난 마감 띠 두 번째 단추: 다음 근무일로 옮김(금요일이면 월요일, PC 와 같음 10/23)
+    const keepState = state, keepInbox = inbox.slice(); state = { ...state, todos: [...state.todos, { id: "lt-1", section: "지난 마감 시험", text: "지난 일", steps: ["지난 일"], step: 0, due: day(new Date(Date.parse(today()) - 2 * 86400000)) }] }; filter = "next"; render(); await W(100);
+    const lb = document.querySelector('[data-late="1"]'), lbText = lb ? lb.textContent : ""; lb && lb.click(); await W(80);
+    const op = inbox.filter(o => o.op === "dueMany").slice(-1)[0];
+    state = keepState; inbox = keepInbox; save(ibKey(), inbox); filter = "all"; render();
+    check("지난 마감 띠: 다음 근무일로", !!op && op.due === nextWorkday() && lbText === (nextWorkday() === quickDues()[1][1] ? "내일로" : "다음 근무일로"), lbText + " " + JSON.stringify(op)); }
   { const wn = wordDue("견적 보내기 다음 근무일까지"); const we = wordDue("Send the quote next business day"); check("말로 쓴 마감: 다음 근무일(10/23)", !!wn && wn.text === "견적 보내기" && wn.due === nextWorkday() && !!we && we.text === "Send the quote" && we.due === nextWorkday(), JSON.stringify(wn) + " " + JSON.stringify(we)); }
     const w1 = wordDue("Send the quote by Friday"), w2 = wordDue("Call Kim tomorrow"), w3 = wordDue("Plan the Friday party");
     save("look", { ...lookKeep, lang: "en" }); const rep = dayReport(), listEn = shareText(null, true); save("look", lookKeep); const reportOk = rep.includes(" · done ") && !/한 일 |아직 남은 일/.test(rep) && listEn.startsWith("Remaining work · ") && !listEn.includes("남은 업무");     // 오늘 한 일 · 남은 일 목록 복사 글 머리말도 영어     // 오늘 한 일 복사 글 머리말도 영어
