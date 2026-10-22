@@ -43,7 +43,7 @@
   section { margin-top: 14px; }
   .proj { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 10px; background: var(--tint); font-weight: 700; }
   .proj i { width: 4px; height: 18px; border-radius: 2px; background: var(--accent); flex: none; }
-  .proj b { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .proj b { flex: 1; min-width: 0; overflow: hidden; word-break: keep-all; overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }     /* 넘치면 두 줄까지(아주 크게 · 320px 에서 '매일 ...' 로 잘리던 것 10/23) */
   .proj small { font-weight: 400; color: var(--sub); white-space: nowrap; flex: none; }     /* 아주 큰 글자 · 좁은 폭에서 "고정" 이 고/정 두 줄로 꺾이지 않게(이름이 대신 줄어듦) */
 /* 날짜순: 머리줄은 날짜 묶음(지남 · 오늘 빨강, 내일 주황, 나머지 회색), 줄 앞에 프로젝트 이름 */
 section.b9, section.b5 { --sc: #7B4FD6; } .ico { width: 1.05em; height: 1.05em; vertical-align: -0.16em; flex: none; display: inline-block; }     /* 선 아이콘(이모지 대신) */ .uphead .hcopy { margin-left: auto; border: 0; border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 700; background: var(--card); color: var(--sub); } section.b0 { --sc: var(--red); } section.b1 { --sc: var(--orange); } section.b2, section.b3, section.b4 { --sc: var(--sub); }
@@ -2259,6 +2259,12 @@ async function selfTest() {
     { // 프로젝트 머리의 작은 표시(고정 · 개수)는 한 줄: 아주 큰 글자 · 좁은 폭에서도 꺾이지 않음
       const sm = [...document.querySelectorAll(".proj small")];
       check("프로젝트 머리 표시 한 줄", sm.length > 0 && sm.every(s => getComputedStyle(s).whiteSpace === "nowrap"), sm.length + "개");
+    }
+    { // 아주 크게 · 좁은 폭: 짧은 프로젝트 이름(매일 하는 일)이 '매일 ...' 로 잘리지 않음 — 넘치면 두 줄로(10/23 320px 어두운 화면에서 봄)
+      const lookKeep3 = load("look", {}); save("look", { ...lookKeep3, size: "xl" }); applyLook(); render(); await W(100);
+      const cut = [...document.querySelectorAll(".proj b")].filter(b => b.textContent.length <= 8 && (b.scrollWidth > b.clientWidth + 1 || b.scrollHeight > b.clientHeight + 1)).map(b => b.textContent);
+      save("look", lookKeep3); applyLook(); render();
+      check("아주 크게 프로젝트 이름 안 잘림", cut.length === 0, cut.join(",") || "없음");
     }
     { // 해당 없음 단계는 줄을 긋지 않음(끝냄과 구별)
       const keepInbox2 = inbox.slice(); inbox.push({ op: "skip", id: "s1", reason: "주문 없음" }); opened = "s1"; render(); await W(100);
