@@ -1828,7 +1828,7 @@ $("list").addEventListener("click", e => {
   if (e.target.closest("[data-briefmore]")) { briefOpen = true; render(); return; }
   if (e.target.closest("[data-briefless]")) { briefOpen = false; render(); return; }     // [접기]: 다시 중요한 알약만
   { const wc = e.target.closest("[data-waitcopy]"); if (wc) { const g = wc.dataset.waitcopy; copy(waitListText(g)).then(ok => toast(ok ? "'" + g + "' 대기 목록을 복사했습니다 · 카톡 · 메일에 붙여 넣어 주세요" : "복사하지 못했습니다")); return; } }     // 대기 보기 사람 묶음 [복사]
-  if (chip) { if (chip.dataset.brief === "maybewait") bulkWaitSheet(); else if (chip.dataset.brief === "waiting") { filter = "wait"; document.querySelectorAll("[data-filter]").forEach(c => c.classList.toggle("on", c.dataset.filter === "wait")); render(); window.scrollTo(0, 0); } else pickBrief(chip.dataset.brief); return; }     // 대기 중 알약 → [⏳ 대기] 보기(PC 와 같음)
+  if (chip) { if (chip.dataset.brief === "maybewait") bulkWaitSheet(); else if (chip.dataset.brief === "waiting" || chip.dataset.brief === "recheck") { filter = "wait"; document.querySelectorAll("[data-filter]").forEach(c => c.classList.toggle("on", c.dataset.filter === "wait")); render(); window.scrollTo(0, 0); } else pickBrief(chip.dataset.brief); return; }     // 대기 중 알약 → [⏳ 대기] 보기(PC 와 같음)
   if (e.target.closest("[data-briefx]")) { save("briefHidden", today()); render(); return; }
   if (e.target.closest("#logAdd")) { addLogSheet(); return; }
   const locEv = e.target.closest(".ev[data-loc]");
@@ -2614,6 +2614,12 @@ async function selfTest() {
       document.querySelector('[data-filter="all"]').click(); await W(250);
     } else info = "칩 없음";
     { const bw = document.querySelector('[data-brief="waiting"]'); if (bw) { bw.click(); await W(250); viewOk = viewOk && filter === "wait" && !!document.querySelector("#list section.b9"); info += " brief=" + filter; document.querySelector('[data-filter="all"]').click(); await W(200); } }     // 오늘 카드 대기 중 알약을 누르면 [⏳ 대기] 보기로
+    { // 다시 볼 것 알약도 하나씩 넘기지 않고 대기 보기로(PC 와 같음): 견본의 대기 일을 다시 볼 날 오늘로 잠깐 바꿔 알약을 띄운다
+      const keepState = state; state = { ...state, todos: state.todos.map(t => t.id === "s6" ? { ...t, waitUntil: today() } : t) }; render(); await W(150);     /* 견본 자료를 새로 만들어 바꾸고 끝나면 되돌린다 */
+      const s6 = state.todos.find(t => t.id === "s6");
+      const rb = document.querySelector('[data-brief="recheck"]'); if (rb) { rb.click(); await W(250); }
+      const rOk = !!rb && filter === "wait" && !!document.querySelector("#list section.b9"); info += " recheck=" + rOk + (rOk ? "" : "(rb=" + !!rb + " f=" + filter + " n=" + briefMatch("recheck").length + " s6=" + (s6 ? s6.wait + "/" + s6.waitUntil : "-") + " brief=" + !!document.querySelector(".brief") + ")"); viewOk = viewOk && rOk;
+      state = keepState; document.querySelector('[data-filter="all"]').click(); await W(200); }
     check("내 손을 떠난 일 대기 짐작 · [⏳ 대기] 보기", !bad.length && viewOk, bad.join(", ") + " " + info);
   } catch (e) { check("내 손을 떠난 일 대기 짐작 · [⏳ 대기] 보기", false, e.message); }
   try {     // 기본 이모지 없음(사장님 10/22 '기본 이모티콘 쓰지 말라고 하지 않았어?'): 전체 · 날짜순 · 대기 · 일정 · 펼친 할 일 · 문구 시트 글자에 ⏳📖📍📲⚠ 같은 이모지가 없는지(★ ✓ ✕ ✎ 글자 기호는 괜찮음)
