@@ -508,7 +508,7 @@ const EN = {
   "대기 목록 복사": "Copy waiting list", "대표님 확인 · 회신처럼 기다리는 일을 누구별로 묶어 복사합니다": "Things waiting on others (approval, reply), grouped by who", "대기 중인 일이 없습니다": "Nothing is waiting",
   "구글 연결이 안 되나요?": "Google won't connect?", "아이폰 홈 화면 아이콘으로 연 플래너는 구글 로그인 창이 돌아오지 않을 때가 있습니다. 그럴 때는 사파리에서 주소를 열어 연결해 주세요.": "On iPhone, the Home Screen app sometimes can't finish Google sign-in. Open the address in Safari and connect there.", "주소 복사": "Copy address", "주소를 복사했습니다. 사파리 주소창에 붙여 넣어 주세요": "Address copied — paste it into Safari",
   "대기": "Waiting",
-  "한 줄 남기기": "Add a line", "되돌리기": "Undo", "모두 오늘로": "All to today", "내일로": "To tomorrow",
+  "한 줄 남기기": "Add a line", "되돌리기": "Undo", "모두 오늘로": "All to today", "내일로": "To tomorrow", "다음 근무일로": "To next workday",
   "오늘": "Today", "내일": "Tomorrow", "다음 7일": "Next 7 days", "나중에": "Later", "날짜 없음": "No date", "종일": "All day",
   "폰에는 오늘부터 2주 일정이 보입니다 · 더 먼 일정은 PC 일정 탭에서": "The phone shows 2 weeks from today · see further ahead in the PC Calendar tab",
   "앞으로 2주 동안 일정이 없습니다": "No events in the next 2 weeks", "찾는 일정이 없습니다": "No matching events", "찾는 할 일이 없습니다": "No matching to-dos",
@@ -547,7 +547,7 @@ const EN_PAT = [
   [/^'(.+)' 부제를 없앴습니다$/, m => "Removed subgroup '" + m[1] + "'"], [/^'(.+)' 복사했습니다$/, m => "Copied '" + m[1] + "'"], [/^'(.+)' 단계로 되돌렸습니다$/, m => "Back to step '" + m[1] + "'"],
   [/^'(.+)' 남은 일을 메모 빼고 복사했습니다$/, m => "Copied '" + m[1] + "' open to-dos (without notes)"], [/^'(.+)' 남은 일을 복사했습니다$/, m => "Copied '" + m[1] + "' open to-dos"],
   [/^(\d+)개 단계를 넣었습니다$/, m => m[1] + " steps added"], [/^(\d+)개 할 일로 나눴습니다$/, m => "Split into " + m[1] + " to-dos"], [/^(\d+)곳을 넣었습니다$/, m => m[1] + " addresses added"],
-  [/^(?:전날까지 마감이었던|지난 마감) (\d+)건을 오늘로 옮겼습니다$/, m => "Moved " + m[1] + " overdue to today"], [/^지난 마감 (\d+)건을 내일로 옮겼습니다$/, m => "Moved " + m[1] + " overdue to tomorrow"],
+  [/^(?:전날까지 마감이었던|지난 마감) (\d+)건을 오늘로 옮겼습니다$/, m => "Moved " + m[1] + " overdue to today"], [/^지난 마감 (\d+)건을 내일로 옮겼습니다$/, m => "Moved " + m[1] + " overdue to tomorrow"], [/^지난 마감 (\d+)건을 다음 근무일로 옮겼습니다$/, m => "Moved " + m[1] + " overdue to next workday"],
   [/^마감 (.+)로 추가했습니다$/, m => "Added, due " + m[1]],
   [/^'(.+)' 을\(를\) 삭제할까요\?$/, m => "Delete '" + m[1] + "'?"], [/^'(.+)' 부제를 없앨까요\? 할 일은 그대로 남습니다\.$/, m => "Remove subgroup '" + m[1] + "'? To-dos stay."],
   [/^'(.+)' 완료$/, m => "Done: '" + m[1] + "'"], [/^(\d+)일째$/, m => m[1] + "d waiting"], [/^'(.+)' 완료 → 대기로 표시했습니다\((.+)\)$/, m => "Done: '" + m[1] + "' → waiting (" + m[2] + ")"], [/^대기 (\d+)건을 누구별로 복사했습니다 · 카톡 · 메일에 붙여 넣어 주세요$/, m => "Copied " + m[1] + " waiting — paste into chat or email"], [/^'(.+)' 대기 목록을 복사했습니다 · 카톡 · 메일에 붙여 넣어 주세요$/, m => "Copied the waiting list for " + m[1] + " — paste into chat or email"], [/^(.+님)께 보낼 글을 복사했습니다 · 카톡 · 메일에 붙여 넣어 주세요$/, m => "Copied the message for " + m[1] + " — paste into chat or email"], [/^⇱ 할 일로 빼기(.*)$/, m => "⇱ Make it a to-do" + m[1]], [/^마감일 \(예: (.+), 비우면 지움\)$/, m => "Due date (e.g. " + m[1] + ", blank to clear)"]
@@ -858,7 +858,7 @@ function render() {
   const late = (filter === "today" || filter === "next") && !query ? todos.filter(x => x.due && x.due < today() && !x.repeat && !waiting(x)) : [];
   if (!query && filter !== "today" && filter !== "wait" && installHintOn()) html += installHtml();
   if (!query && filter !== "today" && filter !== "wait" && load("briefHidden", "") !== today()) html += briefHtml();
-  if (late.length) html += `<div class="latebar"><span>지난 마감 ${late.length}건</span><button data-late="0">모두 오늘로</button><button data-late="1">내일로</button></div>`;
+  if (late.length) html += `<div class="latebar"><span>지난 마감 ${late.length}건</span><button data-late="0">모두 오늘로</button><button data-late="1">${nextWorkday() === quickDues()[1][1] ? "내일로" : "다음 근무일로"}</button></div>`;     /* 내일이 주말이면 다음 근무일로(PC 와 같음, 10/23) */
   // 할 일 한 개(withSec: 다가오는 일 보기에서 어느 프로젝트 일인지 앞에 작게)
   const itemHtml = (item, withSec) => {
       let html = "";
@@ -1845,8 +1845,8 @@ $("list").addEventListener("click", e => {
   if (ph) { const nm = ph.dataset.sec || ""; sheet(`<h2>${esc(nm || "프로젝트 없음")}</h2><button class="phrase" id="projShare">이 프로젝트 남은 일 복사<small>카톡 · 메일에 붙일 글(끝낸 단계는 줄임)</small></button><button class="phrase" id="projShareBare">이 프로젝트 남은 일 복사 (메모 빼고)<small>거래처 · 소속사용: 할 일 · 단계만</small></button>${state && state.team ? `<button class="phrase" id="projAssign">이 프로젝트 맡기기<small>남은 일을 한 사람에게 한꺼번에</small></button>` : ""}<div class="end"><button data-close>닫기</button></div>`, s => { const pa = s.querySelector("#projAssign"); if (pa) pa.onclick = () => assignMany(view().filter(x => (x.section || "") === nm && !x.from), nm || "프로젝트 없음"); s.querySelector("#projShareBare").onclick = async () => { closeSheet(); toast(await copy(shareText(nm, true)) ? "'" + (nm || "프로젝트 없음") + "' 남은 일을 메모 빼고 복사했습니다" : "복사하지 못했습니다"); }; s.querySelector("#projShare").onclick = async () => { closeSheet(); toast(await copy(shareText(nm)) ? "'" + (nm || "프로젝트 없음") + "' 남은 일을 복사했습니다" : "복사하지 못했습니다"); }; }); return; }
   const lateBtn = e.target.closest("[data-late]");
   if (lateBtn) {
-    const ids = view().filter(x => x.due && x.due < today() && !x.repeat).map(x => x.id), to = quickDues()[Number(lateBtn.dataset.late)][1];
-    if (ids.length) push({ op: "dueMany", ids: ids.join(","), due: to }, "지난 마감 " + ids.length + "건을 " + (lateBtn.dataset.late === "0" ? "오늘" : "내일") + "로 옮겼습니다");
+    const ids = view().filter(x => x.due && x.due < today() && !x.repeat).map(x => x.id), to = lateBtn.dataset.late === "0" ? today() : nextWorkday();
+    if (ids.length) push({ op: "dueMany", ids: ids.join(","), due: to }, "지난 마감 " + ids.length + "건을 " + (lateBtn.dataset.late === "0" ? "오늘" : to === quickDues()[1][1] ? "내일" : "다음 근무일") + "로 옮겼습니다");
     return;
   }
   const chip = e.target.closest("[data-brief]");
