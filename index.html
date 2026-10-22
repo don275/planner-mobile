@@ -1443,7 +1443,8 @@ function shareText(only, bare) {
   }
   return out;
 }// 대기 목록 복사(10/22, PC 편집 ▾ 와 같은 글): 기다리는 일을 누구별로 묶어 — 대표님께 확인 부탁할 것을 한 번에 보내게
-function waitGroup(s) { s = String(s || "").trim(); let cut = s.length; for (const sep of ["(", " — ", " - ", ":", ","]) { const i = s.indexOf(sep); if (i > 0 && i < cut) cut = i; } return s.slice(0, cut).trim(); }
+// 누구별 묶음(PC MainForm.WaitWhoGroup 과 같음): '○○님' 이 있으면 그 사람, 없으면 입금 · 서명 · 날인 · 회신, 그래도 없으면 기타
+function waitGroup(s) { const w = String(s || "").trim(), m = w.match(/(?:[가-힣A-Za-z]+\s)?[가-힣A-Za-z]+님/); if (m) { const who = m[0].trim(); return who.endsWith("대표님") ? "대표님" : who; } const en = isEn(); return /입금/.test(w) ? (en ? "Payment" : "입금") : /서명|날인/.test(w) ? (en ? "Signature" : "서명 · 날인") : /회신|답변|답장|피드백|컨펌|확인/.test(w) ? (en ? "Reply" : "회신") : (en ? "Other" : "기타"); }
 function waitListText() {
   const en = isEn(), waits = view().filter(x => x.wait), t0 = today();
   let out = (en ? "Waiting " + waits.length + " (as of " + md(t0) + ")" : "대기 중 " + waits.length + "건 (" + md(t0) + " 기준)");
@@ -1455,7 +1456,7 @@ function waitListText() {
     out += "\n\n■ " + k + " " + (en ? groups[k].length : groups[k].length + "건");
     for (const x of groups[k].sort((a, b) => (a.waitUntil || "9") < (b.waitUntil || "9") ? -1 : 1)) {
       const where = x.sub ? (x.section || "") + " › " + x.sub : (x.section || ""), what = x.steps && x.steps.length > 1 ? x.steps[Math.min(x.step, x.steps.length - 1)] : x.text;
-      let detail = String(x.wait || "").trim(); detail = detail.startsWith(k) ? detail.slice(k.length).trim().replace(/^[(\-—:,\s]+|[)\-—:,\s]+$/g, "") : "";
+      let detail = String(x.wait || "").trim(); if (detail === k) detail = "";     // 무엇을 기다리는지(묶음 이름과 같으면 생략)
       const since = x.waitSince ? (en ? "since " + md(x.waitSince) : md(x.waitSince) + "부터") : "", until = x.waitUntil ? (x.waitUntil <= t0 ? (en ? "check today" : "오늘 다시 보기") : (en ? "check " + md(x.waitUntil) : md(x.waitUntil) + " 다시 보기")) : "";
       out += "\n- " + (where ? "[" + where + "] " : "") + what + (detail ? " · " + detail : "") + [since, until].filter(Boolean).map(v => " · " + v).join("");
     }
@@ -2592,10 +2593,10 @@ async function selfTest() {
   } catch (e) { check("내 손을 떠난 일 대기 짐작 · [⏳ 대기] 보기", false, e.message); }  // 대기 목록 복사(10/22): 누구별 묶음(많은 쪽 먼저) · 괄호 뒤 사정 · 언제부터 · 다시 볼 날 — PC 와 같은 글
   try {
     const keepState = state, t0 = today(), d2 = new Date(Date.now() - 2 * 86400000), ago2 = d2.getFullYear() + "-" + String(d2.getMonth() + 1).padStart(2, "0") + "-" + String(d2.getDate()).padStart(2, "0"), d3 = new Date(Date.now() + 86400000), tmr = d3.getFullYear() + "-" + String(d3.getMonth() + 1).padStart(2, "0") + "-" + String(d3.getDate()).padStart(2, "0");
-    state = { ...state, todos: [...state.todos.filter(t => !t.wait), { id: "wq-1", section: "대기목록 시험", text: "계약서 날인", steps: ["계약서 날인"], step: 0, wait: "시험 확인 (주소 수정본 확인 후 발송)", waitSince: ago2, waitUntil: tmr }, { id: "wq-2", section: "대기목록 시험", text: "서류 받기", steps: ["서류 받기"], step: 0, wait: "시험 확인", waitSince: t0, waitUntil: t0 }, { id: "wq-3", section: "대기목록 시험", text: "회신 받기", steps: ["회신 받기"], step: 0, wait: "시험 회신", waitSince: t0 }] };
+    state = { ...state, todos: [...state.todos.filter(t => !t.wait), { id: "wq-1", section: "대기목록 시험", text: "계약서 날인", steps: ["계약서 날인"], step: 0, wait: "시험이 대리님 확인 (주소 수정본 확인 후 발송)", waitSince: ago2, waitUntil: tmr }, { id: "wq-2", section: "대기목록 시험", text: "서류 받기", steps: ["서류 받기"], step: 0, wait: "시험이 대리님 확인", waitSince: t0, waitUntil: t0 }, { id: "wq-3", section: "대기목록 시험", text: "회신 받기", steps: ["회신 받기"], step: 0, wait: "시험삼 과장님 회신", waitSince: t0 }] };
     const wl = waitListText();
     state = keepState; render();
-    const wOk = wl.startsWith("대기 중 3건") && wl.indexOf("■ 시험 확인 2건") >= 0 && wl.indexOf("■ 시험 회신 1건") > wl.indexOf("■ 시험 확인 2건") && wl.includes("- [대기목록 시험] 계약서 날인 · 주소 수정본 확인 후 발송 · " + md(ago2) + "부터 · " + md(tmr) + " 다시 보기") && wl.includes("- [대기목록 시험] 서류 받기 · " + md(t0) + "부터 · 오늘 다시 보기") && wl.includes("- [대기목록 시험] 회신 받기 · " + md(t0) + "부터");
+    const wOk = wl.startsWith("대기 중 3건") && wl.indexOf("■ 시험이 대리님 2건") >= 0 && wl.indexOf("■ 시험삼 과장님 1건") > wl.indexOf("■ 시험이 대리님 2건") && wl.includes("- [대기목록 시험] 계약서 날인 · 시험이 대리님 확인 (주소 수정본 확인 후 발송) · " + md(ago2) + "부터 · " + md(tmr) + " 다시 보기") && wl.includes("- [대기목록 시험] 서류 받기 · 시험이 대리님 확인 · " + md(t0) + "부터 · 오늘 다시 보기") && wl.includes("- [대기목록 시험] 회신 받기 · 시험삼 과장님 회신 · " + md(t0) + "부터") && waitGroup("윤슬 이영은 실장님 플레이어 설명서 번역 텍스트") === "이영은 실장님" && waitGroup("대표님 제출 서류 3종") === "대표님" && waitGroup("직원 회신") === "회신" && waitGroup("VMG 계약서 수정본") === "기타";
     check("대기 목록 복사(누구별 · 사정 · 다시 볼 날)", wOk, wl.replace(/\n/g, " / ").slice(0, 160));
   } catch (e) { check("대기 목록 복사(누구별 · 사정 · 다시 볼 날)", false, e.message); }  // 아이폰 홈 화면 앱에서 구글 연결이 안 될 때 안내: 사파리로 열 주소 · [주소 복사]
   try { connectHint(); await W(150); const sh = $("sheet").textContent || ""; const ok = sh.includes("구글 연결이 안 되나요?") && sh.includes("사파리") && sh.includes(location.pathname) && !!document.querySelector("#sheet #copyAddr"); closeSheet(); await W(100); check("홈 화면 앱 구글 연결 안 될 때 안내(사파리 주소)", ok, sh.slice(0, 60)); } catch (e) { check("홈 화면 앱 구글 연결 안 될 때 안내(사파리 주소)", false, e.message); }  // 홈 화면에 추가 안내(10/22 아이폰 앱 7일 만료): 브라우저로 열면 맨 위 카드 → [방법 보기] 3단계 시트 → [닫기] 하면 다시 안 뜸
