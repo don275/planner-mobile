@@ -156,6 +156,8 @@ body.personal h1 .pf { display: inline-block; }
   .sheet .end button.primary { background: var(--accent); color: var(--on-accent); border: 0; }
   .sheet textarea, .sheet input { width: 100%; }
   .sheet select { width: 100%; margin-bottom: 8px; }
+.install { margin: 10px 2px 4px; padding: 12px 14px; border-radius: 16px; background: var(--card); box-shadow: 0 1px 3px rgba(0,0,0,.06); display: flex; gap: 12px; align-items: flex-start; } .install .ic { font-size: 24px; line-height: 1; flex: none; } .install b { display: block; font-size: 14.5px; } .install small { display: block; color: var(--sub); font-size: 12.5px; margin-top: 3px; } .install .acts { display: flex; gap: 8px; margin-top: 10px; } .install .acts button { border: 0; border-radius: 999px; padding: 6px 13px; font-size: 13px; font-weight: 700; } .install .acts .primary { background: var(--accent); color: var(--on-accent); } .install .acts .soft { background: var(--tint); color: var(--sub); }     /* 홈 화면에 추가 안내(브라우저로 열었을 때만) */
+.steps2 { margin: 0 0 14px; padding: 0; list-style: none; counter-reset: s; } .steps2 li { counter-increment: s; display: flex; gap: 10px; align-items: flex-start; margin: 0 0 10px; font-size: 14px; } .steps2 li::before { content: counter(s); flex: none; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: var(--on-accent); font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; } .steps2 .k { display: inline-block; padding: 1px 7px; border-radius: 6px; background: var(--tint); font-weight: 700; }
   .brief { margin: 10px 2px 4px; padding: 12px 14px; border-radius: 16px; background: var(--card); box-shadow: 0 1px 3px rgba(0,0,0,.06); }
   .bhead { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
   .bhead b { flex: 1; font-size: 15px; display: flex; align-items: center; gap: 8px; }
@@ -483,7 +485,7 @@ function dueLabel(item) {
   const left = Math.round((Date.parse(item.due) - Date.parse(today())) / 86400000);
   // 반복 업무는 지난 날을 따지지 않는다(다음 차례에 또 생긴다)
   if (item.repeat) return left === 0 ? { text: "반복 · 오늘", cls: "late" } : { text: "반복", cls: "far" };
-  const carried = item.lateFrom && left >= 0 ? Math.round((Date.parse(today()) - Date.parse(item.lateFrom)) / 86400000) : 0;
+  const carried = !item.wait && item.lateFrom && left >= 0 ? Math.round((Date.parse(today()) - Date.parse(item.lateFrom)) / 86400000) : 0;
   const en = isEn(), when = (left === 0 ? (en ? "today" : "오늘") : left > 0 ? "D-" + left : (-left) + (en ? "d overdue" : "일 지남")) + (carried > 0 ? " · " + (en ? "moved " + carried + "d" : carried + "일 밀림") : "");
   return { text: md(item.due) + " (" + when + ")", cls: carried >= 3 ? "late stuck" : left <= 0 ? "late" : left <= 3 ? "soon" : "far" };
 }
@@ -499,7 +501,8 @@ const EN = {
   "지난 마감": "Overdue", "오늘 마감": "Due today", "이번 주 디데이": "D-days this week", "오늘 알림": "Reminders today", "오늘 소식": "News today", "오래 밀린 일": "Long overdue", "오늘로 옮겨 온 일": "Moved to today",
   "오늘은 숨기기": "Hide for today", "고정": "Pinned", "반복": "Repeats", "반복 · 오늘": "Repeats · today", "마감일": "Due date", "단계 나누기": "Split steps",
   "★ 중요": "★ Important", "중요 해제": "Unmark important", "단계 추가": "Add step", "메모 추가": "Add note", "복제": "Duplicate", "옮기기": "Move", "삭제": "Delete", "수정": "Edit",
-  "이전 단계": "Previous step", "메모": "Note", "추가": "Add", "진행 한 줄": "Progress", "메모 → 진행": "Notes → progress", "메모 속 날짜 소식을 진행 한 줄로 옮겼습니다": "Dated note lines moved to progress", "다시 볼 것": "Check again", "다시 연결": "Reconnect", "구글 연결": "Connect Google", "이렇게 한다": "How to do it", "안내": "How-to", "더": "more", "주문 없음": "No orders", "재고 충분": "Enough stock", "대표님 부재": "Boss away", "이미 처리됨": "Already done", "대기 같은 일": "Looks like waiting", "대기로 표시할까요?": "Move to waiting?", "소식을 보면 남의 답을 기다리는 일 — 고른 것은 내일 다시": "News says they wait for someone — back tomorrow", "옮기기": "Move", "개를 대기로 · 내일 다시 보기": " moved to waiting · check again tomorrow", "대기 중": "Waiting", "⏳ 대기": "⏳ Waiting", "⏳ 대기 변경": "⏳ Edit waiting", "대기 해제": "Stop waiting", "대기를 해제했습니다": "Stopped waiting", "대기로 표시": "Waiting for…", "누구 · 무엇을": "Who · what", "언제 다시 볼까요": "When to check again", "기다리기": "Wait", "대기로 표시했습니다": "Marked as waiting", "대표님 확인": "Boss approval", "회신": "Reply", "입금": "Payment", "서류": "Documents", "오늘 오후": "Later today", "내일": "Tomorrow", "모레": "In 2 days", "다음 주 월": "Next Monday", "날짜 없이": "No date", "제안함": "Suggestions", "검토 대기": "Waiting for review", "하기로 함": "Planned", "반영됨": "Done", "안 하기로 함": "Not planned", "PC 로 보내는 중": "Sending to PC", "AI 와 쓰다 남긴 '있으면 좋겠다' — 보고 결과를 알려 드립니다": "Ideas left while using AI — each gets reviewed", "아직 제안이 없습니다": "No suggestions yet", "AI 에게 '이럴 때 이런 게 있으면 좋겠다' 고 말하거나 아래에 적어 주세요.": "Tell the AI 'it would help if…', or write one below.", "무엇이 있으면 좋겠나요?": "What would help?", "남기기": "Send", "제안을 남겼습니다": "Suggestion sent", "업무 · 개인": "Work · Personal", "업무": "Work", "개인": "Personal", "해당 없음": "N/A", "이유(선택)": "Reason (optional)", "해당 없음으로 넘겼습니다": "Marked N/A", "지우기": "Delete", "진행 한 줄을 지웠습니다": "Progress line deleted", "진행 한 줄을 고쳤습니다": "Progress line edited", "지금 단계에 진행을 남겼습니다": "Progress added under the current step", "기타": "Other", "부제 없음": "No subgroup", "프로젝트": "Project", "부제": "Subgroup", "완료": "Done",
+  "이전 단계": "Previous step", "메모": "Note", "추가": "Add", "진행 한 줄": "Progress", "메모 → 진행": "Notes → progress", "메모 속 날짜 소식을 진행 한 줄로 옮겼습니다": "Dated note lines moved to progress", "다시 볼 것": "Check again", "다시 연결": "Reconnect", "구글 연결": "Connect Google", "이렇게 한다": "How to do it", "안내": "How-to", "더": "more", "주문 없음": "No orders", "재고 충분": "Enough stock", "대표님 부재": "Boss away", "이미 처리됨": "Already done", "대기 같은 일": "Looks like waiting", "대기로 표시할까요?": "Move to waiting?", "소식을 보면 남의 답을 기다리는 일 — 고른 것은 내일 다시": "News says they wait for someone — back tomorrow", "옮기기": "Move", "개를 대기로 · 내일 다시 보기": " moved to waiting · check again tomorrow", "대기 중": "Waiting", "⏳ 대기": "⏳ Waiting", "⏳ 대기 변경": "⏳ Edit waiting", "대기 해제": "Stop waiting", "대기를 해제했습니다": "Stopped waiting", "대기로 표시": "Waiting for…", "누구 · 무엇을": "Who · what", "언제 다시 볼까요": "When to check again", "기다리기": "Wait", "대기로 표시했습니다": "Marked as waiting", "대표님 확인": "Boss approval", "회신": "Reply", "입금": "Payment", "서류": "Documents", "오늘 오후": "Later today", "내일": "Tomorrow", "모레": "In 2 days", "다음 주 월": "Next Monday", "날짜 없이": "No date", "제안함": "Suggestions", "검토 대기": "Waiting for review", "하기로 함": "Planned", "반영됨": "Done", "안 하기로 함": "Not planned", "PC 로 보내는 중": "Sending to PC", "AI 와 쓰다 남긴 '있으면 좋겠다' — 보고 결과를 알려 드립니다": "Ideas left while using AI — each gets reviewed", "아직 제안이 없습니다": "No suggestions yet", "AI 에게 '이럴 때 이런 게 있으면 좋겠다' 고 말하거나 아래에 적어 주세요.": "Tell the AI 'it would help if…', or write one below.", "무엇이 있으면 좋겠나요?": "What would help?", "남기기": "Send", "제안을 남겼습니다": "Suggestion sent", "업무 · 개인": "Work · Personal", "업무": "Work", "개인": "Personal", "해당 없음": "N/A", "이유(선택)": "Reason (optional)", "해당 없음으로 처리했습니다": "Marked N/A", "지우기": "Delete", "진행 한 줄을 지웠습니다": "Progress line deleted", "진행 한 줄을 고쳤습니다": "Progress line edited", "지금 단계에 진행을 남겼습니다": "Progress added under the current step", "기타": "Other", "부제 없음": "No subgroup", "프로젝트": "Project", "부제": "Subgroup", "완료": "Done",
+  "홈 화면에 추가하면 앱처럼 씁니다": "Add to Home Screen to use it like an app", "주소창 없이 아이콘을 눌러 바로 열립니다": "Opens from an icon, without the address bar", "방법 보기": "How", "홈 화면에 추가하기": "Add to Home Screen", "사파리 아래": "In Safari, tap", "안 보이면": "if hidden,", "공유": "Share", "단추를 눌러 주세요": "at the bottom", "목록에서": "Choose", "홈 화면에 추가": "Add to Home Screen", "를 눌러 주세요": "", "오른쪽 위": "Tap", "추가": "Add", "를 누르면 홈 화면에 아이콘이 생깁니다": "at the top right — an icon appears on your Home Screen", "크롬 오른쪽 위": "In Chrome, tap", "또는": "or", "앱 설치": "Install app", "홈 화면에 생긴 아이콘으로 열어 주세요": "Open it from the new icon", "구글 연결은 홈 화면 아이콘으로 연 뒤 한 번만 다시 해 주세요.": "After opening from the icon, connect Google once more.", "바로 설치": "Install now", "닫았습니다. 설정 › 홈 화면에 추가하기 에서 다시 볼 수 있습니다": "Hidden. Find it again in Settings › Add to Home Screen",
   "한 줄 남기기": "Add a line", "되돌리기": "Undo", "모두 오늘로": "All to today", "내일로": "To tomorrow",
   "오늘": "Today", "내일": "Tomorrow", "다음 7일": "Next 7 days", "나중에": "Later", "날짜 없음": "No date", "종일": "All day",
   "폰에는 오늘부터 2주 일정이 보입니다 · 더 먼 일정은 PC 일정 탭에서": "The phone shows 2 weeks from today · see further ahead in the PC Calendar tab",
@@ -609,7 +612,7 @@ function eventsHtml() {
 
 // 최근 2주 동안 끝낸 일
 // ───── 목록 맨 위 '오늘' 카드(PC 와 같게): 오래 밀린 일 · 지난 마감 · 오늘 마감 · 옮겨 온 일. 알약을 누르면 그 할 일로 ─────
-function carriedDays(x) { return x.lateFrom && x.due && x.due >= today() ? Math.round((Date.parse(today()) - Date.parse(x.lateFrom)) / 86400000) : 0; }
+function carriedDays(x) { return !x.wait && x.lateFrom && x.due && x.due >= today() ? Math.round((Date.parse(today()) - Date.parse(x.lateFrom)) / 86400000) : 0; }
 // 대기 중(PC 와 같음): 대표님 확인 · 회신 대기. 다시 볼 날 전엔 오늘 몫에서 빠지고, 그날이 되면 '다시 볼 것'
 const waiting = x => !!x.wait && !(x.waitUntil && x.waitUntil <= today());
 const recheck = x => !!x.wait && !!x.waitUntil && x.waitUntil <= today();
@@ -637,7 +640,25 @@ function updateBadge() {
   try { if (n > 0 && navigator.setAppBadge) navigator.setAppBadge(n).catch(() => {}); else if (navigator.clearAppBadge) navigator.clearAppBadge().catch(() => {}); } catch {}
 }
 let briefOpen = false;
-function briefHtml() {
+// 홈 화면에 추가 안내: 브라우저(사파리 · 크롬)로 열었을 때만 목록 맨 위 카드 — 아이폰 앱이 7일 뒤 '사용할 수 없음' 이 될 때 바로 쓸 수 있게(10/22). 닫으면 다시 안 뜸
+let installPrompt = null, installForce = false;
+window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); installPrompt = e; });     // 안드로이드 크롬: [바로 설치] 로 띄운다
+function standalone() { return (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true; }
+function isIos() { return /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1); }
+function installHintOn() { return installForce || (!demo && !native() && !standalone() && !load("installHide", false)); }
+function installHtml() {
+  return `<div class="install" id="installCard"><span class="ic">📲</span><div><b>${T("홈 화면에 추가하면 앱처럼 씁니다")}</b><small>${T("주소창 없이 아이콘을 눌러 바로 열립니다")}</small><div class="acts"><button class="primary" id="installHow">${T("방법 보기")}</button><button class="soft" id="installHide">${T("닫기")}</button></div></div></div>`;
+}
+function installSheet() {
+  const ios = isIos();
+  const steps = ios
+    ? [`${T("사파리 아래")} <span class="k">${T("공유")} □↑</span> ${T("단추를 눌러 주세요")} <small>(${T("안 보이면")} <span class="k">⋯</span> › ${T("공유")})</small>`, `${T("목록에서")} <span class="k">${T("홈 화면에 추가")}</span>${T("를 눌러 주세요")}`, `${T("오른쪽 위")} <span class="k">${T("추가")}</span>${T("를 누르면 홈 화면에 아이콘이 생깁니다")}`]
+    : [`${T("크롬 오른쪽 위")} <span class="k">⋮</span> ${T("를 눌러 주세요")}`, `<span class="k">${T("홈 화면에 추가")}</span> ${T("또는")} <span class="k">${T("앱 설치")}</span>${T("를 눌러 주세요")}`, `${T("홈 화면에 생긴 아이콘으로 열어 주세요")}`];
+  sheet(`<h2>${T("홈 화면에 추가하기")}</h2><ol class="steps2">${steps.map(s => `<li><span>${s}</span></li>`).join("")}</ol><p class="hint">${T("구글 연결은 홈 화면 아이콘으로 연 뒤 한 번만 다시 해 주세요.")}</p><div class="end">${installPrompt ? `<button class="primary" id="installNow">${T("바로 설치")}</button>` : ""}<button data-close>${T("닫기")}</button></div>`, s => {
+    const now = s.querySelector("#installNow");
+    if (now) now.onclick = async () => { closeSheet(); try { installPrompt.prompt(); await installPrompt.userChoice; } catch { } installPrompt = null; render(); };
+  });
+}function briefHtml() {
   const n = k => briefMatch(k).length, chips = [];
   if (n("stuck")) chips.push(`<button class="bchip stuck" data-brief="stuck">오래 밀린 일 ${n("stuck")}</button>`);
   if (n("late")) chips.push(`<button class="bchip late" data-brief="late">지난 마감 ${n("late")}</button>`);
@@ -783,10 +804,12 @@ function logsHtml() {
 
 // 마감 지난 할 일(반복 업무 빼고)을 하루 한 번 오늘로. 처음엔 PC 설정을 따르고, 폰 설정에서 따로 켜고 끌 수 있다.
 function rollOn() { const r = load("roll", ""); return r ? r === "on" : !!(state && state.rollOverdue); }
+// 아침에 오늘로 옮길 지난 마감: 반복 · 대기 중(남의 답을 기다리는 일)은 빼고 — 대기 일이 오늘 · 1일 밀림 으로 빨갛게 뜨던 것(제안 3d40ae5c)
+function rollIds() { return view().filter(x => x.due && x.due < today() && !x.repeat && !x.wait).map(x => x.id); }
 function rollLate() {
   if (demo || !state || !rollOn() || load("lastRoll", "") === today()) return;
   save("lastRoll", today());
-  const ids = view().filter(x => x.due && x.due < today() && !x.repeat).map(x => x.id);
+  const ids = rollIds();
   if (ids.length) push({ op: "dueMany", ids: ids.join(","), due: today() }, "전날까지 마감이었던 " + ids.length + "건을 오늘로 옮겼습니다");
 }
 function render() {
@@ -806,6 +829,7 @@ function render() {
   const colors = (state && state.colors) || {}, pinned = (state && state.pinned) || [];
   let html = "";
   const late = (filter === "today" || filter === "next") && !query ? todos.filter(x => x.due && x.due < today() && !x.repeat && !waiting(x)) : [];
+  if (!query && filter !== "today" && installHintOn()) html += installHtml();
   if (!query && filter !== "today" && load("briefHidden", "") !== today()) html += briefHtml();
   if (late.length) html += `<div class="latebar"><span>지난 마감 ${late.length}건</span><button data-late="0">모두 오늘로</button><button data-late="1">내일로</button></div>`;
   // 할 일 한 개(withSec: 다가오는 일 보기에서 어느 프로젝트 일인지 앞에 작게)
@@ -1016,7 +1040,7 @@ function skipSheet(item) {
     <div class="end"><button data-close>${T("취소")}</button><button class="primary" id="skipOk">${T("해당 없음")}</button></div>`, s => {
     const box = s.querySelector("#skipWhy");
     s.querySelectorAll("[data-why]").forEach(b => b.onclick = () => { box.value = b.dataset.why; });
-    s.querySelector("#skipOk").onclick = () => { closeSheet(); push({ op: "skip", id: item.id, reason: box.value.replace(/　/g, " ").trim() }, T("해당 없음으로 넘겼습니다")); };
+    s.querySelector("#skipOk").onclick = () => { closeSheet(); push({ op: "skip", id: item.id, reason: box.value.replace(/　/g, " ").trim() }, T("해당 없음으로 처리했습니다")); };
   });
 }
 // 대기로 표시(PC 와 같음): 누구 · 무엇(칩 · 직접) + 언제 다시 볼지(칩)
@@ -1193,7 +1217,7 @@ function showSettings() {
     <label>마감 지난 할 일</label><div class="seg"><button data-roll="on" class="${rollOn() ? "on" : ""}">매일 오늘로 옮기기</button><button data-roll="off" class="${rollOn() ? "" : "on"}">그대로 두기</button></div>
     ` + (state && state.team ? `<label>팀 (Test)</label><div class="seg"><button id="teamBoard">팀 현황</button></div>` : "") + `
     <label>${T("업무 · 개인")}</label><div class="seg"><button data-profile="work" class="${phoneProfile === "work" ? "on" : ""}">${T("업무")}</button><button data-profile="personal" class="${phoneProfile === "personal" ? "on" : ""}">${T("개인")}</button></div>
-    <label>${T("제안함")}</label><div class="seg"><button id="suggestBox">${T("제안함")}${sugWaiting() ? " · " + sugWaiting() : ""}</button></div>
+    <label>${T("제안함")}</label><div class="seg"><button id="suggestBox">${T("제안함")}${sugWaiting() ? " · " + sugWaiting() : ""}</button></div>${!native() && !standalone() ? `<label>${T("홈 화면에 추가하기")}</label><div class="seg"><button id="installBox">${T("방법 보기")}</button></div>` : ""}
     <label>구글</label><div class="seg">` + (token ? `<button id="signOut">연결 해제</button>` : `<button id="signIn">구글 연결</button>`) + `</div>` + (fromPcText() ? `<div class="setnote" id="fromPc">${esc(fromPcText())}</div>` : "") + `
     <label><a href="about.html">앱 소개</a> · <a href="privacy.html">개인정보처리방침</a></label>
     <div class="end"><button class="primary" data-close>닫기</button></div>`, s => {
@@ -1215,7 +1239,7 @@ function showSettings() {
     if (inn) inn.onclick = () => { closeSheet(); connect(); };
     const tb = s.querySelector("#teamBoard");
     if (tb) tb.onclick = () => showTeamBoard();
-    s.querySelector("#suggestBox").onclick = () => showSuggestions();
+    s.querySelector("#suggestBox").onclick = () => showSuggestions(); { const ib = s.querySelector("#installBox"); if (ib) ib.onclick = () => installSheet(); }
   });
 }
 
@@ -1720,6 +1744,8 @@ $("list").addEventListener("contextmenu", e => { if (drag || holdTimer) e.preven
 // ───── 누르기 ─────
 $("list").addEventListener("click", e => {
   if (suppressClick) { e.preventDefault(); return; }
+  if (e.target.closest("#installHow")) { installSheet(); return; }
+  if (e.target.closest("#installHide")) { save("installHide", true); installForce = false; render(); toast(T("닫았습니다. 설정 › 홈 화면에 추가하기 에서 다시 볼 수 있습니다")); return; }
   const link = e.target.closest("a.link");
   if (link) { e.preventDefault(); openLink(link.getAttribute("href").replace(/&amp;/g, "&")); return; }
   const box = e.target.closest("[data-check]");
@@ -2481,7 +2507,24 @@ async function selfTest() {
     save("look", lookKeep); applyLook(); render(); await W(150);
     check("넘침 훑기(한 · 영 × 보통 · 아주 크게) · 폭 " + innerWidth, outs.size === 0, [...outs].slice(0, 4).join(" | "));
   } catch (e) { check("넘침 훑기", false, e.message); }
-  // 끝냄 알림(긴 단계 이름 + 한 줄 남기기 + 되돌리기): 글이 한 글자씩 세로로 눌려 큰 타원이 되던 것(대리님 폰 10/21) — 글 칸이 넉넉하고 두 줄 안, 화면 안
+  // 대기와 밀림 구분(제안 3d40ae5c): 아침에 지난 마감을 오늘로 옮길 때 대기 중인 일은 빼고, 대기 중이면 n일 밀림도 안 붙음
+  try {
+    const keepState = state, d1 = new Date(Date.now() - 86400000), yd = d1.getFullYear() + "-" + String(d1.getMonth() + 1).padStart(2, "0") + "-" + String(d1.getDate()).padStart(2, "0");
+    state = { ...state, todos: [...state.todos, { id: "wl-1", section: "시험", text: "대기 일", steps: ["대기 일"], step: 0, due: yd, wait: "회신", waitUntil: today() }, { id: "wl-2", section: "시험", text: "그냥 일", steps: ["그냥 일"], step: 0, due: yd }, { id: "wl-3", section: "시험", text: "밀림 붙은 대기", steps: ["밀림 붙은 대기"], step: 0, due: today(), lateFrom: yd, wait: "회신", waitUntil: today() }] };
+    const ids = rollIds(), w3 = state.todos.find(t => t.id === "wl-3");
+    const rollOk = !ids.includes("wl-1") && ids.includes("wl-2") && carriedDays(w3) === 0 && !(dueLabel(w3) || { text: "" }).text.includes("밀림");
+    state = keepState; render();
+    check("대기 중인 일은 오늘로 옮기기 · 밀림에서 빠짐", rollOk, ids.join(","));
+  } catch (e) { check("대기 중인 일은 오늘로 옮기기 · 밀림에서 빠짐", false, e.message); }  // 홈 화면에 추가 안내(10/22 아이폰 앱 7일 만료): 브라우저로 열면 맨 위 카드 → [방법 보기] 3단계 시트 → [닫기] 하면 다시 안 뜸
+  try {
+    const keepHide = load("installHide", false); save("installHide", false); installForce = true; filter = "all"; render(); await W(150);
+    const card = $("installCard"), firstCard = document.querySelector("#list > div"), cardOk = !!card && firstCard === card && card.textContent.includes("홈 화면에 추가하면"); const r1 = card ? $("installHow").getBoundingClientRect() : null, r2 = card ? $("installHide").getBoundingClientRect() : null, apart = !!r1 && !!r2 && (r1.right <= r2.left || r2.right <= r1.left || r1.bottom <= r2.top || r2.bottom <= r1.top) && getComputedStyle($("installHide")).position === "static";     /* 두 단추가 겹치지 않음(drag 용 .ghost 와 이름이 겹쳐 [닫기] 가 떠 있던 것) */
+    let stepsN = 0; if (card) { $("installHow").click(); await W(200); stepsN = document.querySelectorAll("#sheet .steps2 li").length; closeSheet(); await W(100); }
+    if ($("installHide")) { $("installHide").click(); await W(150); }
+    const hidden = !$("installCard") && load("installHide", false) === true;
+    installForce = false; save("installHide", keepHide); $("toast").hidden = true; render();
+    check("홈 화면에 추가 안내(카드 · 3단계 · 닫으면 안 뜸)", cardOk && apart && stepsN === 3 && hidden, "apart=" + apart + " card=" + cardOk + " steps=" + stepsN + " hidden=" + hidden);
+  } catch (e) { installForce = false; check("홈 화면에 추가 안내(카드 · 3단계 · 닫으면 안 뜸)", false, e.message); }  // 끝냄 알림(긴 단계 이름 + 한 줄 남기기 + 되돌리기): 글이 한 글자씩 세로로 눌려 큰 타원이 되던 것(대리님 폰 10/21) — 글 칸이 넉넉하고 두 줄 안, 화면 안
   try {
     toast("'신보안내서 수정사항 회신 확인, 반영 (서령 대리님)' 완료", { op: "check", id: "x" }); await W(250);
     const tb = $("toast").getBoundingClientRect(), xb = $("toastText").getBoundingClientRect(), lh = parseFloat(getComputedStyle($("toastText")).lineHeight) || 18;
