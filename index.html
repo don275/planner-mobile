@@ -46,7 +46,7 @@
   .proj b { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .proj small { font-weight: 400; color: var(--sub); white-space: nowrap; flex: none; }     /* 아주 큰 글자 · 좁은 폭에서 "고정" 이 고/정 두 줄로 꺾이지 않게(이름이 대신 줄어듦) */
 /* 날짜순: 머리줄은 날짜 묶음(지남 · 오늘 빨강, 내일 주황, 나머지 회색), 줄 앞에 프로젝트 이름 */
-section.b9 { --sc: #7B4FD6; } .uphead .hcopy { margin-left: auto; border: 0; border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 700; background: var(--card); color: var(--sub); } section.b0 { --sc: var(--red); } section.b1 { --sc: var(--orange); } section.b2, section.b3, section.b4 { --sc: var(--sub); }
+section.b9, section.b5 { --sc: #7B4FD6; } .uphead .hcopy { margin-left: auto; border: 0; border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 700; background: var(--card); color: var(--sub); } section.b0 { --sc: var(--red); } section.b1 { --sc: var(--orange); } section.b2, section.b3, section.b4 { --sc: var(--sub); }
 /* 팀: 맡은 사람 동그라미(줄 정보 끝), 받은 일 "OO님이 맡김" */
 .text .av { float: right; margin: 1px 0 0 8px; }     /* 남에게 맡긴 일: 제목 줄 오른쪽(PC 처럼) */
 .text .av, .meta .av, .sheet .av, #sheet .av { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--accent, #202124); color: #fff; font-size: 11px; font-weight: 700; flex: none; vertical-align: middle; }
@@ -587,10 +587,11 @@ function startTr() {
 // 날짜순 묶음(PC [날짜순] 과 같음): 0 지남 · 오늘, 1 내일, 2 이번 주, 3 다음 주 이후, 4 디데이 없음
 const later = n => day(new Date(Date.parse(today()) + n * 86400000));
 const upDay = x => x.wait && !(x.waitUntil && x.waitUntil <= today()) ? (x.waitUntil || "") : x.due;     // 기다리는 일은 다시 볼 날로(PC 와 같음)
-const upBucket = x => { const d = upDay(x); return !d ? 4 : d <= today() ? 0 : d === later(1) ? 1 : d <= later(6) ? 2 : 3; };
+// 대기 중인 일은 날짜 묶음에 섞지 않고 맨 아래 '대기'(5), 다시 볼 날이 되면 오늘(사장님 10/22 '대기중인 게 왜 날짜별 정렬로?', PC 와 같음)
+const upBucket = x => { if (waiting(x)) return 5; if (recheck(x)) return 0; const d = upDay(x); return !d ? 4 : d <= today() ? 0 : d === later(1) ? 1 : d <= later(6) ? 2 : 3; };
 // 날짜순 · 날짜 없음 줄: 며칠째 묵었는지(순서 근거). PC 에서 만든 날(created)이 와야 보인다
 const ageDays = x => x.due || x.repeat || !x.created ? 0 : Math.max(0, Math.round((Date.parse(today()) - Date.parse(String(x.created).slice(0, 10))) / 86400000));
-const upName = k => ["오늘", "내일", "다음 7일", "나중에", "날짜 없음"][k];     // TickTick 처럼(사장님 선택)
+const upName = k => ["오늘", "내일", "다음 7일", "나중에", "날짜 없음", "대기"][k];     // TickTick 처럼(사장님 선택)
 let upRev = load("viewRev", false) === true;     // [날짜순] 을 한 번 더 눌러 거꾸로(다시 켜도 그대로)
 const dayTitle = s => { const d = new Date(s + "T00:00"); return (d.getMonth() + 1) + "/" + d.getDate() + " (" + (isEn() ? ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] : WEEK)[d.getDay()] + ")" + (s === today() ? " · " + (isEn() ? "today" : "오늘") : ""); };
 
@@ -890,7 +891,7 @@ function render() {
   else if (filter === "next" || filter === "mine") {
     const sorted = todos.map((x, i) => [x, i]).sort((a, b) => upBucket(a[0]) - upBucket(b[0]) || (upDay(a[0]) || "").localeCompare(upDay(b[0]) || "")
       || (b[0].star ? 1 : 0) - (a[0].star ? 1 : 0) || (upBucket(a[0]) === 4 ? (a[0].created || "9999").localeCompare(b[0].created || "9999") : 0) || a[1] - b[1]).map(p => p[0]);     // 날짜 없음: ★ 먼저, 그다음 오래 묵은 순
-    for (const k of upRev && filter === "next" ? [4, 3, 2, 1, 0] : [0, 1, 2, 3, 4]) {
+    for (const k of upRev && filter === "next" ? [4, 3, 2, 1, 0, 5] : [0, 1, 2, 3, 4, 5]) {     // 대기는 거꾸로여도 맨 아래
       const its = sorted.filter(x => upBucket(x) === k);
       if (its.length) html += `<section class="bucket b${k}"><div class="proj uphead"><b>${esc(upName(k))}</b><small>${its.length}</small></div><div class="board">` + its.map(x => itemHtml(x, true)).join("") + `</div></section>`;
     }
@@ -1968,9 +1969,16 @@ async function selfTest() {
       check("날짜 없음 알약: 오래된 것부터", first === "nd-old" && second === "nd-mid", first + "," + second);
         tab("날짜순"); await W(300); }      check("오늘 카드 날짜 없음 알약", briefMatch("nodate").length > 0 && !!document.querySelector('[data-brief="nodate"]') || load("briefHidden", "") === today());
       check("날짜순 묶음", hs.length >= 2 && hs.every((v, i) => !i || hs[i - 1] < v) && psec && noSheet && filter === "next", hs.join(",") + " 디데이 없음 " + firstNoDue + " psec=" + psec + " noSheet=" + noSheet);
+      { // 대기 중인 일은 날짜 묶음(내일 · 다음 7일)에 섞지 않고 맨 아래 '대기' 묶음에(사장님 10/22 '대기중인 게 왜 날짜별 정렬로?'), 다시 볼 날이 된 것만 오늘에
+        tab("전체"); await W(150); tab("날짜순"); await W(300);
+        const wIds = view().filter(waiting).map(x => x.id), in5 = [...document.querySelectorAll("#list section.b5 .item")].map(e => e.dataset.id), hs2 = [...document.querySelectorAll("#list section.bucket")].map(s => +s.className.match(/b(\d)/)[1]);
+        const leak = [...document.querySelectorAll("#list section.bucket:not(.b5) .item")].map(e => e.dataset.id).filter(id => wIds.includes(id));
+        check("날짜순: 대기 일은 맨 아래 대기 묶음", wIds.length > 0 && wIds.every(id => in5.includes(id)) && !leak.length && hs2[hs2.length - 1] === 5, "wait=" + wIds.join(",") + " b5=" + in5.join(",") + " leak=" + leak.join(",") + " heads=" + hs2.join(","));
+        tab("전체"); await W(150); tab("날짜순"); await W(300); }
       tab("날짜순"); await W(300);     // 한 번 더 누르면 거꾸로(날짜 없음이 맨 위)
       { const rv = [...document.querySelectorAll("section.bucket")].map(s => +s.className.match(/b(\d)/)[1]), chipT = document.querySelector('[data-filter="next"]').textContent;
-        check("날짜순 거꾸로", rv.length >= 2 && rv.every((v, i) => !i || rv[i - 1] > v) && chipT.includes("↑"), rv.join(",") + " " + chipT); }
+        const rd = rv.filter(v => v !== 5);     // 대기 묶음은 거꾸로여도 맨 아래
+        check("날짜순 거꾸로", rd.length >= 2 && rd.every((v, i) => !i || rd[i - 1] > v) && (!rv.includes(5) || rv[rv.length - 1] === 5) && chipT.includes("↑"), rv.join(",") + " " + chipT); }
       check("고른 보기 기억", load("view") === "next" && load("viewRev") === true, load("view") + "/" + load("viewRev"));
       tab("날짜순 ↑"); await W(200); tab("전체"); await W(300); check("전체로 바꾸면 기억도 전체", load("view") === "all" && load("viewRev") === false); }
     { // 팀(PC 에서 팀 기능을 켰을 때): [내 일] 칩 · 받은 일만 · "OO님이 맡김" · 남에게 맡긴 일 동그라미 · 펼치면 맡기기 단추
@@ -2123,7 +2131,7 @@ async function selfTest() {
     { // 대기 중(폰): 보라 알약 · 흐린 글 · '대기 중' 알약, 지난 마감 일을 기다리게 하면 지난 마감에서 빠짐, 시트(누구 짐작 · 다시 볼 날) → op wait, 대기 해제 → op unwait
       const keepInbox = inbox.slice(); filter = "all"; opened = null; render(); await W(60);
       const card6 = document.querySelector('.item[data-id="s6"]'), pill6 = card6 && card6.querySelector(".due.wait");
-      const shown = !!pill6 && (t6 => t6.clientWidth - parseFloat(getComputedStyle(t6).paddingRight) > card6.clientWidth * 0.6)(card6.querySelector(".text")) && pill6.textContent.includes(T("대표님 검토").slice(0, 4)) && card6.classList.contains("waiting") && !!document.querySelector('.bchip[data-brief="waiting"]') && upBucket(view().find(x => x.id === "s6")) === 1;     /* 날짜순은 다시 볼 날(내일) 묶음 */
+      const shown = !!pill6 && (t6 => t6.clientWidth - parseFloat(getComputedStyle(t6).paddingRight) > card6.clientWidth * 0.6)(card6.querySelector(".text")) && pill6.textContent.includes(T("대표님 검토").slice(0, 4)) && card6.classList.contains("waiting") && !!document.querySelector('.bchip[data-brief="waiting"]') && upBucket(view().find(x => x.id === "s6")) === 5;     /* 날짜순은 맨 아래 대기 묶음(10/22, 다시 볼 날 묶음에 섞지 않음) */
       const lateBefore = briefMatch("late").length;
       push({ op: "wait", id: "s5", who: "회신", until: day(new Date(Date.parse(today()) + 86400000)) }); await W(60);
       const lateAfter = briefMatch("late").length, wN = briefMatch("waiting").length;
