@@ -1458,8 +1458,20 @@ function shareText(only, bare) {
 // 그냥 '대표님' 은 우리 대표님, 이름이 붙은 '강미선 대표님' 은 그 사람(거래처), 그냥 '대리님' 은 나라서 건너뜀, '6건 대표님' · '수정본 대표님' 은 이름 아님, 선입금은 입금 아님(PC MainForm.WaitWhoGroup 과 같음, 실제 자료 10/22)
 const NOT_NAME = new Set(["수정본", "계약서", "서류", "자료", "검토", "확인", "우리", "쿼터", "회사", "최종본", "확정본", "견적서", "시안", "결재", "날인", "회신"]);
 function waitGroup(s) { const w = String(s || "").trim(), re = /(^|[^가-힣A-Za-z0-9])(?:([가-힣A-Za-z]+)\s)?([가-힣A-Za-z]+님)/g; let m; while ((m = re.exec(w))) { let who = ((m[2] ? m[2] + " " : "") + m[3]).trim(); if (m[2] && NOT_NAME.has(m[2])) who = m[3]; if (who === "대리님") { re.lastIndex = m.index + m[0].length; continue; } return who; } const en = isEn(); return /(^|[^선])입금/.test(w) ? (en ? "Payment" : "입금") : /서명|날인/.test(w) ? (en ? "Signature" : "서명 · 날인") : /회신|답변|답장|피드백|컨펌|확인/.test(w) ? (en ? "Reply" : "회신") : (en ? "Other" : "기타"); }
+// 그 사람께 보낼 한 줄(PC MainForm.WaitAskLine 과 같음): 지금 단계 이름 + 마감(이름에 그 날짜가 이미 있으면 안 붙임), 대표님께 보낼 글은 '대표님께 · 대표님' 을 뺀다(사장님 10/22 고르심)
+function waitAskLine(x, boss) {
+  let what = x.steps && x.steps.length > 1 ? x.steps[Math.min(x.step, x.steps.length - 1)] : (x.text || "");
+  if (boss) what = what.replace(/(^|\s)대표님께?(?=\s)/g, " ");
+  what = what.replace(/\s+/g, " ").trim();
+  return "- " + what + (x.due && !what.includes(md(x.due)) ? " (~" + md(x.due) + ")" : "");
+}
 function waitListText(only) {     // only: 그 사람 묶음만(대표님께 보낼 것만)
   const en = isEn(), waits = view().filter(x => x.wait && (!only || waitGroup(x.wait) === only)), t0 = today();
+  // 한 사람(○○님) 묶음만이면 그 사람께 보낼 모양: '대표님, 확인 부탁드립니다 (n건)' + 일 이름 + 마감, 마감 가까운 순(없으면 다시 볼 날 순)
+  if (only && only.endsWith("님") && waits.length) {
+    const key = x => (x.due || "9999") + "|" + (x.waitUntil || "9");
+    return (en ? only + ", please check (" + waits.length + ")" : only + ", 확인 부탁드립니다 (" + waits.length + "건)") + "\n" + waits.slice().sort((a, b) => key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0).map(x => waitAskLine(x, only === "대표님")).join("\n");
+  }
   let out = (en ? "Waiting " + waits.length + " (as of " + md(t0) + ")" : "대기 중 " + waits.length + "건 (" + md(t0) + " 기준)");
   if (!waits.length) return out + "\n" + (en ? "Nothing is waiting" : "기다리는 일이 없습니다");
   const groups = {};
@@ -2642,7 +2654,9 @@ async function selfTest() {
     state = { ...state, todos: [...state.todos.filter(t => !t.wait), { id: "wq-1", section: "대기목록 시험", text: "계약서 날인", steps: ["계약서 날인"], step: 0, wait: "시험이 대리님 확인 (주소 수정본 확인 후 발송)", waitSince: ago2, waitUntil: tmr }, { id: "wq-2", section: "대기목록 시험", text: "서류 받기", steps: ["서류 받기"], step: 0, wait: "시험이 대리님 확인", waitSince: t0, waitUntil: t0 }, { id: "wq-3", section: "대기목록 시험", text: "회신 받기", steps: ["회신 받기"], step: 0, wait: "시험삼 과장님 회신", waitSince: t0 }] };
     const wl = waitListText(), wlOne = waitListText("시험이 대리님");
     state = keepState; render();
-    const wOk = wl.startsWith("대기 중 3건") && wl.indexOf("■ 시험이 대리님 2건") >= 0 && wl.indexOf("■ 시험삼 과장님 1건") > wl.indexOf("■ 시험이 대리님 2건") && wl.includes("- [대기목록 시험] 계약서 날인 · 시험이 대리님 확인 (주소 수정본 확인 후 발송) · " + md(ago2) + "부터 · " + md(tmr) + " 다시 보기") && wl.includes("- [대기목록 시험] 서류 받기 · 시험이 대리님 확인 · " + md(t0) + "부터 · 오늘 다시 보기") && wl.includes("- [대기목록 시험] 회신 받기 · 시험삼 과장님 회신 · " + md(t0) + "부터") && waitGroup("윤슬 이영은 실장님 플레이어 설명서 번역 텍스트") === "이영은 실장님" && waitGroup("대표님 제출 서류 3종") === "대표님" && waitGroup("직원 회신") === "회신" && waitGroup("VMG 계약서 수정본") === "기타" && waitGroup("강미선 대표님(복순살롱) 구성품 확인, 아웃박스 시안") === "강미선 대표님" && waitGroup("대리님 결정 (모두싸인 재전송 또는 직접 날인 파일) 후 양슬기 대표님 회신") === "양슬기 대표님" && waitGroup("예스24 회신 (수수료 11% 검토, 선입금 조건, AS 문구)") === "회신" && waitGroup("디노 6건 대표님 검토") === "대표님" && waitGroup("계약서 수정본 대표님 확인") === "대표님" && waitGroup("서령 대리님 회신") === "서령 대리님" && wlOne.startsWith("대기 중 2건") && !wlOne.includes("시험삼 과장님");     // 한 사람 것만 복사
+    const wOk = wl.startsWith("대기 중 3건") && wl.indexOf("■ 시험이 대리님 2건") >= 0 && wl.indexOf("■ 시험삼 과장님 1건") > wl.indexOf("■ 시험이 대리님 2건") && wl.includes("- [대기목록 시험] 계약서 날인 · 시험이 대리님 확인 (주소 수정본 확인 후 발송) · " + md(ago2) + "부터 · " + md(tmr) + " 다시 보기") && wl.includes("- [대기목록 시험] 서류 받기 · 시험이 대리님 확인 · " + md(t0) + "부터 · 오늘 다시 보기") && wl.includes("- [대기목록 시험] 회신 받기 · 시험삼 과장님 회신 · " + md(t0) + "부터") && waitGroup("윤슬 이영은 실장님 플레이어 설명서 번역 텍스트") === "이영은 실장님" && waitGroup("대표님 제출 서류 3종") === "대표님" && waitGroup("직원 회신") === "회신" && waitGroup("VMG 계약서 수정본") === "기타" && waitGroup("강미선 대표님(복순살롱) 구성품 확인, 아웃박스 시안") === "강미선 대표님" && waitGroup("대리님 결정 (모두싸인 재전송 또는 직접 날인 파일) 후 양슬기 대표님 회신") === "양슬기 대표님" && waitGroup("예스24 회신 (수수료 11% 검토, 선입금 조건, AS 문구)") === "회신" && waitGroup("디노 6건 대표님 검토") === "대표님" && waitGroup("계약서 수정본 대표님 확인") === "대표님" && waitGroup("서령 대리님 회신") === "서령 대리님" && wlOne.startsWith("시험이 대리님, 확인 부탁드립니다 (2건)\n- 서류 받기\n- 계약서 날인") && !wlOne.includes("시험삼 과장님") && !wlOne.includes("다시 보기") && !wlOne.includes("[대기목록 시험]")     // 한 사람 것만 복사하면 그 사람께 보낼 모양(PC 와 같음, 사장님 10/22 고르심)
+      && waitAskLine({ text: "자료 정리 → 대표님 확정본(번호) 확인 (체결 10/25까지)", steps: ["자료 정리", "대표님 확정본(번호) 확인 (체결 10/25까지)"], step: 1, due: "2026-10-25" }, true) === "- 확정본(번호) 확인 (체결 10/25까지)"
+      && waitAskLine({ text: "대표님께 위탁 출고분 매출 처리 시점 확인", steps: ["대표님께 위탁 출고분 매출 처리 시점 확인"], step: 0, due: "2026-10-23" }, true) === "- 위탁 출고분 매출 처리 시점 확인 (~10/23)";
     check("대기 목록 복사(누구별 · 사정 · 다시 볼 날)", wOk, wl.replace(/\n/g, " / ").slice(0, 160));
   } catch (e) { check("대기 목록 복사(누구별 · 사정 · 다시 볼 날)", false, e.message); }  // 아이폰 홈 화면 앱에서 구글 연결이 안 될 때 안내: 사파리로 열 주소 · [주소 복사]
   try { connectHint(); await W(150); const sh = $("sheet").textContent || ""; const ok = sh.includes("구글 연결이 안 되나요?") && sh.includes("사파리") && sh.includes(location.pathname) && !!document.querySelector("#sheet #copyAddr"); closeSheet(); await W(100); check("홈 화면 앱 구글 연결 안 될 때 안내(사파리 주소)", ok, sh.slice(0, 60)); } catch (e) { check("홈 화면 앱 구글 연결 안 될 때 안내(사파리 주소)", false, e.message); }  // 홈 화면에 추가 안내(10/22 아이폰 앱 7일 만료): 브라우저로 열면 맨 위 카드 → [방법 보기] 3단계 시트 → [닫기] 하면 다시 안 뜸
