@@ -207,6 +207,7 @@ body.xl .bchip { font-size: 11.2px; padding: 5px 10px; }     /* 아주 크게: �
   .logbar { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 12px 10px; }     /* 단추 셋: 한 줄 글자, 좁으면(영어 · 큰 글자) 다음 줄로 */
   .logbar button { flex: 1 1 auto; white-space: nowrap; padding: 10px 8px; border-radius: 12px; border: 1px solid var(--line, rgba(127,127,127,.25)); background: var(--card); color: var(--text); font-weight: 600; }
   .item:not(.open) .text { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; overflow: hidden; }     /* 아주 긴 이름은 접힌 카드에서 네 줄까지(…), 펼치면 전체(10/23) */
+  .item:not(.open) .news { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }     /* 긴 진행 한 줄도 접힌 카드에서 두 줄까지(…) */
   body.xl .wagain { display: none; } body.xl .due.wait { white-space: nowrap; max-width: 100%; } body.xl .due.wait .wwho { display: inline-block; max-width: 4.5em; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }     /* 아주 크게: 대기 알약 「다시 보기」 숨김 · 한 줄, 길면 누구만 …(날짜는 늘 보임) */
   body.xl .logbar { margin: 4px 0 10px; gap: 6px; } body.xl .logbar button { font-size: .8em; padding: 8px 4px; } body.xl #logAdd { flex-basis: 100%; }     /* 아주 크게: 적기는 한 줄 다, 복사 둘은 나란히(세 줄로 첫 화면 반을 차지하던 것 10/23) */
   .sheet label { display: block; font-size: 13px; color: var(--sub); margin: 10px 0 4px; }
@@ -2287,6 +2288,14 @@ async function selfTest() {
       const tx2 = document.querySelector('.item[data-id="lt-x"] .text'), hOpen = tx2 ? tx2.getBoundingClientRect().height : 0;
       opened = ""; state.todos = state.todos.filter(x => x.id !== "lt-x"); render();
       check("긴 이름 접힌 카드 네 줄까지", !!tx && hClosed <= lh * 4.6 && hOpen > hClosed * 1.5, "접힘 " + Math.round(hClosed) + " · 펼침 " + Math.round(hOpen) + " · 줄 " + Math.round(lh));
+    }
+    { // 아주 긴 진행 한 줄(AI 가 길게 적은 소식): 접힌 카드에서는 두 줄까지(…), 펼치면 전체(10/23)
+      const longN = Array(20).fill("대표님 통화: 예판 때 인증번호 없어도 문제없음, 중간 업데이트").join(" ");
+      state.todos.push({ id: "ln-x", section: "긴 소식 시험", text: "긴 소식", steps: ["긴 소식"], step: 0, due: "", stepDues: [], notes: "", repeat: false, prog: [{ d: today(), t: longN, s: 0 }] });
+      opened = ""; render(); await W(80);
+      const nw = document.querySelector('.item[data-id="ln-x"] .news'), nlh = nw ? parseFloat(getComputedStyle(nw).lineHeight) || parseFloat(getComputedStyle(nw).fontSize) * 1.4 : 0, nh = nw ? nw.getBoundingClientRect().height : 0;
+      state.todos = state.todos.filter(x => x.id !== "ln-x"); render();
+      check("긴 소식 접힌 카드 두 줄까지", !!nw && nh <= nlh * 2.6, nw ? Math.round(nh) + " · 줄 " + Math.round(nlh) : "소식 줄 없음");
     }
     { // 한국어 글은 낱말 단위로 줄바꿈(제안함 '…날 보/기' 처럼 낱말 중간에서 끊기던 것 10/23) — 화면 전체 기본값
       const wbAll = getComputedStyle(document.body).wordBreak, owAll = getComputedStyle(document.body).overflowWrap;
