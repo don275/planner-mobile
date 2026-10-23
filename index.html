@@ -495,7 +495,8 @@ function dueLabel(item) {
   if (item.repeat) return left === 0 ? { text: "반복 · 오늘", cls: "late" } : { text: "반복", cls: "far" };
   const carried = !item.wait && item.lateFrom && left >= 0 ? Math.round((Date.parse(today()) - Date.parse(item.lateFrom)) / 86400000) : 0;
   const en = isEn(), when = (left === 0 ? (en ? "today" : "오늘") : left > 0 ? "D-" + left : (-left) + (en ? "d overdue" : "일 지남")) + (carried > 0 ? " · " + (en ? "moved " + carried + "d" : carried + "일 밀림") : "");
-  return { text: md(item.due) + " (" + when + ")", cls: carried >= 3 ? "late stuck" : left <= 0 ? "late" : left <= 3 ? "soon" : "far" };
+  const dw = new Date(item.due + "T00:00").getDay(), wkMark = dw === 6 ? (en ? " Sat" : " 토") : dw === 0 ? (en ? " Sun" : " 일") : "";     // 주말 마감은 요일도(PC 와 같음 10/23)
+  return { text: md(item.due) + wkMark + " (" + when + ")", cls: carried >= 3 ? "late stuck" : left <= 0 ? "late" : left <= 3 ? "soon" : "far" };
 }
 
 const WEEK = ["일", "월", "화", "수", "목", "금", "토"];
@@ -2333,6 +2334,11 @@ async function selfTest() {
       const lbN0 = parseInt((((document.querySelector(".latebar span") || {}).textContent || "").match(/\d+/) || ["0"])[0]);
       filter = "all"; render();
       check("지난 마감 띠에 대기 일 안 셈(폰)", lbN === lbN0, lbN0 + "->" + lbN);
+    }
+    { // 마감 알약: 주말 마감이면 요일(토 · 일), 평일은 그대로(PC 와 같음)
+      const tw = new Date(today() + "T00:00"), toSat = ((6 - tw.getDay() + 7) % 7) || 7, satD = later(toSat), monD = later(toSat + 2);
+      const sl = dueLabel({ due: satD, steps: ["x"], step: 0 }).text, ml = dueLabel({ due: monD, steps: ["x"], step: 0 }).text;
+      check("주말 마감 알약에 요일(폰)", sl.includes(isEn() ? " Sat" : " 토") && !ml.includes(" 월") && !ml.includes(" 토"), sl + " / " + ml);
     }
     { // 오늘 한 일 복사: 다시 볼 날이 된 대기 일은 대기 중에만(아직 남은 일에 겹쳐 나오던 것, PC 와 같음)
       state.todos.push({ id: "rp-x", section: "보고 겹침 시험", text: "아웃박스 구성품 확정", steps: ["아웃박스 구성품 확정"], step: 0, due: today(), stepDues: [], notes: "", repeat: false, wait: "시안", waitUntil: today() });
