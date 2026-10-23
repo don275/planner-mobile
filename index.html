@@ -780,7 +780,7 @@ function dayReport() {
   const en = isEn();     // English 면 머리말 · 날짜도 영어(PC 2.2.106 과 같음, 할 일 이름은 그대로)
   const na = logs.filter(l => / — (해당 없음|N\/A)/.test(l.title || "")).length;     // 해당 없음은 한 일 수에서 빼고 따로(PC 와 같음)
   let out = dayTitle(d).split(" · ")[0] + (en ? " · done " + (logs.length - na) + (na ? " · N/A " + na : "") : " 한 일 " + (logs.length - na) + "건" + (na ? " · 해당 없음 " + na + "건" : "")) + logGroups(logs, false);
-  const left = view().filter(x => x.due && x.due <= d && !x.repeat && !waiting(x));     // 기다리는 일은 아래 따로(PC 와 같음)
+  const left = view().filter(x => x.due && x.due <= d && !x.repeat && !x.wait);     // 기다리는 일(다시 볼 날이 된 것 포함)은 아래 대기 중에만(PC 와 같음, 겹쳐 나오던 것 10/23)
   const where = x => x.section ? "[" + x.section + (x.sub ? " › " + x.sub : "") + "] " : "";
   if (left.length) out += (en ? "\n\nStill open " + left.length : "\n\n아직 남은 일 " + left.length + "건") + left.map(x => "\n- " + where(x) + x.steps[Math.min(x.step, x.steps.length - 1)] + newsTail(x)).join("");
   const waits = view().filter(x => x.wait).sort((a, b) => (a.waitUntil || "9").localeCompare(b.waitUntil || "9"));
@@ -2325,7 +2325,13 @@ async function selfTest() {
       const s3r = view().find(x => x.id === "s3"), set = !!s3r && !!s3r.remind && inbox.some(o => o.op === "remind" && o.id === "s3");
       inbox.length = 0; keepInboxR.forEach(o => inbox.push(o)); closeSheet(); opened = ""; render();
       check("폰에서 알림 정하기(월요일 9시 · 보낼 일)", pickOk && !!rbtn && set, "picks=" + pickOk + " btn=" + !!rbtn + " set=" + set);
-    }    { // 날짜순 대기 묶음: 다시 볼 날이 된 일이 맨 위, 날짜 없이 기다리는 일은 맨 아래(PC 와 같음 — 날짜 없는 대기가 위로 오던 것 10/23)
+    }    { // 오늘 한 일 복사: 다시 볼 날이 된 대기 일은 대기 중에만(아직 남은 일에 겹쳐 나오던 것, PC 와 같음)
+      state.todos.push({ id: "rp-x", section: "보고 겹침 시험", text: "아웃박스 구성품 확정", steps: ["아웃박스 구성품 확정"], step: 0, due: today(), stepDues: [], notes: "", repeat: false, wait: "시안", waitUntil: today() });
+      const repX = dayReport(); state.todos = state.todos.filter(x => x.id !== "rp-x");
+      const nX = (repX.match(/아웃박스 구성품 확정/g) || []).length;
+      check("오늘 한 일 복사에 대기 일 겹쳐 나오지 않음(폰)", nX === 1, "n=" + nX);
+    }
+    { // 날짜순 대기 묶음: 다시 볼 날이 된 일이 맨 위, 날짜 없이 기다리는 일은 맨 아래(PC 와 같음 — 날짜 없는 대기가 위로 오던 것 10/23)
       state.todos.push({ id: "wo-a", section: "대기 순서 시험", text: "날짜 없는 대기", steps: ["날짜 없는 대기"], step: 0, due: "", stepDues: [], notes: "", repeat: false, wait: "회신", waitUntil: "" }, { id: "wo-b", section: "대기 순서 시험", text: "오늘 다시 볼 대기", steps: ["오늘 다시 볼 대기"], step: 0, due: "", stepDues: [], notes: "", repeat: false, wait: "회신", waitUntil: today() });
       tab("날짜순"); await W(150);
       const ids = [...document.querySelectorAll("#list section.b5 .item")].map(e => e.dataset.id), ia = ids.indexOf("wo-a"), ib = ids.indexOf("wo-b");
