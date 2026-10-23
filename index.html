@@ -208,6 +208,7 @@ body.xl .bchip { font-size: 11.2px; padding: 5px 10px; }     /* 아주 크게: �
   .logbar button { flex: 1 1 auto; white-space: nowrap; padding: 10px 8px; border-radius: 12px; border: 1px solid var(--line, rgba(127,127,127,.25)); background: var(--card); color: var(--text); font-weight: 600; }
   .item:not(.open) .text { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; overflow: hidden; }     /* 아주 긴 이름은 접힌 카드에서 네 줄까지(…), 펼치면 전체(10/23) */
   .item:not(.open) .news { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }     /* 긴 진행 한 줄도 접힌 카드에서 두 줄까지(…) */
+  .rtip { color: var(--sub); font-size: 13px; margin: 8px 0 4px; }     /* 알림 창 안내(번역 검사에 들게 .hint 와 따로) */
   body.xl .wagain { display: none; } body.xl .due.wait { white-space: nowrap; max-width: 100%; } body.xl .due.wait .wwho { display: inline-block; max-width: 4.5em; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }     /* 아주 크게: 대기 알약 「다시 보기」 숨김 · 한 줄, 길면 누구만 …(날짜는 늘 보임) */
   body.xl .logbar { margin: 4px 0 10px; gap: 6px; } body.xl .logbar button { font-size: .8em; padding: 8px 4px; } body.xl #logAdd { flex-basis: 100%; }     /* 아주 크게: 적기는 한 줄 다, 복사 둘은 나란히(세 줄로 첫 화면 반을 차지하던 것 10/23) */
   .sheet label { display: block; font-size: 13px; color: var(--sub); margin: 10px 0 4px; }
@@ -1110,7 +1111,7 @@ function remindPicks(now, personal) {
 // 폰에서 알림 정하기: 고르면 바로(알림은 PC 플래너가 그 시각에 띄움)
 function remindSheet(item) {
   const picks = remindPicks(new Date(), load("profile", "work") === "personal");
-  sheet(`<h2>${T("알림")}</h2><p class="hint">${esc(item.steps[Math.min(item.step, item.steps.length - 1)])}</p><div class="chips">` + picks.map(([n, v]) => `<button class="chip" data-at="${v}">${T(n)}</button>`).join("") + `</div><p class="hint">${T("알림은 PC 플래너가 그 시각에 띄웁니다")}</p><div class="end">${item.remind ? `<button id="remindClear">${T("알림 없애기")}</button>` : ""}<button data-close>${T("취소")}</button></div>`, s => {
+  sheet(`<h2>${T("알림")}</h2><p class="hint">${esc(item.steps[Math.min(item.step, item.steps.length - 1)])}</p><div class="chips">` + picks.map(([n, v]) => `<button class="chip" data-at="${v}">${T(n)}</button>`).join("") + `</div><p class="rtip">${T("알림은 PC 플래너가 그 시각에 띄웁니다")}</p><div class="end">${item.remind ? `<button id="remindClear">${T("알림 없애기")}</button>` : ""}<button data-close>${T("취소")}</button></div>`, s => {
     s.querySelectorAll("[data-at]").forEach(b => b.onclick = () => { closeSheet(); push({ op: "remind", id: item.id, at: b.dataset.at }, T("알림") + " " + remindLabel(b.dataset.at)); });
     const c = s.querySelector("#remindClear"); if (c) c.onclick = () => { closeSheet(); push({ op: "remind", id: item.id, at: "" }, T("알림을 없앴습니다")); };
   });
@@ -2845,7 +2846,8 @@ async function selfTest() {
       if (w6) { waitSheet(w6); await W(150); scanSheet(); closeSheet(); }
       if (s3v) { skipSheet(s3v); await W(150); scanSheet(); closeSheet(); }
       showSuggestions(); await W(150); scanSheet(); closeSheet();
-      bulkWaitSheet(); await W(150); scanSheet(); closeSheet(); }
+      bulkWaitSheet(); await W(150); scanSheet(); closeSheet();
+      if (s3v) { remindSheet(s3v); await W(150); scanSheet(); closeSheet(); } }     // 폰 알림 창도 영어(10/23)
     const chipRow = document.querySelector(".chips"), chipsFit = !chipRow || chipRow.scrollWidth <= chipRow.clientWidth + 1;     // 영어 탭 줄이 화면 안에 다 들어감
     const chipsOk = chipsFit && !!document.querySelector('[data-filter="all"]') && document.querySelector('[data-filter="all"]').textContent === "All" && document.querySelector('[data-filter="next"]').textContent.startsWith("By date");
     // 영어 마감 알약(1d overdue 등)이 길어 제목과 겹치지 않는지
