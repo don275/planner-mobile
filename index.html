@@ -208,7 +208,7 @@ body.xl .bchip { font-size: 11.2px; padding: 5px 10px; }     /* 아주 크게: �
   .logbar button { flex: 1 1 auto; white-space: nowrap; padding: 10px 8px; border-radius: 12px; border: 1px solid var(--line, rgba(127,127,127,.25)); background: var(--card); color: var(--text); font-weight: 600; }
   .item:not(.open) .text { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; overflow: hidden; }     /* 아주 긴 이름은 접힌 카드에서 네 줄까지(…), 펼치면 전체(10/23) */
   .item:not(.open) .news { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }     /* 긴 진행 한 줄도 접힌 카드에서 두 줄까지(…) */
-  .rtip { color: var(--sub); font-size: 13px; margin: 8px 0 4px; }     /* 알림 창 안내(번역 검사에 들게 .hint 와 따로) */
+  .rpick { display: flex; gap: 8px; margin: 4px 0; } .rpick input { flex: 1; min-width: 0; } .rtip { color: var(--sub); font-size: 13px; margin: 8px 0 4px; }     /* 알림 창 안내(번역 검사에 들게 .hint 와 따로) */
   body.xl .wagain { display: none; } body.xl .due.wait { white-space: nowrap; max-width: 100%; } body.xl .due.wait .wwho { display: inline-block; max-width: 4.5em; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }     /* 아주 크게: 대기 알약 「다시 보기」 숨김 · 한 줄, 길면 누구만 …(날짜는 늘 보임) */
   body.xl .logbar { margin: 4px 0 10px; gap: 6px; } body.xl .logbar button { font-size: .8em; padding: 8px 4px; } body.xl #logAdd { flex-basis: 100%; }     /* 아주 크게: 적기는 한 줄 다, 복사 둘은 나란히(세 줄로 첫 화면 반을 차지하던 것 10/23) */
   .sheet label { display: block; font-size: 13px; color: var(--sub); margin: 10px 0 4px; }
@@ -434,7 +434,7 @@ function view() {
     if (op.op === "editStep" && op.step < item.steps.length) item.steps[op.step] = op.text;
     if (op.op === "delete") item.gone = true;
     if (op.op === "star") item.star = !!op.on;
-    if (op.op === "remind") item.remind = op.at || "";     // 폰에서 정한 알림(PC 가 그 시각에 띄움, 10/23)
+    if (op.op === "remind") item.remind = op.when || "";     // "at" 은 push 가 보낸 시각으로 씀     // 폰에서 정한 알림(PC 가 그 시각에 띄움, 10/23)
     if (op.op === "assign") { const t = state && state.team; item.who = op.to && (!t || op.to !== t.me) ? op.to : ""; }
     if (op.op === "dup") { const copy = { ...item, id: op.newId, step: 0, steps: [...item.steps], stepDues: [...item.stepDues], remind: "" }; sync(copy); todos.splice(todos.indexOf(item) + 1, 0, copy); }
     if (op.op === "extract" && op.step >= item.step && op.step < item.steps.length && item.steps.length - item.step >= 2) {
@@ -510,7 +510,7 @@ const EN = {
   "견본 자료입니다": "Sample data", "구글 연결": "Connect Google", "구글에 연결하면 내 할 일이 보입니다": "Connect Google to see your to-dos",
   "지난 마감": "Overdue", "오늘 마감": "Due today", "이번 주 디데이": "D-days this week", "오늘 알림": "Reminders today", "오늘 소식": "News today", "오래 밀린 일": "Long overdue", "오늘로 옮겨 온 일": "Moved to today",
   "오늘은 숨기기": "Hide for today", "고정": "Pinned", "반복": "Repeats", "반복 · 오늘": "Repeats · today", "마감일": "Due date", "단계 나누기": "Split steps",
-  "알림 변경": "Change reminder", "내일 (토)": "Tomorrow (Sat)", "내일 (일)": "Tomorrow (Sun)", "알림 없애기": "No reminder", "알림을 없앴습니다": "Reminder removed", "30분 뒤": "In 30 min", "1시간 뒤": "In 1 hour", "오늘 5시": "Today 5 PM", "내일 9시": "Tomorrow 9:00", "월요일 9시": "Monday 9:00", "알림은 PC 플래너가 그 시각에 띄웁니다": "The PC planner shows the reminder at that time",
+  "알림 변경": "Change reminder", "직접 고르기": "Pick a time", "정하기": "Set", "내일 (토)": "Tomorrow (Sat)", "내일 (일)": "Tomorrow (Sun)", "알림 없애기": "No reminder", "알림을 없앴습니다": "Reminder removed", "30분 뒤": "In 30 min", "1시간 뒤": "In 1 hour", "오늘 5시": "Today 5 PM", "내일 9시": "Tomorrow 9:00", "월요일 9시": "Monday 9:00", "알림은 PC 플래너가 그 시각에 띄웁니다": "The PC planner shows the reminder at that time",
   "★ 중요": "★ Important", "중요 해제": "Unmark important", "단계 추가": "Add step", "메모 추가": "Add note", "복제": "Duplicate", "옮기기": "Move", "삭제": "Delete", "수정": "Edit",
   "이전 단계": "Previous step", "메모": "Note", "추가": "Add", "진행 한 줄": "Progress", "메모 → 진행": "Notes → progress", "메모 속 날짜 소식을 진행 한 줄로 옮겼습니다": "Dated note lines moved to progress", "다시 볼 것": "Check again", "다시 연결": "Reconnect", "구글 연결": "Connect Google", "이렇게 한다": "How to do it", "안내": "How-to", "더": "more", "접기": "Less", "주문 없음": "No orders", "재고 충분": "Enough stock", "대표님 부재": "Boss away", "이미 처리됨": "Already done", "대기로 표시할 일": "To mark as waiting", "대기로 표시할까요?": "Move to waiting?", "진행 소식을 보면 답을 기다리는 일입니다 — 고른 일은 내일 다시 보기로 표시합니다": "News says they wait for someone — back tomorrow", "옮기기": "Move", "개를 대기로 · 내일 다시 보기": " moved to waiting · check again tomorrow", "대기 중": "Waiting", "대기 변경": "Edit waiting", "대기 해제": "Stop waiting", "다음 근무일에 다시 보기": "Check again next workday", "다음 근무일": "Next workday", "다음 근무일에 다시 봅니다": "Will check again next workday", "대기를 해제했습니다": "Stopped waiting", "대기로 표시": "Waiting for…", "누구 · 무엇을": "Who · what", "언제 다시 볼까요": "When to check again", "기다리기": "Wait", "대기로 표시했습니다": "Marked as waiting", "대표님 확인": "Boss approval", "회신": "Reply", "입금": "Payment", "서류": "Documents", "오늘 오후": "Later today", "내일": "Tomorrow", "모레": "In 2 days", "다음 주 월": "Next Monday", "날짜 없이": "No date", "제안함": "Suggestions", "검토 대기": "Waiting for review", "하기로 함": "Planned", "반영됨": "Done", "안 하기로 함": "Not planned", "PC 로 보내는 중": "Sending to PC", "AI 와 쓰다 남긴 '있으면 좋겠다' — 보고 결과를 알려 드립니다": "Ideas left while using AI — each gets reviewed", "아직 제안이 없습니다": "No suggestions yet", "AI 에게 '이럴 때 이런 게 있으면 좋겠다' 고 말하거나 아래에 적어 주세요.": "Tell the AI 'it would help if…', or write one below.", "무엇이 있으면 좋겠나요?": "What would help?", "남기기": "Send", "제안을 남겼습니다": "Suggestion sent", "업무 · 개인": "Work · Personal", "업무": "Work", "개인": "Personal", "해당 없음": "N/A", "이유(선택)": "Reason (optional)", "해당 없음으로 처리했습니다": "Marked N/A", "지우기": "Delete", "진행 한 줄을 지웠습니다": "Progress line deleted", "진행 한 줄을 고쳤습니다": "Progress line edited", "지금 단계에 진행을 남겼습니다": "Progress added under the current step", "기타": "Other", "부제 없음": "No subgroup", "프로젝트": "Project", "부제": "Subgroup", "완료": "Done",
   "홈 화면에 추가하면 앱처럼 씁니다": "Add to Home Screen to use it like an app", "주소창 없이 아이콘을 눌러 바로 열립니다": "Opens from an icon, without the address bar", "방법 보기": "How", "홈 화면에 추가하기": "Add to Home Screen", "사파리 아래": "In Safari, tap", "안 보이면": "if hidden,", "공유": "Share", "단추를 눌러 주세요": "at the bottom", "목록에서": "Choose", "홈 화면에 추가": "Add to Home Screen", "를 눌러 주세요": "", "오른쪽 위": "Tap", "추가": "Add", "를 누르면 홈 화면에 아이콘이 생깁니다": "at the top right — an icon appears on your Home Screen", "크롬 오른쪽 위": "In Chrome, tap", "또는": "or", "앱 설치": "Install app", "홈 화면에 생긴 아이콘으로 열어 주세요": "Open it from the new icon", "구글 연결은 홈 화면 아이콘으로 연 뒤 한 번만 다시 해 주세요.": "After opening from the icon, connect Google once more.", "바로 설치": "Install now", "닫았습니다. 설정 › 홈 화면에 추가하기 에서 다시 볼 수 있습니다": "Hidden. Find it again in Settings › Add to Home Screen",
@@ -1111,9 +1111,10 @@ function remindPicks(now, personal) {
 // 폰에서 알림 정하기: 고르면 바로(알림은 PC 플래너가 그 시각에 띄움)
 function remindSheet(item) {
   const picks = remindPicks(new Date(), load("profile", "work") === "personal");
-  sheet(`<h2>${T("알림")}</h2><p class="hint">${esc(item.steps[Math.min(item.step, item.steps.length - 1)])}</p><div class="chips">` + picks.map(([n, v]) => `<button class="chip" data-at="${v}">${T(n)}</button>`).join("") + `</div><p class="rtip">${T("알림은 PC 플래너가 그 시각에 띄웁니다")}</p><div class="end">${item.remind ? `<button id="remindClear">${T("알림 없애기")}</button>` : ""}<button data-close>${T("취소")}</button></div>`, s => {
-    s.querySelectorAll("[data-at]").forEach(b => b.onclick = () => { closeSheet(); push({ op: "remind", id: item.id, at: b.dataset.at }, T("알림") + " " + remindLabel(b.dataset.at)); });
-    const c = s.querySelector("#remindClear"); if (c) c.onclick = () => { closeSheet(); push({ op: "remind", id: item.id, at: "" }, T("알림을 없앴습니다")); };
+  sheet(`<h2>${T("알림")}</h2><p class="hint">${esc(item.steps[Math.min(item.step, item.steps.length - 1)])}</p><div class="chips">` + picks.map(([n, v]) => `<button class="chip" data-at="${v}">${T(n)}</button>`).join("") + `</div><label>${T("직접 고르기")}</label><div class="rpick"><input type="datetime-local" id="remindAt" value="${(item.remind || picks[1][1]).replace(" ", "T")}"><button id="remindSet">${T("정하기")}</button></div><p class="rtip">${T("알림은 PC 플래너가 그 시각에 띄웁니다")}</p><div class="end">${item.remind ? `<button id="remindClear">${T("알림 없애기")}</button>` : ""}<button data-close>${T("취소")}</button></div>`, s => {
+    s.querySelectorAll("[data-at]").forEach(b => b.onclick = () => { closeSheet(); push({ op: "remind", id: item.id, when: b.dataset.at }, T("알림") + " " + remindLabel(b.dataset.at)); });
+    s.querySelector("#remindSet").onclick = () => { const v = (s.querySelector("#remindAt").value || "").replace("T", " ").slice(0, 16); if (!/^\d{4}-\d\d-\d\d \d\d:\d\d$/.test(v)) return; closeSheet(); push({ op: "remind", id: item.id, when: v }, T("알림") + " " + remindLabel(v)); };     // 직접 고른 시각(10/23)
+    const c = s.querySelector("#remindClear"); if (c) c.onclick = () => { closeSheet(); push({ op: "remind", id: item.id, when: "" }, T("알림을 없앴습니다")); };
   });
 }function waitSheet(item) {
   const now = item.steps[Math.min(item.step, item.steps.length - 1)], lastNews = ((item.prog || []).slice(-1)[0] || {}).t || "";
@@ -2324,9 +2325,17 @@ async function selfTest() {
       const keepInboxR = inbox.slice(); opened = "s3"; render(); await W(60);
       const rbtn = document.querySelector('.item[data-id="s3"] [data-act="remind"]'); if (rbtn) { rbtn.click(); await W(120); }
       const chip = document.querySelector("#sheet [data-at]"); if (chip) { chip.click(); await W(120); }
-      const s3r = view().find(x => x.id === "s3"), set = !!s3r && !!s3r.remind && inbox.some(o => o.op === "remind" && o.id === "s3");
+      const s3r = view().find(x => x.id === "s3"), set = !!s3r && /^\d{4}-\d\d-\d\d \d\d:\d\d$/.test(s3r.remind || "") && inbox.some(o => o.op === "remind" && o.id === "s3" && o.when === s3r.remind);     // 시각이 보낸 시각(ISO)으로 바뀌지 않게
       inbox.length = 0; keepInboxR.forEach(o => inbox.push(o)); closeSheet(); opened = ""; render();
       check("폰에서 알림 정하기(월요일 9시 · 보낼 일)", pickOk && !!rbtn && set, "picks=" + pickOk + " btn=" + !!rbtn + " set=" + set);
+    { // 폰 알림 직접 고르기(10/23): 칩에 없는 시각(다음 주 수요일 2시 등)도 고르면 그 시각으로 보낼 일
+      const keepInboxR2 = inbox.slice(); remindSheet(view().find(x => x.id === "s3")); await W(120);
+      const inp = document.querySelector("#sheet #remindAt"), btn2 = document.querySelector("#sheet #remindSet");
+      if (inp && btn2) { inp.value = "2026-10-28T14:00"; btn2.click(); await W(120); }
+      const got = inbox.some(o => o.op === "remind" && o.id === "s3" && o.when === "2026-10-28 14:00");
+      inbox.length = 0; keepInboxR2.forEach(o => inbox.push(o)); closeSheet(); render();
+      check("폰 알림 직접 고르기", !!inp && got, "칸=" + !!inp + " 보냄=" + got);
+    }
     }    { // 지난 마감 띠(모두 오늘로 · 다음 근무일로): 다시 볼 날이 된 대기 일은 세지도 옮기지도 않음(PC LateItems 와 같음 10/23)
       state.todos.push({ id: "lb-x", section: "띠 시험", text: "지난 대기", steps: ["지난 대기"], step: 0, due: later(-2), stepDues: [], notes: "", repeat: false, wait: "회신", waitUntil: today() });
       filter = "next"; render(); await W(100);
