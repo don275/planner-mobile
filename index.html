@@ -661,12 +661,12 @@ function briefMatch(kind) {
   if (kind === "recheck") return view().filter(recheck);
   if (kind === "maybewait") return view().filter(x => x.maybeWait && !x.wait);     // 대기로 표시할 일(PC 짐작)
   const wk = new Date(); wk.setDate(wk.getDate() + 6); const w = wk.getFullYear() + "-" + String(wk.getMonth() + 1).padStart(2, "0") + "-" + String(wk.getDate()).padStart(2, "0");
-  return view().filter(x => (kind === "team" || kind === "remind" || kind === "news" || !waiting(x)) && (kind === "stuck" ? carriedDays(x) >= 3 : kind === "late" ? x.due && x.due < d && !x.repeat : kind === "today" ? x.due === d : kind === "week" ? x.due && x.due > d && x.due <= w && !x.repeat : kind === "nodate" ? !x.due && !x.repeat : kind === "team" ? !!x.fresh : kind === "remind" ? (x.remind || "").slice(0, 10) === d : kind === "news" ? !!todayNews(x) : carriedDays(x) > 0 && x.due === d));
+  return view().filter(x => (kind === "team" || kind === "remind" || kind === "news" || !x.wait) &&     /* 대기 중(다시 볼 날이 된 것 포함)은 오늘 마감 · 지난 마감 · 날짜 없음에서 빠짐(대기 하나로 10/23, PC 와 같음) */ (kind === "stuck" ? carriedDays(x) >= 3 : kind === "late" ? x.due && x.due < d && !x.repeat : kind === "today" ? x.due === d : kind === "week" ? x.due && x.due > d && x.due <= w && !x.repeat : kind === "nodate" ? !x.due && !x.repeat : kind === "team" ? !!x.fresh : kind === "remind" ? (x.remind || "").slice(0, 10) === d : kind === "news" ? !!todayNews(x) : carriedDays(x) > 0 && x.due === d));
 }
 // 홈 화면에 설치한 앱 아이콘 배지: 오늘 마감 + 지난 마감 수(PC 트레이 글과 같은 기준). 지원 안 하는 브라우저는 그냥 넘어간다
 let badgeShown = -1;
 // 배지 수: 오늘 마감 + 지난 마감 + 대기하다 오늘 다시 볼 일(마감으로 이미 센 것은 빼고) — PC 트레이 글과 같은 기준
-function badgeCount() { const t0 = today(); return briefMatch("today").length + briefMatch("late").length + briefMatch("recheck").filter(x => !(x.due && x.due <= t0)).length; }
+function badgeCount() { return briefMatch("today").length + briefMatch("late").length + briefMatch("recheck").length; }     // 오늘 마감 · 지난 마감 + 오늘 다시 볼 대기 일(대기 일은 마감 쪽에서 빠지니 두 번 세지 않음, 10/23)
 function updateBadge() {
   if (!state || demo && !window.__badgeTest) return;
   const n = badgeCount();
@@ -2203,7 +2203,7 @@ async function selfTest() {
       const lateAfter = briefMatch("late").length, wN = briefMatch("waiting").length;
       push({ op: "wait", id: "s5", who: "회신", until: today() }); await W(60);
       const qKeep = query; query = "회신"; render(); await W(60); const foundWait = !!document.querySelector('.item[data-id="s5"]'); query = qKeep; render(); await W(40);     // 찾기: 기다림의 누구로도
-      const back = briefMatch("recheck").some(x => x.id === "s5") && briefMatch("late").length === lateBefore && !!document.querySelector('.item[data-id="s5"] .due.wait.now');
+      const back = briefMatch("recheck").some(x => x.id === "s5") && briefMatch("late").length === lateAfter && briefMatch("waiting").some(x => x.id === "s5") && !!document.querySelector('.item[data-id="s5"] .due.wait.now');
       opened = "s3"; render(); await W(60);
       const wb = document.querySelector('.item[data-id="s3"] [data-act="wait"]'); wb && wb.click(); await W(80);
       const guessOn = document.querySelector('#sheet [data-who].on'), guess = guessOn ? guessOn.dataset.who : "", boxSame = document.querySelector("#sheet #waitWho").value === guess;
@@ -2325,6 +2325,11 @@ async function selfTest() {
       const s3r = view().find(x => x.id === "s3"), set = !!s3r && !!s3r.remind && inbox.some(o => o.op === "remind" && o.id === "s3");
       inbox.length = 0; keepInboxR.forEach(o => inbox.push(o)); closeSheet(); opened = ""; render();
       check("폰에서 알림 정하기(월요일 9시 · 보낼 일)", pickOk && !!rbtn && set, "picks=" + pickOk + " btn=" + !!rbtn + " set=" + set);
+    }    { // 다시 볼 날이 된 대기 일은 대기 중에만(오늘 마감 · 날짜 없음에 겹쳐 세지 않음, PC 와 같음 10/23)
+      state.todos.push({ id: "rc-x", section: "겹침 시험", text: "회신 확인", steps: ["회신 확인"], step: 0, due: today(), stepDues: [], notes: "", repeat: false, wait: "회신", waitUntil: today() }, { id: "rc-y", section: "겹침 시험", text: "번역 받기", steps: ["번역 받기"], step: 0, due: "", stepDues: [], notes: "", repeat: false, wait: "번역", waitUntil: today() });
+      const inWait = briefMatch("waiting").some(x => x.id === "rc-x") && briefMatch("waiting").some(x => x.id === "rc-y"), dup = briefMatch("today").some(x => x.id === "rc-x") || briefMatch("nodate").some(x => x.id === "rc-y");
+      state.todos = state.todos.filter(x => x.id !== "rc-x" && x.id !== "rc-y");
+      check("다시 볼 날이 된 대기 일 겹쳐 세지 않음(폰)", inWait && !dup, "대기 " + inWait + " · 겹침 " + dup);
     }    { // 한국어 글은 낱말 단위로 줄바꿈(제안함 '…날 보/기' 처럼 낱말 중간에서 끊기던 것 10/23) — 화면 전체 기본값
       const wbAll = getComputedStyle(document.body).wordBreak, owAll = getComputedStyle(document.body).overflowWrap;
       check("낱말 중간 줄바꿈 없음(전체)", wbAll === "keep-all" && owAll === "break-word", wbAll + " / " + owAll);
