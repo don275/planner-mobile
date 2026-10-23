@@ -652,7 +652,14 @@ const ICONS = {
   phone: '<rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/>'
 };
 const ic = n => `<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n]}</svg>`;
-function waitLabel(x, html) {
+// 보고 글 대기 줄 꼬리: 단계 이름에 대기 사유가 이미 있으면 되풀이하지 않음(PC WaitTail 과 같음, 10/23)
+function waitTail(step, x, en) {
+  const when = x.waitUntil ? (en ? " (check " + mdw(x.waitUntil) + ")" : " (" + mdw(x.waitUntil) + " 다시 보기)") : "";
+  if (en) return " · waiting for " + x.wait + when;
+  const toks = String(x.wait || "").replace(/\([^)]*\)/g, " ").split(/[ ,·\/]+/).filter(w => w && w !== "대기"), flat = String(step || "").replace(/ /g, "");
+  if (!toks.length || toks.filter(w => flat.includes(w)).length < Math.ceil(toks.length * 0.8)) return " · " + x.wait + " 대기" + when;
+  return (/대기$/.test(String(step || "").replace(/\s*\([^)]*\)\s*$/, "")) ? "" : " 대기") + when;
+}function waitLabel(x, html) {
   const w = waitWho(x.wait), who = html ? `<span class="wwho">${esc(w)}</span>` : w;     // 누구는 사용자 자료(번역 안 함)
   const pre = html ? ic("wait") + " " : "";     // 알약에는 시계 선 아이콘, 글(복사 · 알림)에는 아이콘 없이
   if (!x.waitUntil) return pre + who;
@@ -788,7 +795,7 @@ function dayReport() {
   const where = x => x.section ? "[" + x.section + (x.sub ? " › " + x.sub : "") + "] " : "";
   if (left.length) out += (en ? "\n\nStill open " + left.length : "\n\n아직 남은 일 " + left.length + "건") + left.map(x => "\n- " + where(x) + x.steps[Math.min(x.step, x.steps.length - 1)] + newsTail(x)).join("");
   const waits = view().filter(x => x.wait).sort((a, b) => (a.waitUntil || "9").localeCompare(b.waitUntil || "9"));
-  if (waits.length) out += (en ? "\n\nWaiting " + waits.length : "\n\n대기 중 " + waits.length + "건") + waits.map(x => "\n- " + where(x) + x.steps[Math.min(x.step, x.steps.length - 1)] + " · " + (en ? "waiting for " + x.wait : x.wait + " 대기") + (x.waitUntil ? (en ? " (check " + mdw(x.waitUntil) + ")" : " (" + mdw(x.waitUntil) + " 다시 보기)") : "")).join("");
+  if (waits.length) out += (en ? "\n\nWaiting " + waits.length : "\n\n대기 중 " + waits.length + "건") + waits.map(x => "\n- " + where(x) + x.steps[Math.min(x.step, x.steps.length - 1)] + waitTail(x.steps[Math.min(x.step, x.steps.length - 1)], x, en)).join("");
   return out;
 }
 // 남은 일 줄 끝에 최근 소식(PC 주간 요약과 같음): 진행 한 줄, 없으면 메모 속 최근 날짜 소식, 길면 줄임
@@ -2159,7 +2166,7 @@ async function selfTest() {
     }
     { // 오늘 한 일 복사: 아직 남은 일 줄 끝에 최근 소식
       const rep = dayReport();
-      check("오늘 한 일 복사: 기다리는 일은 따로", /\n대기 중 1건\n- \[거래처\] 대표님 검토 · 대표님 검토 대기 \(\d+\/\d+( 토| 일)? 다시 보기\)$/.test(rep) && !/아직 남은 일[^]*대표님 검토 ·/.test(rep.split("대기 중")[0]), rep.slice(-140));
+      check("오늘 한 일 복사: 기다리는 일은 따로", /\n대기 중 1건\n- \[거래처\] 대표님 검토 대기 \(\d+\/\d+( 토| 일)? 다시 보기\)$/.test(rep) && !/아직 남은 일[^]*대표님 검토 ·/.test(rep.split("대기 중")[0]), rep.slice(-140));
       check("오늘 한 일 복사에 남은 일 최근 소식", /계약서 수정 사항 확인 {2}· (최근|latest): 10\/18 수정본 메일 받음/.test(rep), rep.slice(-120));
     }
     { // 단계 진행은 '2/3단계'(그냥 '2/3' 은 날짜처럼 보였다 — 대리님 제안 10/20)
@@ -2336,6 +2343,7 @@ async function selfTest() {
       if (inp && btn2) { inp.value = "2026-10-28T14:00"; btn2.click(); await W(120); }
       const got = inbox.some(o => o.op === "remind" && o.id === "s3" && o.when === "2026-10-28 14:00");
       inbox.length = 0; keepInboxR2.forEach(o => inbox.push(o)); closeSheet(); render();
+      check("보고 글 대기 줄 되풀이 없음", waitTail("김중원님 전자서명 대기", { wait: "김중원님 전자서명", waitUntil: "" }, false) === "" && waitTail("대리님 검토", { wait: "회신", waitUntil: "" }, false) === " · 회신 대기", waitTail("김중원님 전자서명 대기", { wait: "김중원님 전자서명", waitUntil: "" }, false));
       { const wlS = waitLabel({ wait: "회신", waitUntil: "2026-11-07" }, false), wlM = waitLabel({ wait: "회신", waitUntil: "2026-11-09" }, false); check("폰 다시 볼 날 주말 요일", /11\/7 (토|Sat)/.test(wlS) && !/(월|Mon)/.test(wlM.replace("회신", "")), wlS + " / " + wlM); }     // 10/23
       { const rlS = remindLabel("2026-11-07 09:00"), rlM = remindLabel("2026-11-09 09:00"); check("폰 알림 표시 주말 요일", /11\/7 (토|Sat) 09:00/.test(rlS) && rlM === "11/9 09:00", rlS + " / " + rlM); }     // 10/23
       check("폰 알림 직접 고르기", !!inp && got, "칸=" + !!inp + " 보냄=" + got);
