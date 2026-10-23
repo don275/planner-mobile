@@ -778,7 +778,7 @@ function logGroups(logs, withDate) {
     const items = groups[g].slice().sort((a, b) => (a.date || "").localeCompare(b.date || "")), subs = [...new Set(items.map(x => x.sub || ""))].sort((a, b) => (a ? 1 : 0) - (b ? 1 : 0));
     for (const s of subs) {
       if (s) out += "\n  › " + s;
-      for (const x of items.filter(y => (y.sub || "") === s)) out += "\n" + (s ? "    " : "") + "- " + (withDate && x.date ? md(x.date) + " " : "") + x.title;
+      for (const x of items.filter(y => (y.sub || "") === s)) out += "\n" + (s ? "    " : "") + "- " + (withDate && x.date ? md(x.date) + " " : "") + (withDate && x.date && String(x.title || "").startsWith(md(x.date) + " ") ? x.title.slice(md(x.date).length + 1) : x.title);     // 이름이 그날 날짜로 시작하면 겹치지 않게(PC NoLeadDate, 10/24)
     }
   }
   return out;
@@ -2661,6 +2661,7 @@ async function selfTest() {
     state.logs = [...(keepLogs || []), { date: d, section: "시험 프로젝트", sub: "", title: "오늘 시험 기록" }];
     const rep = dayReport(), wk = weekReport();
     state.logs = keepLogs;
+    check("이번 주 복사: 이름 앞 같은 날짜 안 겹침", logGroups([{ section: "가", title: "10/21 예판 오픈", date: "2026-10-21" }], true).includes("- 10/21 예판 오픈") && !logGroups([{ section: "가", title: "10/21 예판 오픈", date: "2026-10-21" }], true).includes("10/21 10/21"), logGroups([{ section: "가", title: "10/21 예판 오픈", date: "2026-10-21" }], true));     // 10/24
     check("오늘 한 일 · 이번 주 복사 글에 한 일 이름", rep.includes("[시험 프로젝트]") && rep.includes("- 오늘 시험 기록") && wk.includes("이번 주 한 일") && wk.includes(md(d) + " 오늘 시험 기록"), rep.slice(0, 40) + " / " + wk.slice(0, 40));
   }
   { // 마감 알약이 제목을 덮지 않음: [전체] · [날짜순] (긴 '1일 지남' 알약도)
