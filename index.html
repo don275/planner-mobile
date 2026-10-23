@@ -1073,7 +1073,7 @@ function addSteps(id) {
     const box = s.querySelector("#stepText");
     draw(s); setTimeout(() => box.focus(), 50);
     const go = () => {
-      const v = box.value.replace(/　/g, " ").replace(/→|->/g, " ").trim();
+      const v = box.value.replace(/　/g, " ").replace(/→|->/g, "⇒").trim();
       if (!v) { box.focus(); return; }
       push({ op: "addStep", id, text: v }); added++;
       box.value = ""; draw(s); box.focus();
@@ -1898,7 +1898,7 @@ $("list").addEventListener("click", e => {
   const stepName = e.target.closest("[data-stepname]");
   if (stepName && item) {
     const i = Number(stepName.dataset.stepname);
-    ask((i + 1) + "단계 이름 바꾸기", "단계 이름", v => push({ op: "editStep", id, step: i, text: v.replace(/→|->/g, " ") }, "단계 이름을 바꿨습니다"), item.steps[i]);
+    ask((i + 1) + "단계 이름 바꾸기", "단계 이름", v => push({ op: "editStep", id, step: i, text: v.replace(/→|->/g, "⇒") }, "단계 이름을 바꿨습니다"), item.steps[i]);
     return;
   }
   const stepDue = e.target.closest("[data-stepdue]");
@@ -1921,7 +1921,7 @@ $("list").addEventListener("click", e => {
     if (a === "assign") assignTo(item);
     if (a === "remind") remindSheet(item);
     if (a === "star") push({ op: "star", id, on: !item.star }, item.star ? "중요 표시를 뺐습니다" : "중요 표시했습니다");
-    if (a === "edit") ask("할 일 수정", "할 일", v => push({ op: "edit", id, text: v.replace(/→|->/g, " ") }, "고쳤습니다"), item.text);
+    if (a === "edit") ask("할 일 수정", "할 일", v => push({ op: "edit", id, text: v.replace(/→|->/g, "⇒") }, "고쳤습니다"), item.text);
     if (a === "delete" && confirm("'" + (item.steps.length > 1 ? item.text : item.text) + "' 을(를) 삭제할까요?")) { opened = null; push({ op: "delete", id }, "삭제했습니다"); }
     if (a === "due") pickDate(item.due, v => push({ op: "due", id, due: v }, v ? "마감 " + md(v) : "마감일을 지웠습니다"));
     return;
