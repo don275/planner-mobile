@@ -862,7 +862,7 @@ function render() {
   const order = [...new Set([...sectionOrder(), ...todos.map(x => x.section || "")])];
   const colors = (state && state.colors) || {}, pinned = (state && state.pinned) || [];
   let html = "";
-  const late = (filter === "today" || filter === "next") && !query ? todos.filter(x => x.due && x.due < today() && !x.repeat && !waiting(x)) : [];
+  const late = (filter === "today" || filter === "next") && !query ? todos.filter(x => x.due && x.due < today() && !x.repeat && !x.wait) : [];     // 대기 일(다시 볼 날이 된 것 포함)은 지난 마감 띠에서 뺌(PC 와 같음)
   if (!query && filter !== "today" && filter !== "wait" && installHintOn()) html += installHtml();
   if (!query && filter !== "today" && filter !== "wait" && load("briefHidden", "") !== today()) html += briefHtml();
   if (late.length) html += `<div class="latebar"><span>지난 마감 ${late.length}건</span><button data-late="0">모두 오늘로</button><button data-late="1">${nextWorkday() === quickDues()[1][1] ? "내일로" : "다음 근무일로"}</button></div>`;     /* 내일이 주말이면 다음 근무일로(PC 와 같음, 10/23) */
@@ -2325,7 +2325,16 @@ async function selfTest() {
       const s3r = view().find(x => x.id === "s3"), set = !!s3r && !!s3r.remind && inbox.some(o => o.op === "remind" && o.id === "s3");
       inbox.length = 0; keepInboxR.forEach(o => inbox.push(o)); closeSheet(); opened = ""; render();
       check("폰에서 알림 정하기(월요일 9시 · 보낼 일)", pickOk && !!rbtn && set, "picks=" + pickOk + " btn=" + !!rbtn + " set=" + set);
-    }    { // 오늘 한 일 복사: 다시 볼 날이 된 대기 일은 대기 중에만(아직 남은 일에 겹쳐 나오던 것, PC 와 같음)
+    }    { // 지난 마감 띠(모두 오늘로 · 다음 근무일로): 다시 볼 날이 된 대기 일은 세지도 옮기지도 않음(PC LateItems 와 같음 10/23)
+      state.todos.push({ id: "lb-x", section: "띠 시험", text: "지난 대기", steps: ["지난 대기"], step: 0, due: later(-2), stepDues: [], notes: "", repeat: false, wait: "회신", waitUntil: today() });
+      filter = "next"; render(); await W(100);
+      const lbText = (document.querySelector(".latebar span") || {}).textContent || "", lbN = parseInt((lbText.match(/\d+/) || ["0"])[0]);
+      state.todos = state.todos.filter(x => x.id !== "lb-x"); render(); await W(60);
+      const lbN0 = parseInt((((document.querySelector(".latebar span") || {}).textContent || "").match(/\d+/) || ["0"])[0]);
+      filter = "all"; render();
+      check("지난 마감 띠에 대기 일 안 셈(폰)", lbN === lbN0, lbN0 + "->" + lbN);
+    }
+    { // 오늘 한 일 복사: 다시 볼 날이 된 대기 일은 대기 중에만(아직 남은 일에 겹쳐 나오던 것, PC 와 같음)
       state.todos.push({ id: "rp-x", section: "보고 겹침 시험", text: "아웃박스 구성품 확정", steps: ["아웃박스 구성품 확정"], step: 0, due: today(), stepDues: [], notes: "", repeat: false, wait: "시안", waitUntil: today() });
       const repX = dayReport(); state.todos = state.todos.filter(x => x.id !== "rp-x");
       const nX = (repX.match(/아웃박스 구성품 확정/g) || []).length;
