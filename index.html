@@ -666,13 +666,15 @@ function waitTail(step, x, en) {
   const again = s => html ? `<span class="wagain">${s}</span>` : s;     // 아주 크게에서는 「다시 보기」 를 숨겨 알약이 한 줄로(10/23 320px 두 줄로 꺾이던 것)
   return pre + who + " · " + (x.waitUntil <= today() ? (isEn() ? again("check ") + "today" : "오늘" + again(" 다시 보기")) : (isEn() ? again("check ") + mdw(x.waitUntil) : mdw(x.waitUntil) + again(" 다시 보기")));
 }
+// 다음 근무일(토 · 일 건너뜀, PC NextWorkday 와 같음)
+function nextWorkDay(base) { const t = Date.parse(base); let n = 1; while ([0, 6].includes(new Date(t + n * 86400000).getUTCDay())) n++; return day(new Date(t + n * 86400000)); }
 function briefMatch(kind) {
   const d = today();
   if (kind === "waiting") return view().filter(x => !!x.wait);     // 대기 중 알약 하나에 다시 볼 날이 된 것까지(다시 볼 것 알약은 없앰 10/23)
   if (kind === "recheck") return view().filter(recheck);
   if (kind === "maybewait") return view().filter(x => x.maybeWait && !x.wait);     // 대기로 표시할 일(PC 짐작)
   const wk = new Date(); wk.setDate(wk.getDate() + 6); const w = wk.getFullYear() + "-" + String(wk.getMonth() + 1).padStart(2, "0") + "-" + String(wk.getDate()).padStart(2, "0");
-  return view().filter(x => (kind === "team" || kind === "remind" || kind === "news" || !x.wait) &&     /* 대기 중(다시 볼 날이 된 것 포함)은 오늘 마감 · 지난 마감 · 날짜 없음에서 빠짐(대기 하나로 10/23, PC 와 같음) */ (kind === "stuck" ? carriedDays(x) >= 3 : kind === "late" ? x.due && x.due < d && !x.repeat : kind === "today" ? x.due === d : kind === "week" ? x.due && x.due > d && x.due <= w && !x.repeat : kind === "nodate" ? !x.due && !x.repeat : kind === "team" ? !!x.fresh : kind === "remind" ? (x.remind || "").slice(0, 10) === d : kind === "news" ? !!todayNews(x) : carriedDays(x) > 0 && x.due === d));
+  return view().filter(x => (kind === "team" || kind === "remind" || kind === "news" || !x.wait) &&     /* 대기 중(다시 볼 날이 된 것 포함)은 오늘 마감 · 지난 마감 · 날짜 없음에서 빠짐(대기 하나로 10/23, PC 와 같음) */ (kind === "stuck" ? carriedDays(x) >= 3 : kind === "late" ? x.due && x.due < d && !x.repeat : kind === "today" ? x.due === d : kind === "nextwork" ? x.due && x.due > d && x.due <= nextWorkDay(d) : kind === "week" ? x.due && x.due > d && x.due <= w && !x.repeat : kind === "nodate" ? !x.due && !x.repeat : kind === "team" ? !!x.fresh : kind === "remind" ? (x.remind || "").slice(0, 10) === d : kind === "news" ? !!todayNews(x) : carriedDays(x) > 0 && x.due === d));
 }
 // 홈 화면에 설치한 앱 아이콘 배지: 오늘 마감 + 지난 마감 수(PC 트레이 글과 같은 기준). 지원 안 하는 브라우저는 그냥 넘어간다
 let badgeShown = -1;
@@ -708,8 +710,10 @@ function installSheet() {
   if (n("stuck")) chips.push(`<button class="bchip stuck" data-brief="stuck">오래 밀린 일 ${n("stuck")}</button>`);
   if (n("late")) chips.push(`<button class="bchip late" data-brief="late">지난 마감 ${n("late")}</button>`);
   if (n("today")) chips.push(`<button class="bchip today" data-brief="today">오늘 마감 ${n("today")}</button>`);
+  const nwd = nextWorkDay(today()), nwShow = load("profile", "work") !== "personal" && nwd > later(1);     // 금요일 · 주말(업무 쪽): 다음 근무일(월)까지 마감(PC · AI 와 같음, 10/24)
+  if (nwShow && n("nextwork")) chips.push(`<button class="bchip today" data-brief="nextwork">${isEn() ? "Due by " + ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][new Date(nwd + "T00:00").getDay()] : ["일", "월", "화", "수", "목", "금", "토"][new Date(nwd + "T00:00").getDay()] + "요일까지 마감"} ${n("nextwork")}</button>`);
   if (n("rolled")) chips.push(`<button class="bchip rolled" data-brief="rolled">옮겨 온 일 ${n("rolled")}</button>`);
-  if (!chips.length) chips.push(`<span class="bchip calm">오늘 마감인 일이 없습니다</span>`);
+  if (!chips.some(c => !c.includes('data-brief="nextwork"'))) chips.unshift(`<span class="bchip calm">오늘 마감인 일이 없습니다</span>`);     // 월요일까지 마감 알약만 있어도 오늘은 없다고(10/24)
   if (n("team")) chips.unshift(`<button class="bchip team" data-brief="team">새로 받은 일 ${n("team")}</button>`);     // 팀: 어제 · 오늘 남이 맡긴 일(PC 와 같음)
   if (n("week")) chips.push(`<button class="bchip rolled" data-brief="week">이번 주 디데이 ${n("week")}</button>`);     // 오늘 몫 다음에 볼 일
   if (n("nodate")) chips.push(`<button class="bchip rolled" data-brief="nodate">날짜 없음 ${n("nodate")}</button>`);     // 날짜 없는 일(시간 나면 챙길 일, PC 와 같음)
@@ -2017,6 +2021,7 @@ async function selfTest() {
       const tx0 = bx0 && bx0.closest(".item").querySelector(".text").getBoundingClientRect(), h1 = tx0 && document.elementFromPoint(tx0.left + 1, tx0.top + tx0.height / 2);
       check("동그라미 누르는 자리 넓음(제목은 안 건드림)", !!h0 && (h0 === bx0 || bx0.contains(h0)) && !!h1 && !h1.closest(".box"), r0 ? Math.round(r0.width) + "px + 둘레" : "없음"); }
     { const tc = document.querySelector('[data-brief="today"]'); if (tc && briefMatch("today").length > 1) { briefAt = {}; tc.click(); await W(300); const tt = (document.querySelector(".toast") || {}).textContent || ""; check("알약 누르면 몇 번째 알림", /^1 \/ \d+ · /.test(tt), tt.slice(0, 20)); } }
+    { const nwd = nextWorkDay(today()), nwOn = load("profile", "work") !== "personal" && nwd > later(1), nwc = document.querySelector('[data-brief="nextwork"]'); check("오늘 카드: 금 · 주말 다음 근무일까지 마감", nextWorkDay("2026-10-23") === "2026-10-26" && nextWorkDay("2026-10-21") === "2026-10-22" && (nwOn ? !briefMatch("nextwork").length || (!!nwc && nwc.textContent.endsWith(" " + briefMatch("nextwork").length)) : !nwc), nwc ? nwc.textContent : "없음 " + nwOn); }     // 10/24
     const wkChip = document.querySelector('[data-brief="week"]');
     check("오늘 카드: 이번 주 디데이", !!wkChip && briefMatch("week").every(x => x.due > today()), wkChip ? wkChip.textContent : "없음");
     { const p0 = document.querySelector(".proj")?.dataset.sec || "", one = shareText(p0); check("프로젝트만 복사 글(메모 빼고 포함)", one.split("\n").filter(l => l.startsWith("[")).every(l => l.startsWith("[" + p0)) && !shareText(null, true).includes("\n• ") && shareText().includes("\n• "), p0); }
