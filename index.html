@@ -2332,6 +2332,13 @@ async function selfTest() {
       state.todos = state.todos.filter(x => x.id !== "wo-a" && x.id !== "wo-b"); tab("전체"); await W(100);
       check("날짜순 대기 묶음: 다시 볼 일 위 · 날짜 없는 대기 아래(폰)", ia >= 0 && ib >= 0 && ib < ia, ids.join(","));
     }
+    { // 대기 보기(누구별 묶음) 안에서도: 다시 볼 날이 된 일 맨 위, 날짜 없는 대기 맨 아래(PC 와 같음)
+      state.todos.push({ id: "wv-a", section: "대기 순서 시험", text: "날짜 없는 대기", steps: ["날짜 없는 대기"], step: 0, due: "", stepDues: [], notes: "", repeat: false, wait: "회신", waitUntil: "" }, { id: "wv-c", section: "대기 순서 시험", text: "다음 주 대기", steps: ["다음 주 대기"], step: 0, due: "", stepDues: [], notes: "", repeat: false, wait: "회신", waitUntil: later(7) }, { id: "wv-b", section: "대기 순서 시험", text: "오늘 다시 볼 대기", steps: ["오늘 다시 볼 대기"], step: 0, due: "", stepDues: [], notes: "", repeat: false, wait: "회신", waitUntil: today() });
+      filter = "wait"; render(); await W(150);
+      const ids2 = [...document.querySelectorAll("#list .item")].map(e => e.dataset.id).filter(i => i.startsWith("wv-"));
+      state.todos = state.todos.filter(x => !x.id.startsWith("wv-")); filter = "all"; render(); await W(80);
+      check("대기 보기 묶음 순서: 다시 볼 일 · 날짜순 · 날짜 없음(폰)", ids2.join(",") === "wv-b,wv-c,wv-a", ids2.join(","));
+    }
     { // 다시 볼 날이 된 대기 일은 대기 중에만(오늘 마감 · 날짜 없음에 겹쳐 세지 않음, PC 와 같음 10/23)
       state.todos.push({ id: "rc-x", section: "겹침 시험", text: "회신 확인", steps: ["회신 확인"], step: 0, due: today(), stepDues: [], notes: "", repeat: false, wait: "회신", waitUntil: today() }, { id: "rc-y", section: "겹침 시험", text: "번역 받기", steps: ["번역 받기"], step: 0, due: "", stepDues: [], notes: "", repeat: false, wait: "번역", waitUntil: today() });
       const inWait = briefMatch("waiting").some(x => x.id === "rc-x") && briefMatch("waiting").some(x => x.id === "rc-y"), dup = briefMatch("today").some(x => x.id === "rc-x") || briefMatch("nodate").some(x => x.id === "rc-y");
