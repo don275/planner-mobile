@@ -428,7 +428,7 @@ function view() {
     if (op.op === "skip") item.wait = "";
     if (op.op === "skip") { const now = Math.min(item.step, item.steps.length - 1); item.na = [...(item.na || []).filter(o => o.s !== now), { s: now, why: op.reason || "" }]; if (item.step < item.steps.length - 1) { item.step++; sync(item); } else item.gone = true; }
     if (op.op === "notesToProgress") { const movedRaw = datedLines(item.notes), moved = movedRaw.flatMap(splitInlineDated).filter(l => /^\s*\d{1,2}\s*[\/.]\s*\d{1,2}/.test(l)); item.notes = (item.notes || "").split("\n").filter(l => !movedRaw.includes(l)).join("\n"); item.prog = [...(item.prog || []), ...moved.map(l => { const m = l.match(/^\s*(\d{1,2})\s*[\/.]\s*(\d{1,2})\.?\s*(.*)$/); return { s: Math.min(item.step, item.steps.length - 1), t: Number(m[1]) + "/" + Number(m[2]) + "  " + m[3].trim() }; })]; }
-    if (op.op === "progress") item.prog = [...(item.prog || []), { s: item.step, t: md(op.at || today()) + "  " + op.text }];
+    if (op.op === "progress") item.prog = [...(item.prog || []), { s: item.step, t: md(op.at ? day(new Date(op.at)) : today()) + "  " + op.text }];     // op.at 은 보낸 순간(UTC ISO): 아침 9시 전엔 앞 글자가 어제라 이 폰 날짜로
     if (op.op === "progressEdit" && (item.prog || [])[op.index]) { const pr = [...item.prog]; if (op.text) pr[op.index] = { ...pr[op.index], t: pr[op.index].t.split("  ")[0] + "  " + op.text }; else pr.splice(op.index, 1); item.prog = pr; }
     if (op.op === "edit" && item.steps.length < 2) { item.text = op.text; item.steps = [op.text]; }
     if (op.op === "editStep" && op.step < item.steps.length) item.steps[op.step] = op.text;
@@ -1916,7 +1916,7 @@ $("list").addEventListener("click", e => {
     if (a === "unwait") push({ op: "unwait", id: item.id }, T("대기를 해제했습니다"));
     if (a === "waitnext") push({ op: "wait", id: item.id, who: item.wait, until: nextWorkday() }, T("다음 근무일에 다시 봅니다"));     // 누구는 그대로, 다시 볼 날만 다음 근무일로(PC 와 같음, 10/23)
     if (a === "n2p") push({ op: "notesToProgress", id }, T("메모 속 날짜 소식을 진행 한 줄로 옮겼습니다"));
-    if (a === "progress") ask("진행 한 줄", "예: 회신 없음, 내일 전화", v => push({ op: "progress", id, text: v, at: today() }, "지금 단계에 진행을 남겼습니다"));
+    if (a === "progress") ask("진행 한 줄", "예: 회신 없음, 내일 전화", v => push({ op: "progress", id, text: v }, "지금 단계에 진행을 남겼습니다"));
     if (a === "step") addSteps(id);
     if (a === "split" && confirm("안 한 단계를 하나씩 따로 할 일로 나눌까요?")) { opened = null; push({ op: "split", id }, (item.steps.length - item.step) + "개 할 일로 나눴습니다"); }
     if (a === "dup") { const newId = "m" + newKey(); opened = newId; push({ op: "dup", id, newId }, "복제했습니다"); }
