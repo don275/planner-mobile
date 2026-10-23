@@ -209,7 +209,7 @@ body.xl .bchip { font-size: 11.2px; padding: 5px 10px; }     /* 아주 크게: �
   .item:not(.open) .text { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; overflow: hidden; }     /* 아주 긴 이름은 접힌 카드에서 네 줄까지(…), 펼치면 전체(10/23) */
   .item:not(.open) .news { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }     /* 긴 진행 한 줄도 접힌 카드에서 두 줄까지(…) */
   .rpick { display: flex; gap: 8px; margin: 4px 0; } .rpick input { flex: 1; min-width: 0; } .rtip { color: var(--sub); font-size: 13px; margin: 8px 0 4px; }     /* 알림 창 안내(번역 검사에 들게 .hint 와 따로) */
-  body.xl .wagain { display: none; } body.xl .due.wait { white-space: nowrap; max-width: 100%; } body.xl .due.wait .wwho { display: inline-block; max-width: 4.5em; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }     /* 아주 크게: 대기 알약 「다시 보기」 숨김 · 한 줄, 길면 누구만 …(날짜는 늘 보임) */
+  body.xl .wagain { display: none; } body.xl .due.wait { white-space: nowrap; max-width: 100%; } body.xl .due.wait .wwho { display: inline-block; max-width: 3.5em; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }     /* 아주 크게: 대기 알약 「다시 보기」 숨김 · 한 줄, 길면 누구만 …(날짜는 늘 보임) */
   body.xl .logbar { margin: 4px 0 10px; gap: 6px; } body.xl .logbar button { font-size: .8em; padding: 8px 4px; } body.xl #logAdd { flex-basis: 100%; }     /* 아주 크게: 적기는 한 줄 다, 복사 둘은 나란히(세 줄로 첫 화면 반을 차지하던 것 10/23) */
   .sheet label { display: block; font-size: 13px; color: var(--sub); margin: 10px 0 4px; }
   .sheet .end { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
@@ -354,6 +354,7 @@ const $ = id => document.getElementById(id);
 const day = d => d.toISOString().slice(0, 10);
 const today = () => day(new Date(Date.now() - new Date().getTimezoneOffset() * 60000));
 const md = s => s ? Number(s.slice(5, 7)) + "/" + Number(s.slice(8, 10)) : "";
+const mdw = s => { if (!s) return ""; const w = new Date(s.slice(0, 10) + "T00:00").getDay(); return md(s) + (w === 6 ? (isEn() ? " Sat" : " 토") : w === 0 ? (isEn() ? " Sun" : " 일") : ""); };     // 주말이면 요일(다시 볼 날, 10/23)
 const load = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
 const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -656,7 +657,7 @@ function waitLabel(x, html) {
   const pre = html ? ic("wait") + " " : "";     // 알약에는 시계 선 아이콘, 글(복사 · 알림)에는 아이콘 없이
   if (!x.waitUntil) return pre + who;
   const again = s => html ? `<span class="wagain">${s}</span>` : s;     // 아주 크게에서는 「다시 보기」 를 숨겨 알약이 한 줄로(10/23 320px 두 줄로 꺾이던 것)
-  return pre + who + " · " + (x.waitUntil <= today() ? (isEn() ? again("check ") + "today" : "오늘" + again(" 다시 보기")) : (isEn() ? again("check ") + md(x.waitUntil) : md(x.waitUntil) + again(" 다시 보기")));
+  return pre + who + " · " + (x.waitUntil <= today() ? (isEn() ? again("check ") + "today" : "오늘" + again(" 다시 보기")) : (isEn() ? again("check ") + mdw(x.waitUntil) : mdw(x.waitUntil) + again(" 다시 보기")));
 }
 function briefMatch(kind) {
   const d = today();
@@ -787,7 +788,7 @@ function dayReport() {
   const where = x => x.section ? "[" + x.section + (x.sub ? " › " + x.sub : "") + "] " : "";
   if (left.length) out += (en ? "\n\nStill open " + left.length : "\n\n아직 남은 일 " + left.length + "건") + left.map(x => "\n- " + where(x) + x.steps[Math.min(x.step, x.steps.length - 1)] + newsTail(x)).join("");
   const waits = view().filter(x => x.wait).sort((a, b) => (a.waitUntil || "9").localeCompare(b.waitUntil || "9"));
-  if (waits.length) out += (en ? "\n\nWaiting " + waits.length : "\n\n대기 중 " + waits.length + "건") + waits.map(x => "\n- " + where(x) + x.steps[Math.min(x.step, x.steps.length - 1)] + " · " + (en ? "waiting for " + x.wait : x.wait + " 대기") + (x.waitUntil ? (en ? " (check " + md(x.waitUntil) + ")" : " (" + md(x.waitUntil) + " 다시 보기)") : "")).join("");
+  if (waits.length) out += (en ? "\n\nWaiting " + waits.length : "\n\n대기 중 " + waits.length + "건") + waits.map(x => "\n- " + where(x) + x.steps[Math.min(x.step, x.steps.length - 1)] + " · " + (en ? "waiting for " + x.wait : x.wait + " 대기") + (x.waitUntil ? (en ? " (check " + mdw(x.waitUntil) + ")" : " (" + mdw(x.waitUntil) + " 다시 보기)") : "")).join("");
   return out;
 }
 // 남은 일 줄 끝에 최근 소식(PC 주간 요약과 같음): 진행 한 줄, 없으면 메모 속 최근 날짜 소식, 길면 줄임
@@ -1521,7 +1522,7 @@ function waitListText(only) {     // only: 그 사람 묶음만(대표님께 보
     for (const x of groups[k].sort((a, b) => (a.waitUntil || "9") < (b.waitUntil || "9") ? -1 : 1)) {
       const where = x.sub ? (x.section || "") + " › " + x.sub : (x.section || ""), what = x.steps && x.steps.length > 1 ? x.steps[Math.min(x.step, x.steps.length - 1)] : x.text;
       let detail = String(x.wait || "").trim(); if (detail === k) detail = "";     // 무엇을 기다리는지(묶음 이름과 같으면 생략)
-      const since = x.waitSince ? (en ? "since " + md(x.waitSince) : md(x.waitSince) + "부터") : "", until = x.waitUntil ? (x.waitUntil <= t0 ? (en ? "check today" : "오늘 다시 보기") : (en ? "check " + md(x.waitUntil) : md(x.waitUntil) + " 다시 보기")) : "";
+      const since = x.waitSince ? (en ? "since " + md(x.waitSince) : md(x.waitSince) + "부터") : "", until = x.waitUntil ? (x.waitUntil <= t0 ? (en ? "check today" : "오늘 다시 보기") : (en ? "check " + mdw(x.waitUntil) : mdw(x.waitUntil) + " 다시 보기")) : "";
       out += "\n- " + (where ? "[" + where + "] " : "") + what + (detail ? " · " + detail : "") + [since, until].filter(Boolean).map(v => " · " + v).join("");
     }
   }
@@ -2158,7 +2159,7 @@ async function selfTest() {
     }
     { // 오늘 한 일 복사: 아직 남은 일 줄 끝에 최근 소식
       const rep = dayReport();
-      check("오늘 한 일 복사: 기다리는 일은 따로", /\n대기 중 1건\n- \[거래처\] 대표님 검토 · 대표님 검토 대기 \(\d+\/\d+ 다시 보기\)$/.test(rep) && !/아직 남은 일[^]*대표님 검토 ·/.test(rep.split("대기 중")[0]), rep.slice(-140));
+      check("오늘 한 일 복사: 기다리는 일은 따로", /\n대기 중 1건\n- \[거래처\] 대표님 검토 · 대표님 검토 대기 \(\d+\/\d+( 토| 일)? 다시 보기\)$/.test(rep) && !/아직 남은 일[^]*대표님 검토 ·/.test(rep.split("대기 중")[0]), rep.slice(-140));
       check("오늘 한 일 복사에 남은 일 최근 소식", /계약서 수정 사항 확인 {2}· (최근|latest): 10\/18 수정본 메일 받음/.test(rep), rep.slice(-120));
     }
     { // 단계 진행은 '2/3단계'(그냥 '2/3' 은 날짜처럼 보였다 — 대리님 제안 10/20)
@@ -2335,6 +2336,7 @@ async function selfTest() {
       if (inp && btn2) { inp.value = "2026-10-28T14:00"; btn2.click(); await W(120); }
       const got = inbox.some(o => o.op === "remind" && o.id === "s3" && o.when === "2026-10-28 14:00");
       inbox.length = 0; keepInboxR2.forEach(o => inbox.push(o)); closeSheet(); render();
+      { const wlS = waitLabel({ wait: "회신", waitUntil: "2026-11-07" }, false), wlM = waitLabel({ wait: "회신", waitUntil: "2026-11-09" }, false); check("폰 다시 볼 날 주말 요일", /11\/7 (토|Sat)/.test(wlS) && !/(월|Mon)/.test(wlM.replace("회신", "")), wlS + " / " + wlM); }     // 10/23
       { const rlS = remindLabel("2026-11-07 09:00"), rlM = remindLabel("2026-11-09 09:00"); check("폰 알림 표시 주말 요일", /11\/7 (토|Sat) 09:00/.test(rlS) && rlM === "11/9 09:00", rlS + " / " + rlM); }     // 10/23
       check("폰 알림 직접 고르기", !!inp && got, "칸=" + !!inp + " 보냄=" + got);
     }
@@ -2810,7 +2812,7 @@ async function selfTest() {
     state = { ...state, todos: [...state.todos.filter(t => !t.wait), { id: "wq-1", section: "대기목록 시험", text: "계약서 날인", steps: ["계약서 날인"], step: 0, wait: "시험이 대리님 확인 (주소 수정본 확인 후 발송)", waitSince: ago2, waitUntil: tmr }, { id: "wq-2", section: "대기목록 시험", text: "서류 받기", steps: ["서류 받기"], step: 0, wait: "시험이 대리님 확인", waitSince: t0, waitUntil: t0 }, { id: "wq-3", section: "대기목록 시험", text: "회신 받기", steps: ["회신 받기"], step: 0, wait: "시험삼 과장님 회신", waitSince: t0 }] };
     const wl = waitListText(), wlOne = waitListText("시험이 대리님");
     state = keepState; render();
-    const wOk = wl.startsWith("대기 중 3건") && wl.indexOf("■ 시험이 대리님 2건") >= 0 && wl.indexOf("■ 시험삼 과장님 1건") > wl.indexOf("■ 시험이 대리님 2건") && wl.includes("- [대기목록 시험] 계약서 날인 · 시험이 대리님 확인 (주소 수정본 확인 후 발송) · " + md(ago2) + "부터 · " + md(tmr) + " 다시 보기") && wl.includes("- [대기목록 시험] 서류 받기 · 시험이 대리님 확인 · " + md(t0) + "부터 · 오늘 다시 보기") && wl.includes("- [대기목록 시험] 회신 받기 · 시험삼 과장님 회신 · " + md(t0) + "부터") && waitGroup("윤슬 이영은 실장님 플레이어 설명서 번역 텍스트") === "이영은 실장님" && waitGroup("대표님 제출 서류 3종") === "대표님" && waitGroup("직원 회신") === "회신" && waitGroup("VMG 계약서 수정본") === "기타" && waitGroup("강미선 대표님(복순살롱) 구성품 확인, 아웃박스 시안") === "강미선 대표님" && waitGroup("대리님 결정 (모두싸인 재전송 또는 직접 날인 파일) 후 양슬기 대표님 회신") === "양슬기 대표님" && waitGroup("예스24 회신 (수수료 11% 검토, 선입금 조건, AS 문구)") === "회신" && waitGroup("디노 6건 대표님 검토") === "대표님" && waitGroup("계약서 수정본 대표님 확인") === "대표님" && waitGroup("서령 대리님 회신") === "서령 대리님" && wlOne.startsWith("시험이 대리님, 확인 부탁드립니다 (2건)\n- 서류 받기\n- 계약서 날인") && !wlOne.includes("시험삼 과장님") && !wlOne.includes("다시 보기") && !wlOne.includes("[대기목록 시험]")     // 한 사람 것만 복사하면 그 사람께 보낼 모양(PC 와 같음, 사장님 10/22 고르심)
+    const wOk = wl.startsWith("대기 중 3건") && wl.indexOf("■ 시험이 대리님 2건") >= 0 && wl.indexOf("■ 시험삼 과장님 1건") > wl.indexOf("■ 시험이 대리님 2건") && wl.includes("- [대기목록 시험] 계약서 날인 · 시험이 대리님 확인 (주소 수정본 확인 후 발송) · " + md(ago2) + "부터 · " + mdw(tmr) + " 다시 보기") && wl.includes("- [대기목록 시험] 서류 받기 · 시험이 대리님 확인 · " + md(t0) + "부터 · 오늘 다시 보기") && wl.includes("- [대기목록 시험] 회신 받기 · 시험삼 과장님 회신 · " + md(t0) + "부터") && waitGroup("윤슬 이영은 실장님 플레이어 설명서 번역 텍스트") === "이영은 실장님" && waitGroup("대표님 제출 서류 3종") === "대표님" && waitGroup("직원 회신") === "회신" && waitGroup("VMG 계약서 수정본") === "기타" && waitGroup("강미선 대표님(복순살롱) 구성품 확인, 아웃박스 시안") === "강미선 대표님" && waitGroup("대리님 결정 (모두싸인 재전송 또는 직접 날인 파일) 후 양슬기 대표님 회신") === "양슬기 대표님" && waitGroup("예스24 회신 (수수료 11% 검토, 선입금 조건, AS 문구)") === "회신" && waitGroup("디노 6건 대표님 검토") === "대표님" && waitGroup("계약서 수정본 대표님 확인") === "대표님" && waitGroup("서령 대리님 회신") === "서령 대리님" && wlOne.startsWith("시험이 대리님, 확인 부탁드립니다 (2건)\n- 서류 받기\n- 계약서 날인") && !wlOne.includes("시험삼 과장님") && !wlOne.includes("다시 보기") && !wlOne.includes("[대기목록 시험]")     // 한 사람 것만 복사하면 그 사람께 보낼 모양(PC 와 같음, 사장님 10/22 고르심)
       && waitAskLine({ text: "자료 정리 → 대표님 확정본(번호) 확인 (체결 10/25까지)", steps: ["자료 정리", "대표님 확정본(번호) 확인 (체결 10/25까지)"], step: 1, due: "2026-10-25" }, true) === "- 확정본(번호) 확인 (체결 10/25까지)"
       && waitAskLine({ text: "대표님께 위탁 출고분 매출 처리 시점 확인", steps: ["대표님께 위탁 출고분 매출 처리 시점 확인"], step: 0, due: "2026-10-23" }, true) === "- 위탁 출고분 매출 처리 시점 확인 (~10/23)";
     check("대기 목록 복사(누구별 · 사정 · 다시 볼 날)", wOk, wl.replace(/\n/g, " / ").slice(0, 160));
