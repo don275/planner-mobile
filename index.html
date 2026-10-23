@@ -593,7 +593,7 @@ function startTr() {
 }
 // 날짜순 묶음(PC [날짜순] 과 같음): 0 지남 · 오늘, 1 내일, 2 이번 주, 3 다음 주 이후, 4 디데이 없음
 const later = n => day(new Date(Date.parse(today()) + n * 86400000));
-const upDay = x => x.wait ? (x.waitUntil || "") : x.due;     // 기다리는 일은 다시 볼 날로(PC 와 같음)
+const upDay = x => x.wait ? (x.waitUntil || "9999-12-31") : x.due;     // 날짜 없는 대기는 대기 묶음 맨 아래(PC 와 같음)     // 기다리는 일은 다시 볼 날로(PC 와 같음)
 // 대기 중인 일은 날짜 묶음에 섞지 않고 맨 아래 '대기'(5) — 다시 볼 날이 된 것도 대기 묶음 맨 위(사장님 10/22 '대기중인 게 왜 날짜별 정렬로?', 10/23 '다시 볼 것 뭐야?', PC 와 같음)
 const upBucket = x => { if (x.wait) return 5; const d = upDay(x); return !d ? 4 : d <= today() ? 0 : d === later(1) ? 1 : d <= later(6) ? 2 : 3; };
 // 날짜순 · 날짜 없음 줄: 며칠째 묵었는지(순서 근거). PC 에서 만든 날(created)이 와야 보인다
@@ -2325,7 +2325,14 @@ async function selfTest() {
       const s3r = view().find(x => x.id === "s3"), set = !!s3r && !!s3r.remind && inbox.some(o => o.op === "remind" && o.id === "s3");
       inbox.length = 0; keepInboxR.forEach(o => inbox.push(o)); closeSheet(); opened = ""; render();
       check("폰에서 알림 정하기(월요일 9시 · 보낼 일)", pickOk && !!rbtn && set, "picks=" + pickOk + " btn=" + !!rbtn + " set=" + set);
-    }    { // 다시 볼 날이 된 대기 일은 대기 중에만(오늘 마감 · 날짜 없음에 겹쳐 세지 않음, PC 와 같음 10/23)
+    }    { // 날짜순 대기 묶음: 다시 볼 날이 된 일이 맨 위, 날짜 없이 기다리는 일은 맨 아래(PC 와 같음 — 날짜 없는 대기가 위로 오던 것 10/23)
+      state.todos.push({ id: "wo-a", section: "대기 순서 시험", text: "날짜 없는 대기", steps: ["날짜 없는 대기"], step: 0, due: "", stepDues: [], notes: "", repeat: false, wait: "회신", waitUntil: "" }, { id: "wo-b", section: "대기 순서 시험", text: "오늘 다시 볼 대기", steps: ["오늘 다시 볼 대기"], step: 0, due: "", stepDues: [], notes: "", repeat: false, wait: "회신", waitUntil: today() });
+      tab("날짜순"); await W(150);
+      const ids = [...document.querySelectorAll("#list section.b5 .item")].map(e => e.dataset.id), ia = ids.indexOf("wo-a"), ib = ids.indexOf("wo-b");
+      state.todos = state.todos.filter(x => x.id !== "wo-a" && x.id !== "wo-b"); tab("전체"); await W(100);
+      check("날짜순 대기 묶음: 다시 볼 일 위 · 날짜 없는 대기 아래(폰)", ia >= 0 && ib >= 0 && ib < ia, ids.join(","));
+    }
+    { // 다시 볼 날이 된 대기 일은 대기 중에만(오늘 마감 · 날짜 없음에 겹쳐 세지 않음, PC 와 같음 10/23)
       state.todos.push({ id: "rc-x", section: "겹침 시험", text: "회신 확인", steps: ["회신 확인"], step: 0, due: today(), stepDues: [], notes: "", repeat: false, wait: "회신", waitUntil: today() }, { id: "rc-y", section: "겹침 시험", text: "번역 받기", steps: ["번역 받기"], step: 0, due: "", stepDues: [], notes: "", repeat: false, wait: "번역", waitUntil: today() });
       const inWait = briefMatch("waiting").some(x => x.id === "rc-x") && briefMatch("waiting").some(x => x.id === "rc-y"), dup = briefMatch("today").some(x => x.id === "rc-x") || briefMatch("nodate").some(x => x.id === "rc-y");
       state.todos = state.todos.filter(x => x.id !== "rc-x" && x.id !== "rc-y");
