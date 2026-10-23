@@ -724,7 +724,7 @@ function installSheet() {
   const evs = todayEvents();     // 오늘 구글 캘린더 일정(PC 와 같음): 누르면 일정 탭
   if (evs.length) chips.push(`<button class="bchip team" data-brief="events">오늘 일정 ${evs.length}</button>`);
   // 늘 보이는 것은 지난 마감 · 오늘 마감 · 다시 볼 것 · 대기 중(팀이면 새로 받은 일)만, 나머지(이번 주 디데이 · 날짜 없음 · 대기로 표시할 일 · 소식 · 알림 · 일정 …)는 [+n] 을 누르면 펼침, [접기] 로 다시(사장님 10/22 '위에 너무 창이 많아', PC 와 같음)
-  const MAIN = /data-brief="(late|today|recheck|waiting|team)"|bchip calm/, main = chips.filter(c => MAIN.test(c)), rest = chips.filter(c => !MAIN.test(c));
+  const MAIN = /data-brief="(late|today|nextwork|recheck|waiting|team)"|bchip calm/,     /* 금 · 주말 월요일까지 마감도 늘 보이게(PC 와 같음) */ main = chips.filter(c => MAIN.test(c)), rest = chips.filter(c => !MAIN.test(c));
   const shown = !rest.length ? chips : !briefOpen ? main.concat([`<button class="bchip rolled" data-briefmore aria-label="${T("더")} ${rest.length}">+${rest.length}</button>`]) : chips.concat([`<button class="bchip rolled" data-briefless>${T("접기")}</button>`]);
   return `<div class="brief"><div class="bhead"><b>오늘 ${dayTitle(today()).replace(" · 오늘", "")}</b><button class="bx" data-briefx aria-label="오늘은 숨기기">✕</button></div><div class="bchips">${shown.join("")}</div></div>`;
 }
@@ -2189,7 +2189,7 @@ async function selfTest() {
     }
     { // 오늘 카드(사장님 10/22 '위에 너무 창이 많아'): 지난 마감 · 오늘 마감 · 다시 볼 것 · 대기 중(팀이면 새로 받은 일)만, 나머지는 [+n] — 누르면 다 펼침, [접기] 로 다시 접음(PC 와 같음)
       briefOpen = false; filter = "all"; render(); await W(60);
-      const MAINK = ["late", "today", "recheck", "waiting", "team"];
+      const MAINK = ["late", "today", "nextwork", "recheck", "waiting", "team"];
       const vis = () => [...document.querySelectorAll(".brief .bchip:not([data-briefmore]):not([data-briefless])")];
       const v0 = vis(), more = document.querySelector(".brief [data-briefmore]"), hidden = parseInt((more ? more.textContent : "+0").replace(/[^\d]/g, ""), 10);
       const onlyMain = v0.every(b => MAINK.includes(b.dataset.brief) || b.classList.contains("calm"));
@@ -2198,6 +2198,7 @@ async function selfTest() {
       less && less.click(); await W(60);
       const v2 = vis();
       check("오늘 카드 알약: 중요한 것만 + [+n] 펼침 · 접기", !!more && onlyMain && v0.length >= 2 && hidden >= 1 && v1.length === v0.length + hidden && !!less && v2.length === v0.length && !!document.querySelector(".brief [data-briefmore]"), "v0=" + v0.map(b => b.dataset.brief).join(",") + " hidden=" + hidden + " v1=" + v1.length + " v2=" + v2.length + " less=" + !!less);
+      { const nwOn2 = load("profile", "work") !== "personal" && nextWorkDay(today()) > later(1) && briefMatch("nextwork").length > 0; check("오늘 카드 접혀도 월요일까지 마감 보임(금 · 주말)", !nwOn2 || v0.some(b => b.dataset.brief === "nextwork"), "on=" + nwOn2 + " v0=" + v0.map(b => b.dataset.brief).join(",")); }     // 10/24
       briefOpen = true; render(); await W(40);
     }
     { // 대기로 표시할 일(폰): 알약 → 체크 시트 → 고른 것만 op wait(내일), 옮기면 알약이 사라짐
