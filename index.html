@@ -905,7 +905,7 @@ function render() {
         html += `<div class="more">`;
         const naMap = Object.fromEntries((item.na || []).map(o => [o.s, o.why]));     // 해당 없음으로 넘긴 단계(PC 와 같음)
         if (many) html += `<ul class="steps" data-steps="${esc(item.id)}">` + item.steps.map((s, i) => `<li class="${i in naMap && i < item.step ? "done na" : i < item.step ? "done" : i === item.step ? "now" : ""}"${i >= item.step ? ` data-stepi="${i}"` : ""}><span data-stepname="${i}">${i + 1}. ${esc(s)}</span>${i in naMap && i < item.step ? `<em class="nachip">${T("해당 없음")}${naMap[i] ? " · " + esc(naMap[i]) : ""}</em>` : ""}`
-          + (i >= item.step ? `<button data-stepdue="${i}">${item.stepDues[i] ? "~" + md(item.stepDues[i]) : "마감일"}</button>` : "") + `</li>`
+          + (i >= item.step ? `<button data-stepdue="${i}">${item.stepDues[i] ? "~" + mdw(item.stepDues[i]) : "마감일"}</button>` : "") + `</li>`
           + progRows(item, (item.prog || []).map((q, k) => ({ q, k })).filter(o => o.q.s === i)).map(o => o.more ? `<li class="newsline"><button class="progmore" data-progall="${item.id}">${o.more}</button></li>` : `<li class="newsline"><div class="news${i < item.step ? " old" : ""}" data-prog="${o.k}">${linkify(o.q.t)}</div></li>`).join("")).join("") + `</ul>`;
         if (!many) html += progRows(item, (item.prog || []).map((q, k) => ({ q, k }))).map(o => o.more ? `<button class="progmore" data-progall="${item.id}">${o.more}</button>` : `<div class="news" data-prog="${o.k}">${linkify(o.q.t)}</div>`).join("");     /* 누르면 고치기 · 지우기 */
         if (item.guide) html += `<div class="guide"><b>${ic("book")} ${T("이렇게 한다")}</b>${linkify(item.guide).replace(/\n/g, "<br>")}</div>`;     /* 업무 안내서(PC 와 같음) */
@@ -2374,6 +2374,12 @@ async function selfTest() {
         progAll.delete("pm-x"); query = "소식 1"; render(); await W(80); const n3 = card() ? card().querySelectorAll("[data-prog]").length : -1; query = "";
         state.todos = state.todos.filter(x => x.id !== "pm-x"); opened = ""; progAll.delete("pm-x"); render();
         check("펼친 카드 진행 접기 · 전부 보기", n1 === 5 && !!more && n2 === 8 && n3 === 8, "n1=" + n1 + " more=" + !!more + " n2=" + n2 + " n3=" + n3);
+      }      { // 펼친 카드 단계 마감도 주말이면 요일(~11/7 토, PC 와 같음 10/24)
+        state.todos.push({ id: "sd-x", section: "단계 마감 요일", text: "가 → 나", steps: ["가", "나"], step: 0, due: "", stepDues: ["", "2026-11-07"], notes: "", repeat: false });
+        opened = "sd-x"; filter = "all"; render(); await W(80);
+        const sdb = document.querySelector('.item[data-id="sd-x"] [data-stepdue="1"]'), sdt = sdb ? sdb.textContent : "";
+        state.todos = state.todos.filter(x => x.id !== "sd-x"); opened = ""; render();
+        check("펼친 카드 단계 마감 주말 요일", /11\/7 (토|Sat)/.test(sdt), sdt || "없음");
       }      { const wlS = waitLabel({ wait: "회신", waitUntil: "2026-11-07" }, false), wlM = waitLabel({ wait: "회신", waitUntil: "2026-11-09" }, false); check("폰 다시 볼 날 주말 요일", /11\/7 (토|Sat)/.test(wlS) && !/(월|Mon)/.test(wlM.replace("회신", "")), wlS + " / " + wlM); }     // 10/23
       { const rlS = remindLabel("2026-11-07 09:00"), rlM = remindLabel("2026-11-09 09:00"); check("폰 알림 표시 주말 요일", /11\/7 (토|Sat) 09:00/.test(rlS) && rlM === "11/9 09:00", rlS + " / " + rlM); }     // 10/23
       check("폰 알림 직접 고르기", !!inp && got, "칸=" + !!inp + " 보냄=" + got);
