@@ -208,7 +208,7 @@ body.xl .bchip { font-size: 11.2px; padding: 5px 10px; }     /* 아주 크게: �
   .logbar button { flex: 1 1 auto; white-space: nowrap; padding: 10px 8px; border-radius: 12px; border: 1px solid var(--line, rgba(127,127,127,.25)); background: var(--card); color: var(--text); font-weight: 600; }
   .item:not(.open) .text { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; overflow: hidden; }     /* 아주 긴 이름은 접힌 카드에서 네 줄까지(…), 펼치면 전체(10/23) */
   .item:not(.open) .news { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }     /* 긴 진행 한 줄도 접힌 카드에서 두 줄까지(…) */
-  .rpick { display: flex; gap: 8px; margin: 4px 0; } .rpick input { flex: 1; min-width: 0; } .rtip { color: var(--sub); font-size: 13px; margin: 8px 0 4px; }     /* 알림 창 안내(번역 검사에 들게 .hint 와 따로) */
+  .progmore { border: 0; background: none; color: var(--accent); font: inherit; font-size: 13px; font-weight: 600; padding: 2px 0; cursor: pointer; text-align: left; } .rpick { display: flex; gap: 8px; margin: 4px 0; } .rpick input { flex: 1; min-width: 0; } .rtip { color: var(--sub); font-size: 13px; margin: 8px 0 4px; }     /* 알림 창 안내(번역 검사에 들게 .hint 와 따로) */
   body.xl .wagain { display: none; } body.xl .due.wait { white-space: nowrap; max-width: 100%; } body.xl .due.wait .wwho { display: inline-block; max-width: 3.5em; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }     /* 아주 크게: 대기 알약 「다시 보기」 숨김 · 한 줄, 길면 누구만 …(날짜는 늘 보임) */
   body.xl .logbar { margin: 4px 0 10px; gap: 6px; } body.xl .logbar button { font-size: .8em; padding: 8px 4px; } body.xl #logAdd { flex-basis: 100%; }     /* 아주 크게: 적기는 한 줄 다, 복사 둘은 나란히(세 줄로 첫 화면 반을 차지하던 것 10/23) */
   .sheet label { display: block; font-size: 13px; color: var(--sub); margin: 10px 0 4px; }
@@ -659,6 +659,12 @@ function waitTail(step, x, en) {
   const toks = String(x.wait || "").replace(/\([^)]*\)/g, " ").split(/[ ,·\/]+/).filter(w => w && w !== "대기"), flat = String(step || "").replace(/ /g, "");
   if (!toks.length || toks.filter(w => flat.includes(w)).length < Math.ceil(toks.length * 0.8)) return " · " + x.wait + " 대기" + when;
   return (/대기$/.test(String(step || "").replace(/\s*\([^)]*\)\s*$/, "")) ? "" : " 대기") + when;
+}// 펼친 카드 진행 줄: 한 단계 5줄 넘으면 최근 5줄 + '이전 소식 n줄 더 보기'(누르면 전부, PC 와 같음 10/24)
+const progAll = new Set();
+function progRows(item, list) {
+  if (list.length <= 5 || progAll.has(item.id)) return list;
+  const n = list.length - 5;
+  return [{ more: isEn() ? "… " + n + " earlier updates — show all" : "… 이전 소식 " + n + "줄 더 보기" }].concat(list.slice(-5));
 }function waitLabel(x, html) {
   const w = waitWho(x.wait), who = html ? `<span class="wwho">${esc(w)}</span>` : w;     // 누구는 사용자 자료(번역 안 함)
   const pre = html ? ic("wait") + " " : "";     // 알약에는 시계 선 아이콘, 글(복사 · 알림)에는 아이콘 없이
@@ -899,8 +905,8 @@ function render() {
         const naMap = Object.fromEntries((item.na || []).map(o => [o.s, o.why]));     // 해당 없음으로 넘긴 단계(PC 와 같음)
         if (many) html += `<ul class="steps" data-steps="${esc(item.id)}">` + item.steps.map((s, i) => `<li class="${i in naMap && i < item.step ? "done na" : i < item.step ? "done" : i === item.step ? "now" : ""}"${i >= item.step ? ` data-stepi="${i}"` : ""}><span data-stepname="${i}">${i + 1}. ${esc(s)}</span>${i in naMap && i < item.step ? `<em class="nachip">${T("해당 없음")}${naMap[i] ? " · " + esc(naMap[i]) : ""}</em>` : ""}`
           + (i >= item.step ? `<button data-stepdue="${i}">${item.stepDues[i] ? "~" + md(item.stepDues[i]) : "마감일"}</button>` : "") + `</li>`
-          + (item.prog || []).map((q, k) => ({ q, k })).filter(o => o.q.s === i).map(o => `<li class="newsline"><div class="news${i < item.step ? " old" : ""}" data-prog="${o.k}">${linkify(o.q.t)}</div></li>`).join("")).join("") + `</ul>`;
-        if (!many) html += (item.prog || []).map((q, k) => `<div class="news" data-prog="${k}">${linkify(q.t)}</div>`).join("");     /* 누르면 고치기 · 지우기 */
+          + progRows(item, (item.prog || []).map((q, k) => ({ q, k })).filter(o => o.q.s === i)).map(o => o.more ? `<li class="newsline"><button class="progmore" data-progall="${item.id}">${o.more}</button></li>` : `<li class="newsline"><div class="news${i < item.step ? " old" : ""}" data-prog="${o.k}">${linkify(o.q.t)}</div></li>`).join("")).join("") + `</ul>`;
+        if (!many) html += progRows(item, (item.prog || []).map((q, k) => ({ q, k }))).map(o => o.more ? `<button class="progmore" data-progall="${item.id}">${o.more}</button>` : `<div class="news" data-prog="${o.k}">${linkify(o.q.t)}</div>`).join("");     /* 누르면 고치기 · 지우기 */
         if (item.guide) html += `<div class="guide"><b>${ic("book")} ${T("이렇게 한다")}</b>${linkify(item.guide).replace(/\n/g, "<br>")}</div>`;     /* 업무 안내서(PC 와 같음) */
         if (item.notes) html += `<div class="note">${linkify(item.notes)}</div>`;
         html += `<div class="acts">` + (item.step > 0 ? `<button data-act="back">이전 단계</button>` : "")
@@ -1909,6 +1915,7 @@ $("list").addEventListener("click", e => {
     ask("프로젝트 이름 바꾸기", "프로젝트 이름", v => { if (v !== from) push({ op: "rename", from, to: v.replace(/[\[\]]/g, "").trim() }, "이름을 바꿨습니다"); }, from);
     return;
   }
+  const progMore = e.target.closest("[data-progall]"); if (progMore) { progAll.add(progMore.dataset.progall); render(); return; }     // 이전 소식 전부 보기
   const progLine = e.target.closest("[data-prog]");
   if (progLine && item && !e.target.closest("a")) { editProg(item, Number(progLine.dataset.prog)); return; }
   const stepName = e.target.closest("[data-stepname]");
@@ -2350,7 +2357,16 @@ async function selfTest() {
       const got = inbox.some(o => o.op === "remind" && o.id === "s3" && o.when === "2026-10-28 14:00");
       inbox.length = 0; keepInboxR2.forEach(o => inbox.push(o)); closeSheet(); render();
       check("보고 글 대기 줄 되풀이 없음", waitTail("김중원님 전자서명 대기", { wait: "김중원님 전자서명", waitUntil: "" }, false) === "" && waitTail("대리님 검토", { wait: "회신", waitUntil: "" }, false) === " · 회신 대기", waitTail("김중원님 전자서명 대기", { wait: "김중원님 전자서명", waitUntil: "" }, false));
-      { const wlS = waitLabel({ wait: "회신", waitUntil: "2026-11-07" }, false), wlM = waitLabel({ wait: "회신", waitUntil: "2026-11-09" }, false); check("폰 다시 볼 날 주말 요일", /11\/7 (토|Sat)/.test(wlS) && !/(월|Mon)/.test(wlM.replace("회신", "")), wlS + " / " + wlM); }     // 10/23
+      { // 펼친 카드 진행 5줄 넘으면 접기 · 누르면 전부(10/24)
+        state.todos.push({ id: "pm-x", section: "진행 접기", text: "가 → 나", steps: ["가", "나"], step: 0, due: "", stepDues: [], notes: "", repeat: false, prog: [0, 1, 2, 3, 4, 5, 6, 7].map(i => ({ s: 0, t: "10/24  소식 " + i })) });
+        opened = "pm-x"; filter = "all"; render(); await W(80);
+        const card = () => document.querySelector('.item[data-id="pm-x"]');
+        const n1 = card() ? card().querySelectorAll("[data-prog]").length : -1, more = card() && card().querySelector("[data-progall]");
+        if (more) { more.click(); await W(80); }
+        const n2 = card() ? card().querySelectorAll("[data-prog]").length : -1;
+        state.todos = state.todos.filter(x => x.id !== "pm-x"); opened = ""; progAll.delete("pm-x"); render();
+        check("펼친 카드 진행 접기 · 전부 보기", n1 === 5 && !!more && n2 === 8, "n1=" + n1 + " more=" + !!more + " n2=" + n2);
+      }      { const wlS = waitLabel({ wait: "회신", waitUntil: "2026-11-07" }, false), wlM = waitLabel({ wait: "회신", waitUntil: "2026-11-09" }, false); check("폰 다시 볼 날 주말 요일", /11\/7 (토|Sat)/.test(wlS) && !/(월|Mon)/.test(wlM.replace("회신", "")), wlS + " / " + wlM); }     // 10/23
       { const rlS = remindLabel("2026-11-07 09:00"), rlM = remindLabel("2026-11-09 09:00"); check("폰 알림 표시 주말 요일", /11\/7 (토|Sat) 09:00/.test(rlS) && rlM === "11/9 09:00", rlS + " / " + rlM); }     // 10/23
       check("폰 알림 직접 고르기", !!inp && got, "칸=" + !!inp + " 보냄=" + got);
     }
