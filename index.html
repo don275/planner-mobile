@@ -663,6 +663,7 @@ function waitTail(step, x, en) {
 const progAll = new Set();
 function progRows(item, list) {
   if (list.length <= 5 || progAll.has(item.id)) return list;
+  if (query && list.slice(0, -5).some(o => o.q.t.toLowerCase().includes(String(query).toLowerCase()))) return list;     // 검색한 말이 접힌 이전 소식에 있으면 다 보이게
   const n = list.length - 5;
   return [{ more: isEn() ? "… " + n + " earlier updates — show all" : "… 이전 소식 " + n + "줄 더 보기" }].concat(list.slice(-5));
 }function waitLabel(x, html) {
@@ -2364,8 +2365,9 @@ async function selfTest() {
         const n1 = card() ? card().querySelectorAll("[data-prog]").length : -1, more = card() && card().querySelector("[data-progall]");
         if (more) { more.click(); await W(80); }
         const n2 = card() ? card().querySelectorAll("[data-prog]").length : -1;
+        progAll.delete("pm-x"); query = "소식 1"; render(); await W(80); const n3 = card() ? card().querySelectorAll("[data-prog]").length : -1; query = "";
         state.todos = state.todos.filter(x => x.id !== "pm-x"); opened = ""; progAll.delete("pm-x"); render();
-        check("펼친 카드 진행 접기 · 전부 보기", n1 === 5 && !!more && n2 === 8, "n1=" + n1 + " more=" + !!more + " n2=" + n2);
+        check("펼친 카드 진행 접기 · 전부 보기", n1 === 5 && !!more && n2 === 8 && n3 === 8, "n1=" + n1 + " more=" + !!more + " n2=" + n2 + " n3=" + n3);
       }      { const wlS = waitLabel({ wait: "회신", waitUntil: "2026-11-07" }, false), wlM = waitLabel({ wait: "회신", waitUntil: "2026-11-09" }, false); check("폰 다시 볼 날 주말 요일", /11\/7 (토|Sat)/.test(wlS) && !/(월|Mon)/.test(wlM.replace("회신", "")), wlS + " / " + wlM); }     // 10/23
       { const rlS = remindLabel("2026-11-07 09:00"), rlM = remindLabel("2026-11-09 09:00"); check("폰 알림 표시 주말 요일", /11\/7 (토|Sat) 09:00/.test(rlS) && rlM === "11/9 09:00", rlS + " / " + rlM); }     // 10/23
       check("폰 알림 직접 고르기", !!inp && got, "칸=" + !!inp + " 보냄=" + got);
