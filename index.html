@@ -421,10 +421,10 @@ function view() {
     }
     const item = todos.find(x => x.id === op.id);
     if (!item) continue;
-    if (op.op === "check") { item.wait = ""; if (item.step < item.steps.length - 1) { item.step++; sync(item); const ww = waitStepWho(item.steps[item.step]); if (ww) { item.wait = ww; item.waitUntil = nextWorkday(); item.waitSince = today(); } } else item.gone = true; }     // 다음 단계가 남의 답을 기다리는 단계면 PC 처럼 바로 대기
+    if (op.op === "check") { if (item.wait) item._wb = (item._wb || []).concat([{ s: item.step, w: item.wait, u: item.waitUntil || "", since: item.waitSince || "" }]); item.wait = "";     /* 되돌리면 이 단계 대기를 되살리게(PC WaitBack 과 같음) */ if (item.step < item.steps.length - 1) { item.step++; sync(item); const ww = waitStepWho(item.steps[item.step]); if (ww) { item.wait = ww; item.waitUntil = nextWorkday(); item.waitSince = today(); } } else item.gone = true; }     // 다음 단계가 남의 답을 기다리는 단계면 PC 처럼 바로 대기
     if (op.op === "wait") { item.wait = op.who; item.waitUntil = op.until || ""; item.waitSince = item.waitSince || today(); }
     if (op.op === "unwait") { item.wait = ""; item.waitUntil = ""; }
-    if (op.op === "back" && item.step > 0) { item.step--; sync(item); }
+    if (op.op === "back" && item.step > 0) { item.step--; sync(item); const wb = (item._wb || []).filter(x => x.s === item.step).slice(-1)[0]; item.wait = wb ? wb.w : ""; item.waitUntil = wb ? wb.u : ""; item.waitSince = wb ? wb.since : ""; item._wb = (item._wb || []).filter(x => x.s < item.step); }     // 되돌리면 그 단계의 대기 되살림(PC 와 같음 10/24)
     if (op.op === "note") item.notes = item.notes ? item.notes.trimEnd() + "\n" + op.text : op.text;
     if (op.op === "skip") item.wait = "";
     if (op.op === "skip") { const now = Math.min(item.step, item.steps.length - 1); item.na = [...(item.na || []).filter(o => o.s !== now), { s: now, why: op.reason || "" }]; if (item.step < item.steps.length - 1) { item.step++; sync(item); } else item.gone = true; }
@@ -2380,6 +2380,13 @@ async function selfTest() {
         const sdb = document.querySelector('.item[data-id="sd-x"] [data-stepdue="1"]'), sdt = sdb ? sdb.textContent : "";
         state.todos = state.todos.filter(x => x.id !== "sd-x"); opened = ""; render();
         check("펼친 카드 단계 마감 주말 요일", /11\/7 (토|Sat)/.test(sdt), sdt || "없음");
+      }      { // 끝냈다 되돌리면 그 단계의 대기가 되살아남(PC 와 같음, 10/24)
+        const keepInboxB = inbox.slice();
+        state.todos.push({ id: "wb-x", section: "되살림", text: "가 → 최종 디자인 확인 → 포토북 컨펌", steps: ["가", "최종 디자인 확인", "포토북 컨펌"], step: 1, due: "", stepDues: [], notes: "", repeat: false, wait: "복순살롱 디자인", waitUntil: "2026-10-26", waitSince: "2026-10-22" });
+        push({ op: "check", id: "wb-x" }); push({ op: "back", id: "wb-x" }); await W(60);
+        const wbi = view().find(x => x.id === "wb-x") || {};
+        state.todos = state.todos.filter(x => x.id !== "wb-x"); inbox.length = 0; keepInboxB.forEach(o => inbox.push(o)); render();
+        check("끝냈다 되돌리면 대기 되살림", wbi.step === 1 && wbi.wait === "복순살롱 디자인" && wbi.waitUntil === "2026-10-26", "step=" + wbi.step + " wait=" + wbi.wait);
       }      { const wlS = waitLabel({ wait: "회신", waitUntil: "2026-11-07" }, false), wlM = waitLabel({ wait: "회신", waitUntil: "2026-11-09" }, false); check("폰 다시 볼 날 주말 요일", /11\/7 (토|Sat)/.test(wlS) && !/(월|Mon)/.test(wlM.replace("회신", "")), wlS + " / " + wlM); }     // 10/23
       { const rlS = remindLabel("2026-11-07 09:00"), rlM = remindLabel("2026-11-09 09:00"); check("폰 알림 표시 주말 요일", /11\/7 (토|Sat) 09:00/.test(rlS) && rlM === "11/9 09:00", rlS + " / " + rlM); }     // 10/23
       check("폰 알림 직접 고르기", !!inp && got, "칸=" + !!inp + " 보냄=" + got);
