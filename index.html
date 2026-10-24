@@ -742,7 +742,7 @@ function todayEvents() {
 let briefAt = {}, briefPicked = "";     // 시험: 알약이 마지막으로 고른 할 일(반짝임 표시는 다시 그리면 사라져서)
 function pickBrief(kind) {
   if (kind === "events") { document.querySelector('[data-filter="events"]').click(); return; }
-  const ids = (kind === "nodate" ? briefMatch(kind).sort((a, b) => ageDays(b) - ageDays(a)) : kind === "remind" ? briefMatch(kind).sort((a, b) => (a.remind || "").localeCompare(b.remind || "")) : briefMatch(kind)).map(x => x.id), els =     /* 날짜 없음은 오래 묵은 것부터(PC 와 같음) */ ids.map(id => document.querySelector(`.item[data-id="${CSS.escape(id)}"]`)).filter(Boolean);
+  const ids = (kind === "nodate" ? briefMatch(kind).sort((a, b) => ageDays(b) - ageDays(a)) : kind === "remind" ? briefMatch(kind).sort((a, b) => (a.remind || "").localeCompare(b.remind || "")) : kind === "nextwork" ? briefMatch(kind).sort((a, b) => (a.due || "").localeCompare(b.due || "")) : briefMatch(kind)).map(x => x.id)     /* 월요일까지 마감은 마감 가까운 순(PC 와 같음) */, els =     /* 날짜 없음은 오래 묵은 것부터(PC 와 같음) */ ids.map(id => document.querySelector(`.item[data-id="${CSS.escape(id)}"]`)).filter(Boolean);
   // [오늘] 탭에서 이번 주 디데이 등을 누르면 [전체] 로 바꿔 다시 찾는다(PC 와 같게)
   if (!els.length && filter === "today" && !query) { document.querySelector('[data-filter="all"]').click(); setTimeout(() => pickBrief(kind), 50); return; }
   if (!els.length) { toast("보이는 목록에 없습니다(검색 · 걸러 보기를 풀어 주세요)"); return; }
@@ -2029,6 +2029,12 @@ async function selfTest() {
       const tx0 = bx0 && bx0.closest(".item").querySelector(".text").getBoundingClientRect(), h1 = tx0 && document.elementFromPoint(tx0.left + 1, tx0.top + tx0.height / 2);
       check("동그라미 누르는 자리 넓음(제목은 안 건드림)", !!h0 && (h0 === bx0 || bx0.contains(h0)) && !!h1 && !h1.closest(".box"), r0 ? Math.round(r0.width) + "px + 둘레" : "없음"); }
     { const tc = document.querySelector('[data-brief="today"]'); if (tc && briefMatch("today").length > 1) { briefAt = {}; tc.click(); await W(300); const tt = (document.querySelector(".toast") || {}).textContent || ""; check("알약 누르면 몇 번째 알림", /^1 \/ \d+ · /.test(tt), tt.slice(0, 20)); } }
+    if (nextWorkDay(today()) > later(1)) {     // 금 · 주말: 월요일까지 마감 누르면 마감 가까운 일부터(PC 와 같음, 10/24) — 목록에서 늦은 마감을 먼저 두고 시험
+      state.todos.unshift({ id: "nw-late", section: "가 순서 시험", text: "늦은 마감", steps: ["늦은 마감"], step: 0, due: nextWorkDay(today()), stepDues: [], notes: "", repeat: false }, { id: "nw-early", section: "가 순서 시험", text: "이른 마감", steps: ["이른 마감"], step: 0, due: later(1), stepDues: [], notes: "", repeat: false });
+      filter = "all"; render(); await W(80); briefAt.nextwork = -1; pickBrief("nextwork"); await W(60); const firstPick = briefPicked;
+      state.todos = state.todos.filter(x => x.id !== "nw-late" && x.id !== "nw-early"); render();
+      const nwm = [later(1)]; check("월요일까지 마감 누르면 마감 가까운 일부터", firstPick === "nw-early" || (briefMatch("nextwork").some(x => x.due === later(1) && x.id !== "nw-early") && firstPick !== "nw-late"), "first=" + firstPick);
+    }
     { const nwd = nextWorkDay(today()), nwOn = load("profile", "work") !== "personal" && nwd > later(1), nwc = document.querySelector('[data-brief="nextwork"]'); check("오늘 카드: 금 · 주말 다음 근무일까지 마감", nextWorkDay("2026-10-23") === "2026-10-26" && nextWorkDay("2026-10-21") === "2026-10-22" && (nwOn ? !briefMatch("nextwork").length || (!!nwc && nwc.textContent.endsWith(" " + briefMatch("nextwork").length)) : !nwc), nwc ? nwc.textContent : "없음 " + nwOn); }     // 10/24
     const wkChip = document.querySelector('[data-brief="week"]');
     check("오늘 카드: 이번 주 디데이", !!wkChip && briefMatch("week").every(x => x.due > today()), wkChip ? wkChip.textContent : "없음");
