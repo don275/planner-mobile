@@ -913,7 +913,7 @@ function render() {
         html += `<div class="acts">` + (item.step > 0 ? `<button data-act="back">이전 단계</button>` : "")
           + (many && item.steps.length - item.step >= 2 ? `<button data-act="split">단계 나누기</button>` : "")
           + (state && state.team ? `<button data-act="assign">${item.who ? (isEn() ? "Assigned: " : "맡김: ") + esc(personName(item.who)) : T("맡기기")}</button>` : "")
-          + (datedLines(item.notes).length ? `<button data-act="n2p">${T("메모 → 진행")}</button>` : "")     /* 메모 속 날짜 소식을 진행 한 줄로(PC 와 같음) */
+          + (datedLines(item.notes).length ? `<button data-act="n2p">${T("메모 → 진행")}</button>` : "") + (quotedText(item.notes) ? `<button data-act="notequote">${T("문구 복사")}</button>` : "")     /* 메모 속 따옴표 문구(카톡 초안)만 복사(PC 와 같음 10/26) */     /* 메모 속 날짜 소식을 진행 한 줄로(PC 와 같음) */
           + `<button data-act="skip">${T("해당 없음")}</button>`
           + `<button data-act="wait">${ic("wait")} ${item.wait ? T("대기 변경") : T("대기")}</button>` + (item.wait ? `<button data-act="waitnext">${T("다음 근무일에 다시 보기")}</button><button data-act="unwait">${T("대기 해제")}</button>` : "")     /* 대표님 확인 · 회신 대기(PC 와 같음) */     /* 지금 단계를 하지 않고 넘김(주문 없음 등) */
           + `<button data-act="star">${item.star ? "중요 해제" : "★ 중요"}</button><button data-act="remind">${item.remind ? "알림 변경" : "알림"}</button><button data-act="progress">진행 한 줄</button><button data-act="step">단계 추가</button><button data-act="note">메모 추가</button>`
@@ -1933,6 +1933,7 @@ $("list").addEventListener("click", e => {
   const act = e.target.closest("[data-act]");
   if (act && item) {
     const a = act.dataset.act;
+    if (a === "notequote") { copy(quotedText(item.notes)).then(ok => toast(ok ? T("따옴표 안 문구를 복사했습니다") : T("복사하지 못했습니다"))); return; }
     if (a === "back") push({ op: "back", id }, "'" + item.steps[item.step - 1] + "' 단계로 되돌렸습니다");
     if (a === "note") ask("메모 추가", "메모", v => push({ op: "note", id, text: v }, "메모를 넣었습니다"));
     if (a === "skip") skipSheet(item);
@@ -2390,7 +2391,8 @@ async function selfTest() {
         const wbi = view().find(x => x.id === "wb-x") || {};
         state.todos = state.todos.filter(x => x.id !== "wb-x"); inbox.length = 0; keepInboxB.forEach(o => inbox.push(o)); render();
         check("끝냈다 되돌리면 대기 되살림", wbi.step === 1 && wbi.wait === "복순살롱 디자인" && wbi.waitUntil === "2026-10-26", "step=" + wbi.step + " wait=" + wbi.wait);
-      }      check("진행 한 줄 따옴표 문구 골라내기", quotedText("카톡 문구: \"김중원님 안녕하세요, 신동규입니다.\" 서명되면") === "김중원님 안녕하세요, 신동규입니다." && quotedText("회신 옴") === null && quotedText("문구: “안녕하세요, 이야님. 다시 연락드립니다.”") === "안녕하세요, 이야님. 다시 연락드립니다.", String(quotedText("카톡 문구: \"김중원님 안녕하세요, 신동규입니다.\"")));
+      }      { state.todos.push({ id: "nq-x", section: "메모 문구", text: "제안", steps: ["제안"], step: 0, due: "", stepDues: [], notes: "대표님 제안 카톡 초안: \"대표님, 신보 일정 시안을 만들어 봤습니다.\"", repeat: false }); opened = "nq-x"; filter = "all"; render(); await W(80); const nqb = document.querySelector('.item[data-id="nq-x"] [data-act="notequote"]'); state.todos = state.todos.filter(x => x.id !== "nq-x"); opened = ""; render(); check("메모 속 따옴표 문구 복사 단추", !!nqb, String(!!nqb)); }     // 10/26
+      check("진행 한 줄 따옴표 문구 골라내기", quotedText("카톡 문구: \"김중원님 안녕하세요, 신동규입니다.\" 서명되면") === "김중원님 안녕하세요, 신동규입니다." && quotedText("회신 옴") === null && quotedText("문구: “안녕하세요, 이야님. 다시 연락드립니다.”") === "안녕하세요, 이야님. 다시 연락드립니다.", String(quotedText("카톡 문구: \"김중원님 안녕하세요, 신동규입니다.\"")));
       { const wlS = waitLabel({ wait: "회신", waitUntil: "2026-11-07" }, false), wlM = waitLabel({ wait: "회신", waitUntil: "2026-11-09" }, false); check("폰 다시 볼 날 주말 요일", /11\/7 (토|Sat)/.test(wlS) && !/(월|Mon)/.test(wlM.replace("회신", "")), wlS + " / " + wlM); }     // 10/23
       { const rlS = remindLabel("2026-11-07 09:00"), rlM = remindLabel("2026-11-09 09:00"); check("폰 알림 표시 주말 요일", /11\/7 (토|Sat) 09:00/.test(rlS) && rlM === "11/9 09:00", rlS + " / " + rlM); }     // 10/23
       check("폰 알림 직접 고르기", !!inp && got, "칸=" + !!inp + " 보냄=" + got);
